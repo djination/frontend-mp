@@ -13,7 +13,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:8080/api/auth/login/", { username, password });
+      const res = await axios.post("http://103.23.199.26:8088/api/auth/login/", { username, password });
       login(res.data.access, res.data.refresh);
       navigate("/dashboard");
     } catch (err) {

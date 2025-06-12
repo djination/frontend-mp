@@ -12,7 +12,7 @@ export default function Register() {
     e.preventDefault();
     try {
       // Ganti URL sesuai endpoint backend Anda
-      await axios.post("http://localhost:8080/api/auth/register/", { username, password });
+      await axios.post("http://103.23.199.26:8088/api/auth/register/", { username, password });
       navigate("/login");
     } catch (err) {
       setError("Register gagal. Username mungkin sudah digunakan.");
