@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function Register() {
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,7 +13,7 @@ export default function Register() {
     e.preventDefault();
     try {
       // Ganti URL sesuai endpoint backend Anda
-      await axios.post("https://bc.merahputih-id.com/api/auth/register/", { username, password });
+      await axios.post(`${BASE_URL}/api/auth/register/`, { username, password });
       navigate("/login");
     } catch (err) {
       setError("Register gagal. Username mungkin sudah digunakan.");

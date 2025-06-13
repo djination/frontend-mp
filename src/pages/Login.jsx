@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
 
 export default function Login() {
+  const BASE_URL = import.meta.env.VITE_BASE_URL;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,7 +14,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("https://bc.merahputih-id.com/api/auth/login/", { username, password });
+      const res = await axios.post(`${BASE_URL}/api/auth/login/`, { username, password });
       login(res.data.access, res.data.refresh);
       navigate("/dashboard");
     } catch (err) {
