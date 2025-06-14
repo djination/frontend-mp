@@ -12,6 +12,7 @@ import MasterBusinessType from "./pages/MasterBusinessType";
 import MasterBank from "./pages/MasterBank";
 import MasterAccountBank from "./pages/MasterAccountBank";
 import MasterAccountAddress from "./pages/MasterAccountAddress";
+import ServicesPage from "./pages/Services/ServicesPage";
 
 function App() {
   // const isAuthenticated = !!localStorage.getItem("token"); // contoh sederhana
@@ -36,6 +37,7 @@ function App() {
             <Route path="business-type" element={isAuthenticated ? <MasterBusinessType /> : <Navigate to="/login" />} />
             <Route path="bank" element={isAuthenticated ? <MasterBank /> : <Navigate to="/login" />} />
           </Route>
+          <Route path="/services" element={isAuthenticated ? <ServicesPage /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
         </Routes>
       </div>
