@@ -1,9 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { registerService } from "../api/auth";
 
 export default function Register() {
-  const BASE_URL = import.meta.env.VITE_BASE_URL;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -12,8 +11,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Ganti URL sesuai endpoint backend Anda
-      await axios.post(`${BASE_URL}/api/auth/register/`, { username, password });
+      await registerService({ username, password });
       navigate("/login");
     } catch (err) {
       setError("Register gagal. Username mungkin sudah digunakan.");
