@@ -1,5 +1,5 @@
-import MasterForm from "../components/MasterForm";
-import Table from "../components/Table";
+import MasterForm from "../components/form/FormIndustry";
+import Table from "../components/table/TableIndustry";
 import { useState } from "react";
 
 export default function MasterIndustry() {

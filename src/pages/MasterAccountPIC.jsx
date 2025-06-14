@@ -1,5 +1,5 @@
-import MasterForm from "../components/MasterForm";
-import Table from "../components/Table";
+import MasterForm from "../components/form/FormAccountPIC";
+import Table from "../components/table/TableAccountPIC";
 import { useState } from "react";
 
 export default function MasterAccountPIC() {

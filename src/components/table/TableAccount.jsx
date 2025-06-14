@@ -1,4 +1,4 @@
-export default function Table({ data }) {
+export default function TableAccount({ data }) {
   return (
     <div className="overflow-x-auto bg-white rounded shadow">
       <table className="min-w-full border border-gray-300">

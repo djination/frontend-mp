@@ -1,5 +1,5 @@
-import AccountForm from "../components/AccountForm";
-import Table from "../components/Table";
+import AccountForm from "../components/form/FormAccount";
+import Table from "../components/table/TableAccount";
 import { useState } from "react";
 
 export default function MasterAccount() {

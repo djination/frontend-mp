@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function FormBusinessType({ label, onAdd }) {
+export default function FormBankCategory({ label, onAdd }) {
   const [name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
 

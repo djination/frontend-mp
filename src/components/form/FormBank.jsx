@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function MasterFormBank({ label, onAdd }) {
+export default function FormBank({ label, onAdd }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);

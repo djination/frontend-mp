@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function MasterForm({ label, onAdd }) {
+export default function FormAccountAddress({ label, onAdd }) {
   const [acc_name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
 

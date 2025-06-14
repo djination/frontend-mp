@@ -1,5 +1,5 @@
-import MasterForm from "../components/MasterForm";
-import Table from "../components/Table";
+import MasterForm from "../components/from/FormBankCategory";
+import Table from "../components/table/TableBankCategory";
 import { useState } from "react";
 
 export default function MasterBankCategory() {

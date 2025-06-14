@@ -1,4 +1,4 @@
-export default function Table({ data }) {
+export default function TableBank({ data }) {
   return (
     <div className="overflow-x-auto bg-white rounded shadow">
       <table className="min-w-full">

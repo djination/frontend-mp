@@ -1,37 +1,25 @@
 import { useState } from "react";
 
-export default function AccountForm({ onAdd }) {
+export default function FormPosition({ label, onAdd }) {
   const [name, setName] = useState("");
-  const [type, setType] = useState("");
   const [isActive, setIsActive] = useState(true);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onAdd({ id: Date.now(), name, type, is_active: isActive });
+    onAdd({ id: Date.now(), name, is_active: isActive });
     setName("");
-    setType("");
     setIsActive(true);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow flex gap-4 items-end">
+    <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow flex gap-4 items-end mb-4">
       <div>
-        <label className="block mb-1 font-semibold">Nama Account</label>
+        <label className="block mb-1 font-semibold">{label}</label>
         <input
           type="text"
           className="border rounded px-3 py-2 w-48"
           value={name}
           onChange={e => setName(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label className="block mb-1 font-semibold">Tipe</label>
-        <input
-          type="text"
-          className="border rounded px-3 py-2 w-32"
-          value={type}
-          onChange={e => setType(e.target.value)}
           required
         />
       </div>

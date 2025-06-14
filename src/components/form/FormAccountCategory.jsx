@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function MasterForm({ label, onAdd }) {
+export default function FormAccountCategory({ label, onAdd }) {
   const [name, setName] = useState("");
   const [isActive, setIsActive] = useState(true);
 
