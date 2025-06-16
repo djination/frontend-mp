@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import MasterAccount from "./pages/MasterAccount";
+// import MasterAccount from "./pages/MasterAccount";
 import Sidebar from "./components/Sidebar";
 import { useAuth } from "./components/AuthContext";
 import MasterAccountType from "./pages/MasterAccountType";
@@ -12,7 +12,11 @@ import MasterBusinessType from "./pages/MasterBusinessType";
 import MasterBank from "./pages/MasterBank";
 import MasterAccountBank from "./pages/MasterAccountBank";
 import MasterAccountAddress from "./pages/MasterAccountAddress";
+import MasterAccountPIC from "./pages/MasterAccountPIC";
 import ServicesPage from "./pages/Services/ServicesPage";
+import AccountList from './pages/Account/AccountListPage';
+import AddAccount from './pages/Account/AddAccountPage';
+import EditAccount from './pages/Account/EditAccountPage';
 
 function App() {
   // const isAuthenticated = !!localStorage.getItem("token"); // contoh sederhana
@@ -26,9 +30,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-          <Route path="account" element={isAuthenticated ? <MasterAccount /> : <Navigate to="/login" />} />
+          <Route path="/account" element={isAuthenticated ? <AccountList /> : <Navigate to="/login" />} />
+          <Route path="/account/add" element={isAuthenticated ? <AddAccount /> : <Navigate to="/login" />} />
+          <Route path="/account/edit/:id" element={isAuthenticated ? <EditAccount /> : <Navigate to="/login" />} />
+          {/* <Route path="account" element={isAuthenticated ? <MasterAccount /> : <Navigate to="/login" />} /> */}
           <Route path="account-address" element={isAuthenticated ? <MasterAccountAddress /> : <Navigate to="/login" />} />
           <Route path="account-bank" element={isAuthenticated ? <MasterAccountBank /> : <Navigate to="/login" />} />
+          <Route path="account-pic" element={isAuthenticated ? <MasterAccountPIC /> : <Navigate to="/login" />} />
           {/* Group all master routes under /master */}
           <Route path="/parameter">
             <Route path="account-type" element={isAuthenticated ? <MasterAccountType /> : <Navigate to="/login" />} />
