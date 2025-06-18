@@ -16,6 +16,7 @@ import MasterBankCategory from "./pages/Parameter/MasterBankCategory";
 import MasterPosition from "./pages/Parameter/MasterPosition";
 import MasterAccountType from "./pages/Parameter/MasterAccountType";
 import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
+import SettlementMethodPage from "./pages/SettlementMethod/SettlementMethodPage";
 
 function App() {
   // const isAuthenticated = !!localStorage.getItem("token"); // contoh sederhana
@@ -49,6 +50,7 @@ function App() {
             <Route path="account-category" element={isAuthenticated ? <MasterAccountCategory /> : <Navigate to="/login" />} />
           </Route>
           <Route path="/services" element={isAuthenticated ? <ServicesPage /> : <Navigate to="/login" />} />
+          <Route path="/settlement-methods" element={isAuthenticated ? <SettlementMethodPage /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
         </Routes>
       </div>
