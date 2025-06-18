@@ -1,0 +1,275 @@
+/* src/pages/SettlementMethod/styles.css */
+:root {
+    --primary-color: #4a6bdf;
+    --danger-color: #e74c3c;
+    --border-color: #e0e0e0;
+    --text-color: #333;
+    --text-light: #666;
+    --background-light: #f8f9fa;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .settlement-container {
+    display: flex;
+    min-height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+  }
+  
+  /* Tabs */
+  .tabs {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    background: white;
+    border-right: 1px solid var(--border-color);
+    padding: 1rem 0;
+  }
+  
+  .tab {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: all 0.2s;
+  }
+  
+  .tab:hover {
+    background: var(--background-light);
+  }
+  
+  .tab.active {
+    color: var(--primary-color);
+    border-right: 3px solid var(--primary-color);
+    background: #f0f4ff;
+  }
+  
+  .tab-icon {
+    margin-right: 0.75rem;
+    font-size: 1.1em;
+  }
+  
+  /* Content */
+  .content {
+    flex: 1;
+    padding: 1.5rem;
+    background: white;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .add-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .add-button:hover {
+    opacity: 0.9;
+  }
+  
+  /* Table */
+  .method-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    box-shadow: var(--shadow);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .method-table th,
+  .method-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .method-table th {
+    background: var(--background-light);
+    font-weight: 600;
+    color: var(--text-color);
+  }
+  
+  .method-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .method-table tr:hover {
+    background: #f8f9fa;
+  }
+  
+  /* Actions */
+  .actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.25rem;
+  }
+  
+  .icon-button.edit {
+    color: var(--primary-color);
+  }
+  
+  .icon-button.delete {
+    color: var(--danger-color);
+  }
+  
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal {
+    background: white;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
+  }
+  
+  /* Form */
+  .form {
+    padding: 1.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .cancel-button,
+  .submit-button {
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .cancel-button {
+    background: white;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+  }
+  
+  .submit-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+  }
+  
+  /* Loading and Error States */
+  .loading,
+  .error,
+  .no-data {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+  }
+  
+  .error {
+    color: var(--danger-color);
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .settlement-container {
+      flex-direction: column;
+    }
+  
+    .tabs {
+      flex-direction: row;
+      width: 100%;
+      overflow-x: auto;
+      padding: 0;
+    }
+  
+    .tab {
+      white-space: nowrap;
+      padding: 1rem;
+      border-bottom: 3px solid transparent;
+    }
+  
+    .tab.active {
+      border-right: none;
+      border-bottom: 3px solid var(--primary-color);
+    }
+  
+    .modal {
+      width: 95%;
+      margin: 0 1rem;
+    }
+  }

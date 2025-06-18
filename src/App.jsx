@@ -13,6 +13,7 @@ import MasterBank from "./pages/MasterBank";
 import MasterAccountBank from "./pages/MasterAccountBank";
 import MasterAccountAddress from "./pages/MasterAccountAddress";
 import ServicesPage from "./pages/Services/ServicesPage";
+import SettlementMethodPage from "./pages/SettlementMethod/SettlementMethodPage";
 
 function App() {
   // const isAuthenticated = !!localStorage.getItem("token"); // contoh sederhana
@@ -38,6 +39,7 @@ function App() {
             <Route path="bank" element={isAuthenticated ? <MasterBank /> : <Navigate to="/login" />} />
           </Route>
           <Route path="/services" element={isAuthenticated ? <ServicesPage /> : <Navigate to="/login" />} />
+          <Route path="/settlement-methods" element={isAuthenticated ? <SettlementMethodPage /> : <Navigate to="/login" />} />
           <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
         </Routes>
       </div>
