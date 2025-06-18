@@ -4,12 +4,12 @@ import {
   Select, message 
 } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { getPositions } from '../../../api/accountPositionApi';
-import { getAccountPICById, updateAccountPIC, createAccountPIC, deleteAccountPIC } from '../../../api/accountPICApi';
+import { getPositions } from '../../../api/positionApi';
+import { getAccountPICById, getAccountPICs } from '../../../api/accountPICApi';
 
 import PropTypes from 'prop-types';
 
-const AccountPICSForm = ({ 
+const AccountPICForm = ({ 
   pics = [], 
   onChange, 
   accountId,
@@ -73,112 +73,40 @@ const AccountPICSForm = ({
     form.resetFields(); // Pastikan form direset saat dibatalkan
   };
 
-  // Di dalam handleSave, perbaiki format data yang dikirim
-
+  // Perbaiki handleSave untuk menangani pembuatan PIC dengan benar
   const handleSave = () => {
     form.validateFields()
-      .then(async (values) => {
-        try {
-          setLoading(true);
-          console.log('Form validated values:', values);
-          
-          // Pastikan data dalam format yang tepat
-          // Jika nilai kosong, jangan sertakan dalam permintaan
-          const picData = {
-            name: values.name,
-            email: values.email,
-            phone_no: values.phone_no
+      .then((values) => {
+        setLoading(true);
+        const picData = {
+          name: values.name,
+          email: values.email,
+          phone_no: values.phone_no,
+          position_id: values.position_id,
+        };
+        if (editingPIC) {
+          const updatedPICs = localPICs.map(p =>
+            (p.id === editingPIC.id || p.tempId === editingPIC.tempId)
+              ? { ...p, ...picData }
+              : p
+          );
+          setLocalPICs(updatedPICs);
+          onChange(updatedPICs);
+        } else {
+          const newPIC = {
+            ...picData,
+            tempId: `temp-${Date.now()}`
           };
-          
-          // Hanya tambahkan position_id jika ada nilainya
-          if (values.position_id) {
-            picData.position_id = values.position_id;
-          }
-          
-          console.log('Prepared PIC data:', picData);
-
-          if (isEdit && accountId) {
-            if (editingPIC?.id) {
-              // Update existing PIC
-              console.log(`Updating PIC: ${editingPIC.id} for account: ${accountId}`);
-              const response = await updateAccountPIC(accountId, editingPIC.id, picData);
-              console.log("Update PIC response:", response);
-              message.success('PIC updated successfully');
-              
-              // Update local state
-              const updatedPICs = localPICs.map(p => 
-              p.id === editingPIC.id ? {
-                ...p,
-                ...picData,
-                position: positions.find(pos => pos.id === picData.position_id) || p.position
-              } : p
-              );
-              setLocalPICs(updatedPICs);
-              onChange(updatedPICs);
-              
-              // Close modal on success - add these two lines
-              setVisible(false);
-              form.resetFields();
-            } else {
-              // Create new PIC
-              console.log(`Creating new PIC for account: ${accountId}`);
-              try {
-                // Ensure accountId is included directly in the function call
-                const finalAccountId = String(accountId); // Ensure it's a string
-                
-                console.log('Account ID type:', typeof finalAccountId);
-                console.log('Account ID value:', finalAccountId);
-                
-                const response = await createAccountPIC(finalAccountId, picData);
-                console.log("Create PIC response:", response);
-                message.success('PIC added successfully');
-                
-                // Add to local state if successful
-                if (response && response.data) {
-                  const newPIC = {
-                    ...picData,
-                    id: response.data.id || Date.now(),
-                    position: positions.find(pos => pos.id === picData.position_id) || null
-                  };
-                  
-                  const updatedPICs = [...localPICs, newPIC];
-                  setLocalPICs(updatedPICs);
-                  onChange(updatedPICs);
-                  
-                  // Close modal on success
-                  setVisible(false);
-                  form.resetFields();
-                }
-              } catch (createError) {
-                console.error('Detailed error creating PIC:', createError);
-                
-                if (createError.response?.data?.message) {
-                  message.error(`Error: ${createError.response.data.message}`);
-                } else if (createError.response?.data?.error) {
-                  message.error(`Error: ${createError.response.data.error}`);
-                } else {
-                  message.error('Failed to create PIC. Please check your data and try again.');
-                }
-              }
-            }
-          } else {
-            // For new account (not saved to backend yet)
-            // Handle local state updates...
-            // ...
-            
-            // Close modal for local operations
-            setVisible(false);
-            form.resetFields();
-          }
-          
-        } catch (error) {
-          console.error('Error in save process:', error);
-        } finally {
-          setLoading(false);
+          const updatedPICs = [...localPICs, newPIC];
+          setLocalPICs(updatedPICs);
+          onChange(updatedPICs);
         }
+        setVisible(false);
+        form.resetFields();
+        setLoading(false);
       })
       .catch(info => {
-        console.log('Form validation failed:', info);
+        message.error('Failed to save PIC');
       });
   };
 
@@ -188,7 +116,7 @@ const AccountPICSForm = ({
     
     try {
       console.log("Fetching updated PICs for account:", accountId);
-      const response = await getAccountPICById(accountId);
+      const response = await getAccountPICs(accountId);
       console.log("Updated PICs response:", response);
       
       // Determine the correct data path based on the response structure
@@ -213,33 +141,14 @@ const AccountPICSForm = ({
     }
   };
 
-  const handleDelete = async (pic) => {
-    if (isEdit && accountId && pic.id) {
-      try {
-        console.log(`Deleting PIC: ${pic.id} from account: ${accountId}`);
-        await deleteAccountPIC(accountId, pic.id);
-        message.success('PIC deleted successfully');
-        
-        // Update local state immediately
-        const updatedPICs = localPICs.filter(p => p.id !== pic.id);
-        setLocalPICs(updatedPICs);
-        onChange(updatedPICs);
-        
-        // Refresh from server in the background
-        fetchUpdatedPICs();
-      } catch (error) {
-        console.error('Error deleting PIC:', error);
-        message.error('Failed to delete PIC');
-      }
-    } else {
-      // For new account, just update local state
-      const updatedPICs = localPICs.filter(p => 
-        p !== pic && p.tempId !== pic.tempId
-      );
-      setLocalPICs(updatedPICs);
-      onChange(updatedPICs);
-    }
+  const handleDelete = (pic) => {
+    const updatedPICs = localPICs.filter(p =>
+      p !== pic && p.tempId !== pic.tempId && p.id !== pic.id
+    );
+    setLocalPICs(updatedPICs);
+    onChange(updatedPICs);
   };
+  
 
   const columns = [
     {
@@ -252,14 +161,17 @@ const AccountPICSForm = ({
       dataIndex: ['position', 'name'],
       key: 'position',
       render: (_, record) => {
-        if (record.position?.name) return record.position.name;
-        
-        // If position_id exists, try to get name from positions
+        // Ambil langsung dari record.position.name jika ada (sesuai response getAccountPICs)
+        if (record.position && record.position.name) {
+          console.log("Rendering position from record:", record.position.name);
+          console.log("Rendering position from record:", record.position);
+          return record.position.name;
+        }
+        // Fallback: cari dari positions jika hanya ada position_id
         if (record.position_id) {
           const position = positions.find(pos => pos.id === record.position_id);
           return position?.name || 'N/A';
         }
-        
         return 'N/A';
       }
     },
@@ -384,11 +296,11 @@ const AccountPICSForm = ({
   );
 };
 
-AccountPICSForm.propTypes = {
+AccountPICForm.propTypes = {
   pics: PropTypes.array,
   onChange: PropTypes.func.isRequired,
   accountId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   isEdit: PropTypes.bool.isRequired,
 };
 
-export default AccountPICSForm;
+export default AccountPICForm;

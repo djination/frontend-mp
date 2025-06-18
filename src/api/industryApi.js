@@ -1,8 +1,8 @@
 import axiosInstance from "../config/axiosInstance";
 
-export const getTypeOfBusiness = async (params = {}) => {
+export const getIndustries = async (params = {}) => {
   try {
-    const response = await axiosInstance.get('/type-of-business', { params });
+    const response = await axiosInstance.get('/industry', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching account categories:', error);
@@ -10,9 +10,9 @@ export const getTypeOfBusiness = async (params = {}) => {
   }
 };
 
-export const getTypeOfBusinessById = async (id) => {
+export const getIndustryById = async (id) => {
   try {
-    const response = await axiosInstance.get(`/type-of-business/${id}`);
+    const response = await axiosInstance.get(`/industry/${id}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching account category with ID ${id}:`, error);
@@ -20,9 +20,9 @@ export const getTypeOfBusinessById = async (id) => {
   }
 };
 
-export const createTypeOfBusiness = async (typeOfBusiness) => {
+export const createIndustry = async (industry) => {
   try {
-    const response = await axiosInstance.post('/type-of-business', typeOfBusiness);
+    const response = await axiosInstance.post('/industry', industry);
     return response.data;
   } catch (error) {
     console.error('Error creating account category:', error);
@@ -30,9 +30,9 @@ export const createTypeOfBusiness = async (typeOfBusiness) => {
   }
 };
 
-export const updateTypeOfBusiness = async (id, typeOfBusiness) => {
+export const updateIndustry = async (id, industry) => {
   try {
-    const response = await axiosInstance.patch(`/type-of-business/${id}`, typeOfBusiness);
+    const response = await axiosInstance.patch(`/industry/${id}`, industry);
     return response.data;
   } catch (error) {
     console.error(`Error updating account category with ID ${id}:`, error);
@@ -40,9 +40,9 @@ export const updateTypeOfBusiness = async (id, typeOfBusiness) => {
   }
 };
 
-export const deleteTypeOfBusiness = async (id) => {
+export const deleteIndustry = async (id) => {
   try {
-    await axiosInstance.delete(`/type-of-business/${id}`);
+    await axiosInstance.delete(`/industry/${id}`);
     return { success: true };
   } catch (error) {
     console.error(`Error deleting account category with ID ${id}:`, error);

@@ -42,51 +42,21 @@ export default function Sidebar() {
           Dashboard
         </Link>
         
+        <Link 
+          to="/account" 
+          className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/account') ? 'bg-blue-800' : ''}`}
+        >
+          Account
+        </Link>
+        
+        <Link 
+          to="/services" 
+          className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/services') ? 'bg-blue-800' : ''}`}
+        >
+          Services
+        </Link>
+
         {/* Account Menu Group */}
-        <div>
-          <button
-            type="button"
-            className={`w-full flex justify-between items-center py-2 px-4 rounded hover:bg-blue-800 focus:outline-none ${isActive('/account') ? 'bg-blue-800' : ''}`}
-            onClick={() => setOpenAccount(!openAccount)}
-          >
-            <span>Account</span>
-            <span>{openAccount ? "▲" : "▼"}</span>
-          </button>
-          {openAccount && (
-            <div className="ml-4 mt-2 space-y-1">
-              <Link 
-                to="/account" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${location.pathname === '/account' ? 'bg-blue-700' : ''}`}
-              >
-                Account List
-              </Link>
-              {/* <Link 
-                to="/account/add" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${location.pathname === '/account/add' ? 'bg-blue-700' : ''}`}
-              > 
-                Add Account
-              </Link> */}
-              <Link 
-                to="/account-address" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/account-address') ? 'bg-blue-700' : ''}`}
-              >
-                Account Address
-              </Link>
-              <Link 
-                to="/account-bank" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/account-bank') ? 'bg-blue-700' : ''}`}
-              >
-                Account Bank
-              </Link>
-              <Link 
-                to="/account-pic" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/account-pic') ? 'bg-blue-700' : ''}`}
-              >
-                Account PIC
-              </Link>
-            </div>
-          )}
-        </div>
 
         {/* Parameter Menu Group */}
         <div>
@@ -100,18 +70,6 @@ export default function Sidebar() {
           </button>
           {openParameter && (
             <div className="ml-4 mt-2 space-y-1">
-              <Link 
-                to="/parameter/account-type" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/account-type') ? 'bg-blue-700' : ''}`}
-              >
-                Account Type
-              </Link>
-              <Link 
-                to="/parameter/account-category" 
-                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/account-category') ? 'bg-blue-700' : ''}`}
-              >
-                Account Category
-              </Link>
               <Link 
                 to="/parameter/industry" 
                 className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/industry') ? 'bg-blue-700' : ''}`}
@@ -130,16 +88,33 @@ export default function Sidebar() {
               >
                 Bank
               </Link>
+              <Link 
+                to="/parameter/bank-category" 
+                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/bank-category') ? 'bg-blue-700' : ''}`}
+              >
+                Bank Category
+              </Link>
+              <Link 
+                to="/parameter/position" 
+                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/position') ? 'bg-blue-700' : ''}`}
+              >
+                Position
+              </Link>
+              <Link 
+                to="/parameter/account-type" 
+                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/account-type') ? 'bg-blue-700' : ''}`}
+              >
+                Account Type
+              </Link>
+              <Link 
+                to="/parameter/account-category" 
+                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/account-category') ? 'bg-blue-700' : ''}`}
+              >
+                Account Category
+              </Link>
             </div>
           )}
         </div>
-        
-        <Link 
-          to="/services" 
-          className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/services') ? 'bg-blue-800' : ''}`}
-        >
-          Services
-        </Link>
       </nav>
       <div className="p-4 border-t border-blue-800">
         <button

@@ -1,24 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Form, Input, Select, Space, Card, 
-  message, Tooltip, Popconfirm, Pagination
+  message, Tooltip, Popconfirm, Switch, Modal
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 
 // Import API yang sudah dibuat
-import { getAccounts, deleteAccount } from '../../api/accountApi';
-import { getAccountCategories } from '../../api/accountCategoryApi';
-import { getAccountTypes } from '../../api/accountTypeApi';
+import { getBanks, createBank, updateBank, deleteBank } from '../../api/bankApi';
 
-const AccountList = () => {
+const MasterBank = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [accountCategories, setAccountCategories] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
   const [form] = Form.useForm();
-  const navigate = useNavigate();
-  const categorySelectRef = useRef(null);
+  const [editForm] = Form.useForm();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -27,44 +23,12 @@ const AccountList = () => {
     total: 0
   });
 
-  // Fetch initial data and lookup values
+  // Fetch initial data
   useEffect(() => {
-    fetchAccountCategories();
-    fetchAccountTypes();
-    fetchAccounts();
+    fetchBanks();
   }, []);
 
-  const fetchAccountCategories = async () => {
-    try {
-      const response = await getAccountCategories();
-      if (response && response.data) {
-        setAccountCategories(response.data);
-      } else {
-        setAccountCategories([]);
-      }
-    } catch (error) {
-      message.error('Failed to fetch account categories');
-      console.error(error);
-      setAccountCategories([]);
-    }
-  };
-
-  const fetchAccountTypes = async () => {
-    try {
-      const response = await getAccountTypes();
-      if (response && response.data) {
-        setAccountTypes(response.data);
-      } else {
-        setAccountTypes([]);
-      }
-    } catch (error) {
-      message.error('Failed to fetch account types');
-      console.error(error);
-      setAccountTypes([]);
-    }
-  };
-
-  const fetchAccounts = async (params = {}) => {
+  const fetchBanks = async (params = {}) => {
     setLoading(true);
     try {
       // Add pagination parameters to the request
@@ -74,7 +38,7 @@ const AccountList = () => {
         ...params
       };
       
-      const response = await getAccounts(queryParams);
+      const response = await getBanks(queryParams);
       
       if (response && response.data) {
         setData(response.data);
@@ -100,7 +64,7 @@ const AccountList = () => {
         });
       }
     } catch (error) {
-      message.error('Failed to fetch accounts');
+      message.error('Failed to fetch banks');
       console.error(error);
       setData([]);
     } finally {
@@ -114,12 +78,12 @@ const AccountList = () => {
       ...pagination,
       current: 1,
     });
-    fetchAccounts(values);
+    fetchBanks(values);
   };
 
   const handleTableChange = (pagination, filters, sorter) => {
     setPagination(pagination);
-    fetchAccounts({
+    fetchBanks({
       ...form.getFieldsValue(),
       page: pagination.current,
       limit: pagination.pageSize,
@@ -130,58 +94,69 @@ const AccountList = () => {
   };
 
   const handleAdd = () => {
-    navigate('/account/add');
+    setEditingRecord(null);
+    editForm.resetFields();
+    setModalVisible(true);
   };
 
-  const handleEdit = (id) => {
-    navigate(`/account/edit/${id}`);
+  const handleEdit = (record) => {
+    setEditingRecord(record);
+    editForm.setFieldsValue({
+      name: record.name,
+      description: record.description,
+      is_active: record.is_active,
+    });
+    setModalVisible(true);
   };
 
   const handleDelete = async (id) => {
     try {
-      await deleteAccount(id);
-      message.success('Account deleted successfully');
-      fetchAccounts(form.getFieldsValue());
+      await deleteBank(id);
+      message.success('Bank deleted successfully');
+      fetchBanks(form.getFieldsValue());
     } catch (error) {
-      message.error('Failed to delete account');
+      message.error('Failed to delete bank');
+      console.error(error);
+    }
+  };
+
+  const handleModalSubmit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      
+      if (editingRecord) {
+        // Update existing bank
+        await updateBank(editingRecord.id, values);
+        message.success('Bank updated successfully');
+      } else {
+        // Create new bank
+        await createBank(values);
+        message.success('Bank created successfully');
+      }
+      
+      setModalVisible(false);
+      fetchBanks(form.getFieldsValue());
+    } catch (error) {
+      if (error.errorFields) {
+        // Form validation error, handled by form itself
+        return;
+      }
+      message.error('Failed to save bank');
       console.error(error);
     }
   };
 
   const columns = [
     {
-      title: 'Account No',
-      dataIndex: 'account_no',
-      key: 'account_no',
-      sorter: true,
-    },
-    {
-      title: 'Name',
+      title: 'Bank Name',
       dataIndex: 'name',
       key: 'name',
       sorter: true,
     },
     {
-      title: 'Category',
-      dataIndex: ['account_category', 'name'],
-      key: 'account_category',
-      render: (text, record) => 
-        record.account_category ? record.account_category.name : 'N/A',
-      filters: accountCategories.map(cat => ({
-        text: cat.name,
-        value: cat.id,
-      })),
-    },
-    {
-      title: 'Type',
-      dataIndex: ['account_type', 'name'],
-      key: 'account_type',
-      render: (text, record) => 
-        record.account_type ? record.account_type.name : 'N/A',
-      filters: accountTypes.map(type => ({
-        text: type.name,
-        value: type.id,
-      })),
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
     },
     {
       title: 'Status',
@@ -205,11 +180,11 @@ const AccountList = () => {
           <Tooltip title="Edit">
             <Button 
               icon={<EditOutlined />} 
-              onClick={() => handleEdit(record.id)} 
+              onClick={() => handleEdit(record)} 
             />
           </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this account?"
+            title="Are you sure you want to delete this bank?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
@@ -223,7 +198,7 @@ const AccountList = () => {
 
   return (
     <div>
-      <Card title="Account Management">
+      <Card title="Master Bank">
         <Form
           form={form}
           layout="horizontal"
@@ -231,36 +206,19 @@ const AccountList = () => {
           style={{ marginBottom: 20 }}
         >
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Form.Item name="account_no" label="Account No">
-              <Input placeholder="Search by account number" />
+            <Form.Item name="name" label="Bank Name">
+              <Input placeholder="Search by bank name" />
             </Form.Item>
             
-            <Form.Item name="name" label="Name">
-              <Input placeholder="Search by name" />
-            </Form.Item>
-            
-            <Form.Item name="account_category_id" label="Category">
+            <Form.Item name="is_active" label="Status">
               <Select 
-                ref={categorySelectRef}
-                placeholder="Select category"
+                placeholder="Select status"
                 allowClear
                 style={{ width: 200 }}
-                options={accountCategories?.map(cat => ({
-                  value: cat.id,
-                  label: cat.name
-                })) || []}
-              />
-            </Form.Item>
-            
-            <Form.Item name="account_type_id" label="Type">
-              <Select 
-                placeholder="Select type"
-                allowClear
-                style={{ width: 200 }}
-                options={accountTypes?.map(type => ({
-                  value: type.id,
-                  label: type.name
-                })) || []}
+                options={[
+                  { value: true, label: 'Active' },
+                  { value: false, label: 'Inactive' },
+                ]}
               />
             </Form.Item>
             
@@ -278,7 +236,7 @@ const AccountList = () => {
                   icon={<PlusOutlined />}
                   onClick={handleAdd}
                 >
-                  Add Account
+                  Add Bank
                 </Button>
               </Space>
             </Form.Item>
@@ -294,8 +252,50 @@ const AccountList = () => {
           onChange={handleTableChange}
         />
       </Card>
+
+      {/* Add/Edit Modal */}
+      <Modal
+        title={editingRecord ? 'Edit Bank' : 'Add New Bank'}
+        open={modalVisible}
+        onOk={handleModalSubmit}
+        onCancel={() => setModalVisible(false)}
+        okText={editingRecord ? 'Update' : 'Create'}
+        confirmLoading={loading}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+        >
+          <Form.Item
+            name="name"
+            label="Bank Name"
+            rules={[{ required: true, message: 'Please enter bank name' }]}
+          >
+            <Input placeholder="Enter bank name" />
+          </Form.Item>
+          
+          <Form.Item
+            name="description"
+            label="Description"
+          >
+            <Input.TextArea 
+              rows={4} 
+              placeholder="Enter description"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="is_active"
+            label="Status"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default AccountList;
+export default MasterBank;

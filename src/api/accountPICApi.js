@@ -20,18 +20,13 @@ export const getAccountPICById = async (accountId, picId) => {
   }
 };
 
-export const createAccountPIC = async (accountId, picData) => {
+export const createAccountPIC = async (picData) => {
   try {
     // Log the exact data being sent
-    console.log('Creating PIC with data:', JSON.stringify({ 
-      ...picData, 
-      account_id: accountId 
-    }));
+    console.log('Creating PIC with data:', JSON.stringify(picData));
     
-    const response = await axiosInstance.post('/account-pic', {
-      ...picData,
-      account_id: accountId
-    });
+    // Kirim data langsung tanpa modifikasi tambahan
+    const response = await axiosInstance.post('/account-pic', picData);
     return response.data;
   } catch (error) {
     console.error('Error creating Account pic:', error);
@@ -49,16 +44,16 @@ export const createAccountPIC = async (accountId, picData) => {
   }
 };
 
-export const updateAccountPIC = async (accountId, picId, picData) => {
+export const updateAccountPIC = async (picId, picData) => {
   try {
     console.log('Updating PIC with data:', JSON.stringify({ 
       ...picData, 
-      account_id: accountId 
+      // account_id: accountId 
     }));
     
     const response = await axiosInstance.patch(`/account-pic/${picId}`, {
       ...picData,
-      account_id: accountId
+      // account_id: accountId
     });
     return response.data;
   } catch (error) {

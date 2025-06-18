@@ -1,24 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Form, Input, Select, Space, Card, 
-  message, Tooltip, Popconfirm, Pagination
+  message, Tooltip, Popconfirm, Switch, Modal
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 
-// Import API yang sudah dibuat
-import { getAccounts, deleteAccount } from '../../api/accountApi';
-import { getAccountCategories } from '../../api/accountCategoryApi';
-import { getAccountTypes } from '../../api/accountTypeApi';
+// Import API
+import { getBusinessTypes, createBusinessType, updateBusinessType, deleteBusinessType } from '../../api/businessTypeApi';
 
-const AccountList = () => {
+const MasterBusinessType = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [accountCategories, setAccountCategories] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
   const [form] = Form.useForm();
-  const navigate = useNavigate();
-  const categorySelectRef = useRef(null);
+  const [editForm] = Form.useForm();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -27,66 +23,31 @@ const AccountList = () => {
     total: 0
   });
 
-  // Fetch initial data and lookup values
+  // Fetch initial data
   useEffect(() => {
-    fetchAccountCategories();
-    fetchAccountTypes();
-    fetchAccounts();
+    fetchBusinessTypes();
   }, []);
 
-  const fetchAccountCategories = async () => {
-    try {
-      const response = await getAccountCategories();
-      if (response && response.data) {
-        setAccountCategories(response.data);
-      } else {
-        setAccountCategories([]);
-      }
-    } catch (error) {
-      message.error('Failed to fetch account categories');
-      console.error(error);
-      setAccountCategories([]);
-    }
-  };
-
-  const fetchAccountTypes = async () => {
-    try {
-      const response = await getAccountTypes();
-      if (response && response.data) {
-        setAccountTypes(response.data);
-      } else {
-        setAccountTypes([]);
-      }
-    } catch (error) {
-      message.error('Failed to fetch account types');
-      console.error(error);
-      setAccountTypes([]);
-    }
-  };
-
-  const fetchAccounts = async (params = {}) => {
+  const fetchBusinessTypes = async (params = {}) => {
     setLoading(true);
     try {
-      // Add pagination parameters to the request
       const queryParams = {
         page: pagination.current,
         limit: pagination.pageSize,
         ...params
       };
       
-      const response = await getAccounts(queryParams);
+      const response = await getBusinessTypes(queryParams);
       
       if (response && response.data) {
         setData(response.data);
         
-        // Update pagination info if available from backend
         if (response.meta) {
           setPagination({
             ...pagination,
             total: response.meta.total || response.data.length,
           });
         } else {
-          // If backend doesn't provide meta info, just use the data length
           setPagination({
             ...pagination,
             total: response.data.length,
@@ -100,7 +61,7 @@ const AccountList = () => {
         });
       }
     } catch (error) {
-      message.error('Failed to fetch accounts');
+      message.error('Failed to fetch business types');
       console.error(error);
       setData([]);
     } finally {
@@ -109,17 +70,16 @@ const AccountList = () => {
   };
 
   const handleSearch = (values) => {
-    // Reset pagination to page 1 when searching
     setPagination({
       ...pagination,
       current: 1,
     });
-    fetchAccounts(values);
+    fetchBusinessTypes(values);
   };
 
   const handleTableChange = (pagination, filters, sorter) => {
     setPagination(pagination);
-    fetchAccounts({
+    fetchBusinessTypes({
       ...form.getFieldsValue(),
       page: pagination.current,
       limit: pagination.pageSize,
@@ -130,31 +90,56 @@ const AccountList = () => {
   };
 
   const handleAdd = () => {
-    navigate('/account/add');
+    setEditingRecord(null);
+    editForm.resetFields();
+    setModalVisible(true);
   };
 
-  const handleEdit = (id) => {
-    navigate(`/account/edit/${id}`);
+  const handleEdit = (record) => {
+    setEditingRecord(record);
+    editForm.setFieldsValue({
+      name: record.name,
+      details: record.details,
+      is_active: record.is_active,
+    });
+    setModalVisible(true);
   };
 
   const handleDelete = async (id) => {
     try {
-      await deleteAccount(id);
-      message.success('Account deleted successfully');
-      fetchAccounts(form.getFieldsValue());
+      await deleteBusinessType(id);
+      message.success('Business type deleted successfully');
+      fetchBusinessTypes(form.getFieldsValue());
     } catch (error) {
-      message.error('Failed to delete account');
+      message.error('Failed to delete business type');
+      console.error(error);
+    }
+  };
+
+  const handleModalSubmit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      
+      if (editingRecord) {
+        await updateBusinessType(editingRecord.id, values);
+        message.success('Business type updated successfully');
+      } else {
+        await createBusinessType(values);
+        message.success('Business type created successfully');
+      }
+      
+      setModalVisible(false);
+      fetchBusinessTypes(form.getFieldsValue());
+    } catch (error) {
+      if (error.errorFields) {
+        return;
+      }
+      message.error('Failed to save business type');
       console.error(error);
     }
   };
 
   const columns = [
-    {
-      title: 'Account No',
-      dataIndex: 'account_no',
-      key: 'account_no',
-      sorter: true,
-    },
     {
       title: 'Name',
       dataIndex: 'name',
@@ -162,26 +147,9 @@ const AccountList = () => {
       sorter: true,
     },
     {
-      title: 'Category',
-      dataIndex: ['account_category', 'name'],
-      key: 'account_category',
-      render: (text, record) => 
-        record.account_category ? record.account_category.name : 'N/A',
-      filters: accountCategories.map(cat => ({
-        text: cat.name,
-        value: cat.id,
-      })),
-    },
-    {
-      title: 'Type',
-      dataIndex: ['account_type', 'name'],
-      key: 'account_type',
-      render: (text, record) => 
-        record.account_type ? record.account_type.name : 'N/A',
-      filters: accountTypes.map(type => ({
-        text: type.name,
-        value: type.id,
-      })),
+      title: 'Details',
+      dataIndex: 'detail',
+      key: 'detail',
     },
     {
       title: 'Status',
@@ -205,11 +173,11 @@ const AccountList = () => {
           <Tooltip title="Edit">
             <Button 
               icon={<EditOutlined />} 
-              onClick={() => handleEdit(record.id)} 
+              onClick={() => handleEdit(record)} 
             />
           </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this account?"
+            title="Are you sure you want to delete this business type?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
@@ -223,7 +191,7 @@ const AccountList = () => {
 
   return (
     <div>
-      <Card title="Account Management">
+      <Card title="Master Business Type">
         <Form
           form={form}
           layout="horizontal"
@@ -231,36 +199,23 @@ const AccountList = () => {
           style={{ marginBottom: 20 }}
         >
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Form.Item name="account_no" label="Account No">
-              <Input placeholder="Search by account number" />
-            </Form.Item>
-            
             <Form.Item name="name" label="Name">
               <Input placeholder="Search by name" />
             </Form.Item>
             
-            <Form.Item name="account_category_id" label="Category">
-              <Select 
-                ref={categorySelectRef}
-                placeholder="Select category"
-                allowClear
-                style={{ width: 200 }}
-                options={accountCategories?.map(cat => ({
-                  value: cat.id,
-                  label: cat.name
-                })) || []}
-              />
+            <Form.Item name="details" label="Details">
+              <Input placeholder="Search by details" />
             </Form.Item>
             
-            <Form.Item name="account_type_id" label="Type">
+            <Form.Item name="is_active" label="Status">
               <Select 
-                placeholder="Select type"
+                placeholder="Select status"
                 allowClear
                 style={{ width: 200 }}
-                options={accountTypes?.map(type => ({
-                  value: type.id,
-                  label: type.name
-                })) || []}
+                options={[
+                  { value: true, label: 'Active' },
+                  { value: false, label: 'Inactive' },
+                ]}
               />
             </Form.Item>
             
@@ -278,7 +233,7 @@ const AccountList = () => {
                   icon={<PlusOutlined />}
                   onClick={handleAdd}
                 >
-                  Add Account
+                  Add Business Type
                 </Button>
               </Space>
             </Form.Item>
@@ -294,8 +249,50 @@ const AccountList = () => {
           onChange={handleTableChange}
         />
       </Card>
+
+      {/* Add/Edit Modal */}
+      <Modal
+        title={editingRecord ? 'Edit Business Type' : 'Add New Business Type'}
+        open={modalVisible}
+        onOk={handleModalSubmit}
+        onCancel={() => setModalVisible(false)}
+        okText={editingRecord ? 'Update' : 'Create'}
+        confirmLoading={loading}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+        >
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: 'Please enter business type name' }]}
+          >
+            <Input placeholder="Enter business type name" />
+          </Form.Item>
+          
+          <Form.Item
+            name="detail"
+            label="Details"
+          >
+            <Input.TextArea 
+              rows={4} 
+              placeholder="Enter details"
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="is_active"
+            label="Status"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default AccountList;
+export default MasterBusinessType;

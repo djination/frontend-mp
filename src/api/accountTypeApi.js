@@ -1,7 +1,7 @@
 import axiosInstance from "../config/axiosInstance";
 
 
-export const getAccountType = async () => {
+export const getAccountTypes = async () => {
   try {
     const response = await axiosInstance.get('/account-type');
     return response.data;

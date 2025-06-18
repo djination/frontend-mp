@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { getAccountAddresses, getAccountAddressById, createAccountAddress, updateAccountAddress, deleteAccountAddress } from '../../../api/accountAddressApi';
+import { getAccountAddresses, getAccountAddressById } from '../../../api/accountAddressApi';
 
 const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => {
   const [form] = Form.useForm();
@@ -38,79 +38,35 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      console.log("Saving address with values:", values);
       setLoading(true);
 
-      if (isEdit && accountId) {
-        // For existing account, save directly to backend
-        if (editingAddress?.id) {
-          // Update existing address
-            await updateAccountAddress(editingAddress.id, {
-            ...values,
-            account_id: accountId
-            });
-          
-          console.log("Address updated:", values);
-          message.success('Address updated');
-
-          const updatedAddresses = localAddresses.map(addr =>
-            addr.id === editingAddress.id ? { ...addr, ...values } : addr
-          );
-          setLocalAddresses(updatedAddresses);
-          onChange(updatedAddresses);
-        } else {
-          // Create new address
-          await createAccountAddress({
-            ...values,
-            account_id: accountId
-          });
-
-          console.log("New address created:", values);
-          message.success('Address added');
-
-          const newAddress = {
-            ...values,
-            id: response.data.id || Date.now(), // Assuming the API returns the new ID
-            account_id: accountId
-          };
-
-          const updatedAddresses = [...localAddresses, newAddress];
-          setLocalAddresses(updatedAddresses);
-          onChange(updatedAddresses);
-        }
-        
-        // Fetch fresh data from server in the background
-        fetchUpdatedAddresses();
+      if (editingAddress) {
+        // Update local state only
+        const updatedAddresses = localAddresses.map(addr =>
+          (addr.id === editingAddress.id || addr.tempId === editingAddress.tempId)
+            ? { ...addr, ...values }
+            : addr
+        );
+        setLocalAddresses(updatedAddresses);
+        onChange(updatedAddresses);
       } else {
-        // For new account, just update local state
-        if (editingAddress) {
-          // Update existing address in local state
-          const updatedAddresses = addresses.map(addr => 
-            (addr.id === editingAddress.id) || (addr.tempId === editingAddress.tempId) 
-              ? { ...addr, ...values } : addr
-          );
-          setLocalAddresses(updatedAddresses);
-          onChange(updatedAddresses);
-        } else {
-          // Add new address to local state
-          const newAddress = {
-            ...values,
-            tempId: Date.now() // Temporary ID for local reference
-          };
-          const updatedAddresses = [...addresses, newAddress];
-          setLocalAddresses(updatedAddresses);
-          onChange([...addresses, newAddress]);
-        }
+        // Add new address to local state
+        const newAddress = {
+          ...values,
+          tempId: Date.now()
+        };
+        const updatedAddresses = [...localAddresses, newAddress];
+        setLocalAddresses(updatedAddresses);
+        onChange(updatedAddresses);
       }
       setVisible(false);
     } catch (error) {
-      console.error('Failed to save address', error);
       message.error('Failed to save address');
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Function to fetch updated addresses from server
   const fetchUpdatedAddresses = async () => {
     try {
@@ -140,32 +96,16 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
     }
   };
 
-  const handleDelete = async (address) => {
-    if (isEdit && accountId && address.id) {
-      try {
-        await deleteAccountAddress(address.id);
-        message.success('Address deleted');
-        
-        // Update local state immediately
-        const updatedAddresses = localAddresses.filter(addr => addr.id !== address.id);
-        setLocalAddresses(updatedAddresses);
-        onChange(updatedAddresses);
-        
-        // Refresh from server in the background
-        fetchUpdatedAddresses();
-      } catch (error) {
-        message.error('Failed to delete address');
-        console.error(error);
-      }
-    } else {
-      // For new account, just update local state
-      const updatedAddresses = localAddresses.filter(addr => 
-        addr !== address && addr.tempId !== address.tempId
-      );
-      setLocalAddresses(updatedAddresses);
-      onChange(updatedAddresses);
-    }
+  const handleDelete = (address) => {
+    // Only update local state
+    const updatedAddresses = localAddresses.filter(addr =>
+      addr !== address && addr.tempId !== address.tempId && addr.id !== address.id
+    );
+    setLocalAddresses(updatedAddresses);
+    onChange(updatedAddresses);
   };
+
+  
 
   const columns = [
     {
@@ -313,6 +253,14 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             <Input placeholder="Enter postal code" />
           </Form.Item>
           
+          <Form.Item
+            name="phone_no"
+            label="Phone Number"
+            rules={[{ message: 'Please enter phone number' }]}
+          >
+            <Input placeholder="Enter phone number" />
+          </Form.Item>
+
           <Form.Item name="latitude" label="Latitude">
             <InputNumber style={{ width: '100%' }} precision={6} />
           </Form.Item>
@@ -325,5 +273,12 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
     </div>
   );
 };
+
+// AccountAddressForm.defaultProps = {
+//   addresses: PropTypes.array,
+//   onChange: PropTypes.func.isRequired,
+//   accountId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+//   isEdit: PropTypes.bool.isRequired,
+// };
 
 export default AccountAddressForm;
