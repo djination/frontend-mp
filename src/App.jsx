@@ -19,7 +19,6 @@ import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
 import SettlementMethodPage from "./pages/SettlementMethod/SettlementMethodPage";
 
 function App() {
-  // const isAuthenticated = !!localStorage.getItem("token"); // contoh sederhana
   const { isAuthenticated } = useAuth(); // Menggunakan AuthContext untuk mendapatkan status autentikasi
 
   return (
@@ -33,14 +32,8 @@ function App() {
           <Route path="/account" element={isAuthenticated ? <AccountList /> : <Navigate to="/login" />} />
           <Route path="/account/add" element={isAuthenticated ? <AddAccount /> : <Navigate to="/login" />} />
           <Route path="/account/edit/:id" element={isAuthenticated ? <EditAccount /> : <Navigate to="/login" />} />
-          {/* <Route path="account" element={isAuthenticated ? <MasterAccount /> : <Navigate to="/login" />} /> */}
-          {/* <Route path="account-address" element={isAuthenticated ? <MasterAccountAddress /> : <Navigate to="/login" />} />
-          <Route path="account-bank" element={isAuthenticated ? <MasterAccountBank /> : <Navigate to="/login" />} />
-          <Route path="account-pic" element={isAuthenticated ? <MasterAccountPIC /> : <Navigate to="/login" />} /> */}
           {/* Group all master routes under /master */}
           <Route path="/parameter">
-            {/* <Route path="account-type" element={isAuthenticated ? <MasterAccountType /> : <Navigate to="/login" />} />
-            <Route path="account-category" element={isAuthenticated ? <MasterAccountCategory /> : <Navigate to="/login" />} /> */}
             <Route path="industry" element={isAuthenticated ? <MasterIndustry /> : <Navigate to="/login" />} />
             <Route path="business-type" element={isAuthenticated ? <MasterBusinessType /> : <Navigate to="/login" />} />
             <Route path="bank" element={isAuthenticated ? <MasterBank /> : <Navigate to="/login" />} />
