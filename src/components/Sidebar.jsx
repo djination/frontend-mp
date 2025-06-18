@@ -56,6 +56,13 @@ export default function Sidebar() {
           Services
         </Link>
 
+        <Link 
+          to="/settlement-methods" 
+          className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/settlement-methods') ? 'bg-blue-800' : ''}`}
+        >
+          Settlement Methods
+        </Link>
+
         {/* Account Menu Group */}
 
         {/* Parameter Menu Group */}
