@@ -1,59 +1,128 @@
 import React, { useEffect, useState } from 'react';
+import {
+  Table, Button, Form, Input, Select, Space, Card,
+  message, Tooltip, Popconfirm, Modal
+} from 'antd';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { getServices, createService, updateService, deleteService } from '../../api/serviceApi';
-import ServiceTree from './components/ServiceTree';
 import ServiceForm from './components/ServiceForm';
 
 const ServicesPage = () => {
   const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [form] = Form.useForm();
 
-  const fetchServices = async () => {
+  // For filter/search
+  const [filter, setFilter] = useState({
+    name: '',
+    type: '',
+  });
+
+  // For pagination
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  // Fetch all services (flat list)
+  const fetchServices = async (params = {}) => {
+    setLoading(true);
     try {
-      const data = await getServices();
-      setServices(data.data);
+      const queryParams = {
+        page: pagination.current,
+        limit: pagination.pageSize,
+        ...params,
+      };
+      const response = await getServices(queryParams);
+      if (response && response.data) {
+        setServices(response.data);
+        setPagination({
+          ...pagination,
+          total: response.meta?.total || response.data.length,
+        });
+      } else {
+        setServices([]);
+        setPagination({
+          ...pagination,
+          total: 0,
+        });
+      }
     } catch (error) {
-      console.error('Failed to fetch services:', error);
+      message.error('Failed to fetch services');
+      setServices([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchServices();
+    // eslint-disable-next-line
   }, []);
 
-  const handleAddService = () => {
+  const handleSearch = (values) => {
+    setPagination({
+      ...pagination,
+      current: 1,
+    });
+    setFilter(values);
+    fetchServices(values);
+  };
+
+  const handleTableChange = (pagination, filters, sorter) => {
+    setPagination(pagination);
+    fetchServices({
+      ...filter,
+      page: pagination.current,
+      limit: pagination.pageSize,
+      sort: sorter.field,
+      order: sorter.order,
+      ...filters,
+    });
+  };
+
+  const handleAdd = () => {
     setEditingService(null);
     setShowForm(true);
   };
 
-  const handleEditService = (service) => {
+  const handleEdit = (service) => {
     setEditingService(service);
     setShowForm(true);
   };
 
-  const handleDeleteService = async (id) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
-      try {
-        await deleteService(id);
-        fetchServices();
-      } catch (error) {
-        console.error('Failed to delete service:', error);
-      }
+  const handleDelete = async (id) => {
+    try {
+      await deleteService(id);
+      message.success('Service deleted successfully');
+      fetchServices(filter);
+    } catch (error) {
+      message.error('Failed to delete service');
     }
   };
 
-  const handleSubmitForm = async (formData) => {
+  const handleSubmitForm = async (values) => {
+    let payload = { ...values };
+    if ('parentId' in payload) {
+      payload.parent_id = payload.parentId || null; // ubah "" jadi null
+      delete payload.parentId;
+    }
     try {
       if (editingService) {
-        await updateService(editingService.id, formData);
+        await updateService(editingService.id, values);
+        message.success('Service updated successfully');
       } else {
-        await createService(formData);
+        await createService(values);
+        message.success('Service created successfully');
       }
-      fetchServices();
       setShowForm(false);
       setEditingService(null);
+      fetchServices(filter);
     } catch (error) {
-      console.error('Failed to save service:', error);
+      message.error('Failed to save service');
     }
   };
 
@@ -62,36 +131,112 @@ const ServicesPage = () => {
     setEditingService(null);
   };
 
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Manage Services</h1>
-      <button
-        onClick={handleAddService}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
-      >
-        Add New Service
-      </button>
+  const columns = [
+    {
+      title: 'Service Name',
+      dataIndex: 'name',
+      key: 'name',
+      sorter: true,
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      sorter: true,
+    },
+    {
+      title: 'Parent',
+      dataIndex: ['parent', 'name'],
+      key: 'parent',
+      render: (_, record) => record.parent ? record.parent.name : '—',
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Tooltip title="Edit">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              size="small"
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Are you sure you want to delete this service?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button danger icon={<DeleteOutlined />} size="small" />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
-      {showForm && (
+  return (
+    <div>
+      <Card title="Service Management">
+        <Form
+          form={form}
+          layout="horizontal"
+          onFinish={handleSearch}
+          style={{ marginBottom: 20 }}
+        >
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <Form.Item name="name" label="Service Name">
+              <Input placeholder="Search by name" />
+            </Form.Item>
+            <Form.Item name="type" label="Type">
+              <Input placeholder="Search by type" />
+            </Form.Item>
+            <Form.Item>
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<SearchOutlined />}
+                  htmlType="submit"
+                >
+                  Search
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleAdd}
+                >
+                  Add Service
+                </Button>
+              </Space>
+            </Form.Item>
+          </div>
+        </Form>
+        <Table
+          columns={columns}
+          dataSource={services}
+          rowKey="id"
+          loading={loading}
+          pagination={pagination}
+          onChange={handleTableChange}
+        />
+      </Card>
+
+      <Modal
+        open={showForm}
+        title={editingService ? 'Edit Service' : 'Add New Service'}
+        onCancel={handleCancelForm}
+        footer={null}
+        destroyOnHidden
+      >
         <ServiceForm
           service={editingService}
           onSubmit={handleSubmitForm}
           onCancel={handleCancelForm}
           allServices={services}
         />
-      )}
-
-      {!showForm && services.length > 0 ? (
-        <ServiceTree
-          services={services.filter(service => !service.parentId)} // Render top-level services
-          onEdit={handleEditService}
-          onDelete={handleDeleteService}
-        />
-      ) : !showForm && (
-        <p>No services found. Add a new service to get started.</p>
-      )}
+      </Modal>
     </div>
   );
 };
 
-export default ServicesPage; 
+export default ServicesPage;

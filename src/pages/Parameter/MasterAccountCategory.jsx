@@ -153,11 +153,6 @@ const MasterAccountCategory = () => {
       key: 'name',
       sorter: true,
     },
-    // {
-    //   title: 'Description',
-    //   dataIndex: 'description',
-    //   key: 'description',
-    // },
     {
       title: 'Status',
       dataIndex: 'is_active',
@@ -273,16 +268,6 @@ const MasterAccountCategory = () => {
           >
             <Input placeholder="Enter Account Category name" />
           </Form.Item>
-          
-          {/* <Form.Item
-            name="description"
-            label="Description"
-          >
-            <Input.TextArea 
-              rows={4} 
-              placeholder="Enter description"
-            />
-          </Form.Item> */}
           
           <Form.Item
             name="is_active"

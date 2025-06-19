@@ -49,19 +49,6 @@ export default function Sidebar() {
           Account
         </Link>
         
-        <Link 
-          to="/services" 
-          className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/services') ? 'bg-blue-800' : ''}`}
-        >
-          Services
-        </Link>
-
-        <Link 
-          to="/settlement-methods" 
-          className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/settlement-methods') ? 'bg-blue-800' : ''}`}
-        >
-          Settlement Methods
-        </Link>
 
         {/* Account Menu Group */}
 
@@ -72,7 +59,7 @@ export default function Sidebar() {
             className={`w-full flex justify-between items-center py-2 px-4 rounded hover:bg-blue-800 focus:outline-none ${isActive('/parameter') ? 'bg-blue-800' : ''}`}
             onClick={() => setOpenParameter(!openParameter)}
           >
-            <span>Master Parameter</span>
+            <span>Master</span>
             <span>{openParameter ? "▲" : "▼"}</span>
           </button>
           {openParameter && (
@@ -118,6 +105,20 @@ export default function Sidebar() {
                 className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/parameter/account-category') ? 'bg-blue-700' : ''}`}
               >
                 Account Category
+              </Link>
+              
+              <Link 
+                to="/parameter/services" 
+                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/services') ? 'bg-blue-800' : ''}`}
+              >
+                Services
+              </Link>
+
+              <Link 
+                to="/parameter/settlement-methods" 
+                className={`block py-2 px-4 rounded hover:bg-blue-800 ${isActive('/settlement-methods') ? 'bg-blue-800' : ''}`}
+              >
+                Settlement Methods
               </Link>
             </div>
           )}
