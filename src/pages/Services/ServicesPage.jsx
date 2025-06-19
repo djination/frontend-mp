@@ -148,7 +148,11 @@ const ServicesPage = () => {
       title: 'Parent',
       dataIndex: ['parent', 'name'],
       key: 'parent',
-      render: (_, record) => record.parent ? record.parent.name : '—',
+      render: (_, record) => {
+        if (!record.parentId) return '—';
+        const parentService = services.find(service => service.id === record.parentId);
+        return parentService ? parentService.name : '—';
+      },
     },
     {
       title: 'Actions',
