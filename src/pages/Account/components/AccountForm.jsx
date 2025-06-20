@@ -11,14 +11,28 @@ import { getAccountCategories } from '../../../api/accountCategoryApi';
 import { getAccountTypes } from '../../../api/accountTypeApi';
 import { getIndustries } from '../../../api/industryApi';
 import { getBusinessTypes } from '../../../api/businessTypeApi';
-import { getAccounts, createAccount, updateAccount } from '../../../api/accountApi';
+import { getAccounts, createAccount, updateAccount, generateAccountNo, getParentAccounts } from '../../../api/accountApi';
 import { createAccountPIC, updateAccountPIC, deleteAccountPIC } from '../../../api/accountPICApi';
 import { createAccountAddress, updateAccountAddress, deleteAccountAddress } from '../../../api/accountAddressApi';
 import { createAccountBank, updateAccountBank, deleteAccountBank } from '../../../api/accountBankApi';
 
+const buildTreeData = (accounts, selfId) => {
+  if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return [];
+  return accounts
+    .filter(acc => acc.id !== selfId) // Hindari memilih diri sendiri sebagai parent
+    .map(account => ({
+      title: `${account.name} (${account.account_no})`,
+      value: account.id,
+      key: account.id,
+      children: account.children && account.children.length > 0
+        ? buildTreeData(account.children, selfId)
+        : undefined,
+    }));
+};
 const AccountForm = ({
   initialValues = {},
-  isEdit = false
+  isEdit = false,
+  ...props
 }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -27,23 +41,27 @@ const AccountForm = ({
   const [accountTypes, setAccountTypes] = useState([]);
   const [accountCategories, setAccountCategories] = useState([]);
   const [typeOfBusinesses, setTypeOfBusinesses] = useState([]);
-  const [parentAccounts, setParentAccounts] = useState([]);
-  const [parentTreeData, setParentTreeData] = useState([]);
+  const [treeParentAccounts, setTreeParentAccounts] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [pics, setPics] = useState([]);
   const [accountBanks, setAccountBanks] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);
   const [hierarchyWarning, setHierarchyWarning] = useState(null);
-
   const [initialAddresses, setInitialAddresses] = useState([]);
   const [initialPICs, setInitialPICs] = useState([]);
   const [initialAccountBanks, setInitialAccountBanks] = useState([]);
 
-  // Fetch dropdowns and initialize form
+  useEffect(() => {
+    const fetchTreeParentAccounts = async () => {
+      const response = await getParentAccounts({ page: 1, limit: 1000 });
+      setTreeParentAccounts(response?.data || []);
+    };
+    fetchTreeParentAccounts();
+  }, []);
+
   useEffect(() => {
     if (!dataFetched) {
       fetchDropdowns();
-      console.log('Fetching initial data for AccountForm', isEdit, initialValues?.id);
       setDataFetched(true);
     }
     if (isEdit && initialValues && initialValues.id) {
@@ -56,17 +74,14 @@ const AccountForm = ({
         parent_id: initialValues.parent?.id,
       });
       if (initialValues.account_address) {
-        console.log('Initial account addresses:', initialValues.account_address);
         setAddresses(initialValues.account_address);
         setInitialAddresses(initialValues.account_address);
       }
       if (initialValues.account_pic) {
-        console.log('Initial account pics:', initialValues.account_pic);
         setPics(initialValues.account_pic);
         setInitialPICs(initialValues.account_pic);
       }
       if (initialValues.account_bank) {
-        console.log('Initial account banks:', initialValues.account_bank);
         setAccountBanks(initialValues.account_bank);
         setInitialAccountBanks(initialValues.account_bank);
       }
@@ -75,7 +90,7 @@ const AccountForm = ({
       }
     }
     // eslint-disable-next-line
-  }, [dataFetched, initialValues?.id]);
+  }, [dataFetched, initialValues?.id, form, isEdit]);
 
   const getDeletedItems = (initialArr, currentArr) => {
     const currentIds = currentArr.filter(x => x.id).map(x => x.id);
@@ -88,7 +103,6 @@ const AccountForm = ({
       fetchAccountTypes(),
       fetchAccountCategories(),
       fetchTypeOfBusinesses(),
-      fetchParentAccounts()
     ]);
   };
 
@@ -136,52 +150,6 @@ const AccountForm = ({
     }
   };
 
-  const fetchParentAccounts = async () => {
-    try {
-      const response = await getAccounts({ page: 1, limit: 1000 });
-      let accountData = [];
-      if (response && response.data) {
-        if (Array.isArray(response.data)) {
-          accountData = response.data;
-        } else if (response.data.data && Array.isArray(response.data.data)) {
-          accountData = response.data.data;
-        }
-      }
-      const currentId = isEdit && initialValues ? initialValues.id : null;
-      const filteredAccounts = accountData.filter(acc =>
-        currentId ? acc.id !== currentId : true
-      );
-      setParentAccounts(filteredAccounts);
-      setParentTreeData(buildTreeData(filteredAccounts));
-    } catch (error) {
-      message.error('Failed to fetch parent accounts');
-      setParentAccounts([]);
-    }
-  };
-
-  const buildTreeData = (accounts) => {
-    if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return [];
-    return accounts.map(account => {
-      const children = account.child && account.child.length > 0
-        ? buildTreeData(account.child)
-        : undefined;
-      return {
-        title: account.name,
-        value: account.id,
-        key: account.id,
-        children: children,
-        disabled: isEdit && initialValues?.id && findInDescendants(account.child, initialValues.id)
-      };
-    });
-  };
-
-  const findInDescendants = (children, accountId) => {
-    if (!children || !Array.isArray(children) || children.length === 0) return false;
-    return children.some(child =>
-      child.id === accountId || findInDescendants(child.child, accountId)
-    );
-  };
-
   const cleanPayload = (obj, allowedFields) => {
     const result = {};
     allowedFields.forEach(field => {
@@ -197,12 +165,10 @@ const AccountForm = ({
         'address1', 'address2', 'sub_district', 'district', 'city', 'province',
         'postalcode', 'country', 'latitude', 'longitude', 'phone_no', 'is_active', 'account_id'
       ];
-      // mapping postalcode ke postal_code jika perlu
       const cleanAddr = cleanPayload(
         {
           ...addr,
           account_id: accountId,
-          // postal_code: addr.postal_code || addr.postalcode || ''
         },
         allowedFields
       );
@@ -221,7 +187,6 @@ const AccountForm = ({
   // Helper: Simpan PIC ke Backend
   const savePICs = async (picItems, accountId) => {
     for (const pic of picItems) {
-      // Hanya kirim field yang diizinkan DTO
       const allowedFields = [
         'name', 'phone_no', 'email', 'is_active', 'position_id', 'account_id'
       ];
@@ -275,8 +240,22 @@ const AccountForm = ({
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
+      let accountNo = values.account_no;
+      if (!accountNo || accountNo.trim() === '') {
+        const accountTypeObj = accountTypes.find(t => t.id === values.account_type_id);
+        const accountTypeName = accountTypeObj?.name?.toLowerCase();
+        let parentId = values.parent_id || null;
+
+        const result = await generateAccountNo({
+          account_type_name: accountTypeName ? accountTypeName.toLowerCase() : accountTypeName,
+          parent_id: parentId,
+        });
+        accountNo = result.data.account_no;
+      }
+
       const payload = {
         ...values,
+        account_no: accountNo,
         is_active: values.is_active === undefined ? true : values.is_active
       };
       let response, accountId;
@@ -290,17 +269,14 @@ const AccountForm = ({
 
       // === Hapus data yang dihapus user ===
       if (isEdit && accountId) {
-        // Address
         const deletedAddresses = getDeletedItems(initialAddresses, addresses);
         for (const addr of deletedAddresses) {
           await deleteAccountAddress(addr.id);
         }
-        // PIC
         const deletedPICs = getDeletedItems(initialPICs, pics);
         for (const pic of deletedPICs) {
           await deleteAccountPIC(pic.id);
         }
-        // Bank
         const deletedAccountBanks = getDeletedItems(initialAccountBanks, accountBanks);
         for (const accountBank of deletedAccountBanks) {
           await deleteAccountBank(accountBank.id);
@@ -311,25 +287,17 @@ const AccountForm = ({
       if (accountId) {
         try {
           await saveAddresses(addresses, accountId);
-          console.log('Addresses saved successfully');
         } catch (error) {
-          console.error('Error saving addresses:', error);
           message.error('Failed to save addresses');
         }
-        
         try {
           await savePICs(pics, accountId);
-          console.log('PICs saved successfully');
         } catch (error) {
-          console.error('Error saving PICs:', error);
           message.error('Failed to save PICs');
         }
-        
         try {
           await saveAccountBanks(accountBanks, accountId);
-          console.log('Bank accounts saved successfully');
         } catch (error) {
-          console.error('Error saving bank accounts:', error);
           message.error('Failed to save bank accounts');
         }
       }
@@ -341,6 +309,12 @@ const AccountForm = ({
       setLoading(false);
     }
   };
+
+  // TreeSelect data untuk Parent Account
+  const parentTreeData = [
+    { title: '-- No Parent --', value: null, key: 'no-parent' },
+    ...buildTreeData(treeParentAccounts, isEdit ? initialValues.id : null)
+  ];
 
   const tabItems = [
     {
@@ -362,9 +336,9 @@ const AccountForm = ({
               <Form.Item
                 name="account_no"
                 label="Account Number"
-                rules={[{ required: true, message: 'Please enter account number' }]}
+                rules={[{ required: false, message: 'Please enter account number' }]}
               >
-                <Input placeholder="Enter account number" />
+                <Input placeholder="Enter account number" disabled />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -392,22 +366,14 @@ const AccountForm = ({
                 label="Parent Account"
               >
                 <TreeSelect
-                  showSearch
-                  style={{ width: '100%' }}
-                  dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
-                  placeholder="Select parent account"
                   allowClear
+                  showSearch
                   treeDefaultExpandAll
+                  placeholder="Select parent account"
                   treeData={parentTreeData}
-                  treeNodeFilterProp="title"
-                  onChange={(value) => {
-                    if (isEdit && initialValues?.child?.length > 0) {
-                      setHierarchyWarning(value
-                        ? `This account has ${initialValues.child.length} child account(s). Changing its parent will update the entire hierarchy.`
-                        : null
-                      );
-                    }
-                  }}
+                  filterTreeNode={(input, node) =>
+                    (node.title || '').toLowerCase().includes(input.toLowerCase())
+                  }
                 />
               </Form.Item>
             </Col>

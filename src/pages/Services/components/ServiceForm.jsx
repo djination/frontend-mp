@@ -1,5 +1,5 @@
 import { Form, Input, Select, Button, Space } from 'antd';
-import React, { useEffect } from 'react';
+import { React, useEffect } from 'react';
 
 const ServiceForm = ({ service, onSubmit, onCancel, allServices }) => {
   const [form] = Form.useForm();

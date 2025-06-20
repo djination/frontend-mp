@@ -11,9 +11,21 @@ import { getAccounts, deleteAccount } from '../../api/accountApi';
 import { getAccountCategories } from '../../api/accountCategoryApi';
 import { getAccountTypes } from '../../api/accountTypeApi';
 
+// Helper untuk flatten tree account
+const flattenAccounts = (accounts) => {
+  let result = [];
+  accounts.forEach(acc => {
+    result.push(acc);
+    if (acc.children && acc.children.length > 0) {
+      result = result.concat(flattenAccounts(acc.children));
+    }
+  });
+  return result;
+};
+
 const AccountList = () => {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState([]);
+  const [account, setAccounts] = useState([]);
   const [accountCategories, setAccountCategories] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
   const [form] = Form.useForm();
@@ -67,67 +79,150 @@ const AccountList = () => {
   const fetchAccounts = async (params = {}) => {
     setLoading(true);
     try {
-      // Add pagination parameters to the request
-      const queryParams = {
-        page: pagination.current,
-        limit: pagination.pageSize,
-        ...params
-      };
-      
-      const response = await getAccounts(queryParams);
-      
+      // Clean up params: remove undefined or empty string values
+      const cleanedParams = Object.fromEntries(
+        Object.entries({
+          page: params.page || 1,
+          limit: params.limit || pagination.pageSize,
+          ...params
+        }).filter(([_, v]) => v !== undefined && v !== '')
+      );
+
+      console.log('Fetching accounts with params:', cleanedParams);
+      const response = await getAccounts(cleanedParams);
+
       if (response && response.data) {
-        setData(response.data);
-        
+        setAccounts(response.data);
+
         // Update pagination info if available from backend
         if (response.meta) {
-          setPagination({
-            ...pagination,
+          setPagination(prev => ({
+            ...prev,
             total: response.meta.total || response.data.length,
-          });
+            current: cleanedParams.page || 1,
+            pageSize: cleanedParams.limit || 10,
+          }));
         } else {
-          // If backend doesn't provide meta info, just use the data length
-          setPagination({
-            ...pagination,
+          setPagination(prev => ({
+            ...prev,
             total: response.data.length,
-          });
+            current: cleanedParams.page || 1,
+            pageSize: cleanedParams.limit || 10,
+          }));
         }
       } else {
-        setData([]);
-        setPagination({
-          ...pagination,
+        setAccounts([]);
+        setPagination(prev => ({
+          ...prev,
           total: 0,
-        });
+        }));
       }
     } catch (error) {
       message.error('Failed to fetch accounts');
       console.error(error);
-      setData([]);
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // const handleSearch = (values) => {
+  //   // Clean up search values
+  //   const cleanedValues = Object.fromEntries(
+  //     Object.entries(values).filter(([_, v]) => v !== undefined && v !== '')
+  //   );
+  //   // Reset pagination to page 1 when searching
+  //   setPagination(prev => ({
+  //     ...prev,
+  //     current: 1,
+  //   }));
+  //   fetchAccounts({ ...cleanedValues, page: 1, limit: pagination.pageSize });
+  // };
+  // console.log('AccountList: handleSearch', handleSearch);
+
   const handleSearch = (values) => {
-    // Reset pagination to page 1 when searching
-    setPagination({
-      ...pagination,
-      current: 1,
+    // Clean up search values
+    const cleanedValues = Object.fromEntries(
+      Object.entries(values).filter(([_, v]) => v !== undefined && v !== '')
+    );
+    
+    // Jika semua field kosong, fetch ulang semua data (refresh)
+    if (Object.keys(cleanedValues).length === 0) {
+      fetchAccounts({ page: 1, limit: pagination.pageSize }); // atau limit besar jika tree
+      return;
+    }
+
+    // Fetch all accounts (tree) dari backend
+    getAccounts({ page: 1, limit: 1000 }).then(response => {
+      if (response && response.data) {
+        // Flatten tree
+        const flat = flattenAccounts(response.data);
+
+        // Filter sesuai search
+        const filtered = flat.filter(acc => {
+          let match = true;
+          if (cleanedValues.account_no) {
+            match = match && acc.account_no?.toLowerCase().includes(cleanedValues.account_no.toLowerCase());
+          }
+          if (cleanedValues.name) {
+            match = match && acc.name?.toLowerCase().includes(cleanedValues.name.toLowerCase());
+          }
+          if (cleanedValues.account_category_id) {
+            match = match && acc.account_category?.id === cleanedValues.account_category_id;
+          }
+          if (cleanedValues.account_type_id) {
+            match = match && acc.account_type?.id === cleanedValues.account_type_id;
+          }
+          return match;
+        });
+
+        setAccounts(filtered);
+        setPagination(prev => ({
+          ...prev,
+          total: filtered.length,
+          current: 1,
+        }));
+      } else {
+        setAccounts([]);
+        setPagination(prev => ({
+          ...prev,
+          total: 0,
+          current: 1,
+        }));
+      }
     });
-    fetchAccounts(values);
   };
 
   const handleTableChange = (pagination, filters, sorter) => {
-    setPagination(pagination);
+    // sorter: { column, order, field, columnKey }
+    let sortField = sorter.field;
+    let sortOrder = sorter.order;
+
+    // Ant Design order: 'ascend' | 'descend' | undefined
+    // Backend biasanya: 'asc' | 'desc'
+    if (sortOrder === 'ascend') sortOrder = 'asc';
+    if (sortOrder === 'descend') sortOrder = 'desc';
+
     fetchAccounts({
-      ...form.getFieldsValue(),
       page: pagination.current,
       limit: pagination.pageSize,
-      sort: sorter.field,
-      order: sorter.order,
-      ...filters,
+      sort: sortField,
+      order: sortOrder,
+      // ...tambahkan filter jika perlu
     });
   };
+
+  // const handleTableChange = (pagination, filters, sorter) => {
+  //   setPagination(pagination);
+  //   fetchAccounts({
+  //     ...form.getFieldsValue(),
+  //     page: pagination.current,
+  //     limit: pagination.pageSize,
+  //     sort: sorter.field,
+  //     order: sorter.order,
+  //     ...filters,
+  //   });
+  // };
 
   const handleAdd = () => {
     navigate('/account/add');
@@ -287,7 +382,7 @@ const AccountList = () => {
         
         <Table
           columns={columns}
-          dataSource={data}
+          dataSource={account}
           rowKey="id"
           loading={loading}
           pagination={pagination}

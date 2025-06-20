@@ -69,3 +69,28 @@ export const deleteAccount = async (id) => {
     throw error;
   }
 };
+
+export const getParentAccounts = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get('/account/parent-tree', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching parent accounts:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate account_no dari backend.
+ * @param {Object} params - { account_type_name: string, parent_id?: string }
+ * @returns {Promise<{ account_no: string }>}
+ */
+export const generateAccountNo = async (params) => {
+  try {
+    const response = await axiosInstance.get('/account/generate-account-no', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error generating account_no:', error);
+    throw error;
+  }
+};
