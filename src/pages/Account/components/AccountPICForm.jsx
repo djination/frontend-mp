@@ -24,26 +24,26 @@ const AccountPICForm = ({
 
   // Sync localPICs with props when they change
   useEffect(() => {
-    console.log("PICs prop changed:", pics);
+    
     setLocalPICs(pics || []);
   }, [pics]);
 
   useEffect(() => {
-    console.log("AccountPICSForm mounted");
+    
     fetchPositions();
   }, []);
 
   const fetchPositions = async () => {
     try {
       const response = await getPositions();
-      console.log("Positions response:", response);
+      
 
       if (response && response.data) {
         // Handle both data structures (direct array or nested in data property)
         const positionsData = Array.isArray(response.data) ? 
                             response.data : 
                             (response.data.data || []);
-        console.log("Processed positions data:", positionsData);
+        
         setPositions(positionsData);
       } else {
         setPositions([]);
@@ -59,7 +59,7 @@ const AccountPICForm = ({
     setEditingPIC(pic || null);
     form.resetFields();
     if (pic) {
-      console.log('Editing PIC:', pic);
+      
       form.setFieldsValue({
         ...pic,
         position_id: pic.position?.id || pic.position_id
@@ -115,9 +115,9 @@ const AccountPICForm = ({
     if (!accountId) return;
     
     try {
-      console.log("Fetching updated PICs for account:", accountId);
+      
       const response = await getAccountPICs(accountId);
-      console.log("Updated PICs response:", response);
+      
       
       // Determine the correct data path based on the response structure
       let updatedData = [];
@@ -129,7 +129,7 @@ const AccountPICForm = ({
         updatedData = response.data;
       }
       
-      console.log("Processing updated PIC data:", updatedData);
+      
       
       if (updatedData && updatedData.length > 0) {
         setLocalPICs(updatedData);
@@ -163,8 +163,8 @@ const AccountPICForm = ({
       render: (_, record) => {
         // Ambil langsung dari record.position.name jika ada (sesuai response getAccountPICs)
         if (record.position && record.position.name) {
-          console.log("Rendering position from record:", record.position.name);
-          console.log("Rendering position from record:", record.position);
+          
+          
           return record.position.name;
         }
         // Fallback: cari dari positions jika hanya ada position_id

@@ -87,8 +87,6 @@ const AccountList = () => {
           ...params
         }).filter(([_, v]) => v !== undefined && v !== '')
       );
-
-      console.log('Fetching accounts with params:', cleanedParams);
       const response = await getAccounts(cleanedParams);
 
       if (response && response.data) {
@@ -125,20 +123,6 @@ const AccountList = () => {
       setLoading(false);
     }
   };
-
-  // const handleSearch = (values) => {
-  //   // Clean up search values
-  //   const cleanedValues = Object.fromEntries(
-  //     Object.entries(values).filter(([_, v]) => v !== undefined && v !== '')
-  //   );
-  //   // Reset pagination to page 1 when searching
-  //   setPagination(prev => ({
-  //     ...prev,
-  //     current: 1,
-  //   }));
-  //   fetchAccounts({ ...cleanedValues, page: 1, limit: pagination.pageSize });
-  // };
-  // console.log('AccountList: handleSearch', handleSearch);
 
   const handleSearch = (values) => {
     // Clean up search values
@@ -258,25 +242,40 @@ const AccountList = () => {
     },
     {
       title: 'Category',
-      dataIndex: ['account_category', 'name'],
-      key: 'account_category',
-      render: (text, record) => 
-        record.account_category ? record.account_category.name : 'N/A',
+      key: 'account_categories',
+      render: (_, record) => {
+        // Perbaikan: tampilkan semua kategori
+        if (record.account_categories && record.account_categories.length > 0) {
+          return record.account_categories.map(cat => cat.name).join(', ');
+        }
+        // Fallback untuk backward compatibility
+        return record.account_category ? record.account_category.name : 'N/A';
+      },
       filters: accountCategories.map(cat => ({
         text: cat.name,
         value: cat.id,
       })),
+      onFilter: (value, record) => {
+        // Perbaikan: filter untuk multi category
+        if (record.account_categories && record.account_categories.length > 0) {
+          return record.account_categories.some(cat => cat.id === value);
+        }
+        // Fallback untuk backward compatibility
+        return record.account_category && record.account_category.id === value;
+      },
     },
     {
       title: 'Type',
       dataIndex: ['account_type', 'name'],
       key: 'account_type',
-      render: (text, record) => 
+      render: (text, record) =>
         record.account_type ? record.account_type.name : 'N/A',
       filters: accountTypes.map(type => ({
         text: type.name,
         value: type.id,
       })),
+      onFilter: (value, record) =>
+        record.account_type && record.account_type.id === value,
     },
     {
       title: 'Status',
@@ -291,6 +290,7 @@ const AccountList = () => {
         { text: 'Active', value: true },
         { text: 'Inactive', value: false },
       ],
+      onFilter: (value, record) => record.is_active === value,
     },
     {
       title: 'Actions',
@@ -298,9 +298,9 @@ const AccountList = () => {
       render: (_, record) => (
         <Space>
           <Tooltip title="Edit">
-            <Button 
-              icon={<EditOutlined />} 
-              onClick={() => handleEdit(record.id)} 
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record.id)}
             />
           </Tooltip>
           <Popconfirm
@@ -334,7 +334,7 @@ const AccountList = () => {
               <Input placeholder="Search by name" />
             </Form.Item>
             
-            <Form.Item name="account_category_id" label="Category">
+            <Form.Item name="account_category_ids" label="Categories">
               <Select 
                 ref={categorySelectRef}
                 placeholder="Select category"

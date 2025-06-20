@@ -25,7 +25,7 @@ const AccountBankForm = ({
 
   // Sync localAccountBanks with props
   useEffect(() => {
-    console.log("AccountBanks prop changed:", accountBanks);
+    
     setLocalAccountBanks(accountBanks || []);
   }, [accountBanks]);
 
@@ -125,9 +125,9 @@ const AccountBankForm = ({
     if (!accountId) return;
 
     try {
-      console.log("Fetching updated account banks for account:", accountId);
+      
       const response = await getAccountBanks({ account_id: accountId });
-      console.log("Updated account banks response:", response);
+      
 
       let updatedData = [];
       if (response?.data?.data?.account_bank) { 
@@ -138,7 +138,7 @@ const AccountBankForm = ({
         updatedData = response.data;
       }
 
-      console.log("Processing updated account bank data:", updatedData);
+      
 
       if (updatedData && updatedData.length > 0) {
         setLocalAccountBanks(updatedData);

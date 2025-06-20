@@ -17,7 +17,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
 
   useEffect(() => {
     // Initialize local addresses from props
-    console.log("Initializing local addresses from props:", addresses);
+    
     setLocalAddresses(addresses || []);
   }, [addresses]);
 
@@ -25,7 +25,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
     setEditingAddress(address || null);
     form.resetFields();
     if (address) {
-      console.log("Editing address:", address);
+      
       form.setFieldsValue(address);
     }
     setVisible(true);
@@ -70,9 +70,9 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
   // Function to fetch updated addresses from server
   const fetchUpdatedAddresses = async () => {
     try {
-      console.log("Fetching updated addresses for account:", accountId);
+      
       const response = await getAccountAddresses(accountId);
-      console.log("Updated addresses response:", response);
+      
       
       // Determine the correct data path based on the response structure
       let updatedData = [];
@@ -84,7 +84,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
         updatedData = response.data;
       }
       
-      console.log("Processing updated address data:", updatedData);
+      
       
       if (updatedData && updatedData.length > 0) {
         setLocalAddresses(updatedData);
@@ -161,7 +161,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
   ];
 
   // Debugging untuk cek komponen berjalan
-  console.log("Rendering AccountAddressForm, addresses:", addresses);
+  
 
   return (
     <div>

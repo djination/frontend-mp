@@ -4,9 +4,14 @@ import {
   Switch, Tabs, message, Space, TreeSelect, Divider, Alert
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
+
+// form components
 import AccountAddressForm from './AccountAddressForm';
 import AccountPICForm from './AccountPICForm';
 import AccountBankForm from './AccountBankForm';
+import AccountServiceForm from './AccountServiceForm';
+
+// API calls
 import { getAccountCategories } from '../../../api/accountCategoryApi';
 import { getAccountTypes } from '../../../api/accountTypeApi';
 import { getIndustries } from '../../../api/industryApi';
@@ -15,6 +20,7 @@ import { getAccounts, createAccount, updateAccount, generateAccountNo, getParent
 import { createAccountPIC, updateAccountPIC, deleteAccountPIC } from '../../../api/accountPICApi';
 import { createAccountAddress, updateAccountAddress, deleteAccountAddress } from '../../../api/accountAddressApi';
 import { createAccountBank, updateAccountBank, deleteAccountBank } from '../../../api/accountBankApi';
+import { createAccountService, updateAccountService, deleteAccountService, getAccountServicesByAccount } from '../../../api/accountServiceApi';
 
 const buildTreeData = (accounts, selfId) => {
   if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return [];
@@ -45,12 +51,14 @@ const AccountForm = ({
   const [addresses, setAddresses] = useState([]);
   const [pics, setPics] = useState([]);
   const [accountBanks, setAccountBanks] = useState([]);
+  const [accountServices, setAccountServices] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);
   const [hierarchyWarning, setHierarchyWarning] = useState(null);
   const [initialAddresses, setInitialAddresses] = useState([]);
   const [initialPICs, setInitialPICs] = useState([]);
   const [initialAccountBanks, setInitialAccountBanks] = useState([]);
-
+  const [initialAccountServices, setInitialAccountServices] = useState([]);
+  
   useEffect(() => {
     const fetchTreeParentAccounts = async () => {
       const response = await getParentAccounts({ page: 1, limit: 1000 });
@@ -69,7 +77,9 @@ const AccountForm = ({
         ...initialValues,
         industry_id: initialValues.industry?.id,
         account_type_id: initialValues.account_type?.id,
-        account_category_id: initialValues.account_category?.id,
+        account_category_ids: initialValues.account_categories
+          ? initialValues.account_categories.map(cat => cat.id)
+          : [],
         type_of_business_id: initialValues.type_of_business?.id,
         parent_id: initialValues.parent?.id,
       });
@@ -85,6 +95,12 @@ const AccountForm = ({
         setAccountBanks(initialValues.account_bank);
         setInitialAccountBanks(initialValues.account_bank);
       }
+      const accountId = initialValues.id;
+      if (accountId) {
+        fetchAccountServices(accountId);
+      }
+      
+
       if (initialValues.child && initialValues.child.length > 0) {
         setHierarchyWarning(`This account has ${initialValues.child.length} child account(s). Changing its parent may impact your account hierarchy.`);
       }
@@ -103,6 +119,7 @@ const AccountForm = ({
       fetchAccountTypes(),
       fetchAccountCategories(),
       fetchTypeOfBusinesses(),
+      // fetchAccountServices(),
     ]);
   };
 
@@ -150,12 +167,26 @@ const AccountForm = ({
     }
   };
 
-  const cleanPayload = (obj, allowedFields) => {
-    const result = {};
-    allowedFields.forEach(field => {
-      if (obj[field] !== undefined) result[field] = obj[field];
-    });
-    return result;
+  const fetchAccountServices = async (accountId) => {
+    if (!accountId) {
+      console.error("Cannot fetch services: accountId is undefined");
+      setAccountServices([]); // Default ke array kosong
+      return;
+    }
+    
+    try {
+      const response = await getAccountServicesByAccount(accountId);
+      
+      if (response && response.data && Array.isArray(response.data.data.data)) {
+        setAccountServices(Array.isArray(response.data.data.data) ? response.data.data.data : []);
+        setInitialAccountServices(Array.isArray(response.data.data.data) ? response.data.data.data : []);
+      } 
+    } catch (error) {
+      console.error("Error fetching account services:", error);
+      message.error('Failed to fetch account services');
+      setAccountServices([]); // Default ke array kosong
+      setInitialAccountServices([]);
+    }
   };
 
   // Helper: Simpan Address ke Backend
@@ -236,6 +267,55 @@ const AccountForm = ({
     }
   };
 
+  const saveAccountServices = async (serviceItems, accountId) => {
+    if (!accountId) {
+      console.error("Cannot save services: accountId is undefined");
+      return;
+    }
+    
+    
+  
+    for (const service of serviceItems) {
+      const allowedFields = [
+        'service_id', 'is_active', 'account_id'
+      ];
+      
+      // Pastikan service_id dan account_id valid
+      const serviceId = service.service_id || (service.service && service.service.id);
+      if (!serviceId) {
+        console.error("Invalid service record, missing service_id:", service);
+        continue;
+      }
+      
+      const cleanService = {
+        service_id: serviceId,
+        account_id: accountId,
+        is_active: service.is_active !== undefined ? service.is_active : true
+      };
+      
+      try {
+        let response;
+        if (!service.id || String(service.id).startsWith('temp-') || service.tempId) {
+          
+          response = await createAccountService(cleanService);
+        } else {
+          
+          response = await updateAccountService(service.id, cleanService);
+        }
+        
+        if (!response || response.success === false) {
+          throw new Error(`Failed to update service with ID ${serviceId}`);
+        }
+        
+      } catch (error) {
+        console.error(`Error saving service ${serviceId}:`, error);
+        throw new Error(`Failed to update service with ID ${serviceId}: ${error.message}`);
+      }
+    }
+    
+    
+  };
+
   // Submit utama
   const handleSubmit = async (values) => {
     setLoading(true);
@@ -256,6 +336,7 @@ const AccountForm = ({
       const payload = {
         ...values,
         account_no: accountNo,
+        account_category_ids: values.account_category_ids,
         is_active: values.is_active === undefined ? true : values.is_active
       };
       let response, accountId;
@@ -281,6 +362,10 @@ const AccountForm = ({
         for (const accountBank of deletedAccountBanks) {
           await deleteAccountBank(accountBank.id);
         }
+        const deletedAccountServices = getDeletedItems(initialAccountServices, accountServices);
+        for (const accountService of deletedAccountServices) {
+          await deleteAccountService(accountService.id);
+        }
       }
 
       // Simpan/Update relasi setelah accountId didapat
@@ -300,6 +385,11 @@ const AccountForm = ({
         } catch (error) {
           message.error('Failed to save bank accounts');
         }
+        try {
+          await saveAccountServices(accountServices, accountId);
+        } catch (error) {
+          message.error('Failed to save service accounts');
+        }
       }
       message.success(isEdit ? 'Account updated successfully' : 'Account created successfully');
       navigate('/account');
@@ -311,7 +401,12 @@ const AccountForm = ({
   };
 
   // TreeSelect data untuk Parent Account
-  const parentTreeData = [
+  const parentTreeDataAccount = [
+    { title: '-- No Parent --', value: null, key: 'no-parent' },
+    ...buildTreeData(treeParentAccounts, isEdit ? initialValues.id : null)
+  ];
+  // TreeSelect data untuk Parent Service
+  const parentTreeDataService = [
     { title: '-- No Parent --', value: null, key: 'no-parent' },
     ...buildTreeData(treeParentAccounts, isEdit ? initialValues.id : null)
   ];
@@ -370,7 +465,7 @@ const AccountForm = ({
                   showSearch
                   treeDefaultExpandAll
                   placeholder="Select parent account"
-                  treeData={parentTreeData}
+                  treeData={parentTreeDataAccount}
                   filterTreeNode={(input, node) =>
                     (node.title || '').toLowerCase().includes(input.toLowerCase())
                   }
@@ -435,11 +530,13 @@ const AccountForm = ({
             </Col>
             <Col span={12}>
               <Form.Item
-                name="account_category_id"
+                name="account_category_ids"
                 label="Account Category"
+                rules={[{ required: true, message: 'Please select at least one account category' }]}
               >
                 <Select
-                  placeholder="Select account category"
+                  mode="multiple"
+                  placeholder="Select account categories"
                   allowClear
                   showSearch
                   optionFilterProp="label"
@@ -492,6 +589,18 @@ const AccountForm = ({
         <AccountBankForm
           accountBanks={accountBanks}
           onChange={setAccountBanks}
+          accountId={initialValues.id}
+          isEdit={isEdit}
+        />
+      )
+    },
+    {
+      key: 'accountServices',
+      label: 'Services',
+      children: (
+        <AccountServiceForm
+          accountServices={accountServices}
+          onChange={setAccountServices}
           accountId={initialValues.id}
           isEdit={isEdit}
         />

@@ -22,9 +22,6 @@ export const getAccountPICById = async (accountId, picId) => {
 
 export const createAccountPIC = async (picData) => {
   try {
-    // Log the exact data being sent
-    console.log('Creating PIC with data:', JSON.stringify(picData));
-    
     // Kirim data langsung tanpa modifikasi tambahan
     const response = await axiosInstance.post('/account-pic', picData);
     return response.data;
@@ -46,14 +43,8 @@ export const createAccountPIC = async (picData) => {
 
 export const updateAccountPIC = async (picId, picData) => {
   try {
-    console.log('Updating PIC with data:', JSON.stringify({ 
-      ...picData, 
-      // account_id: accountId 
-    }));
-    
     const response = await axiosInstance.patch(`/account-pic/${picId}`, {
       ...picData,
-      // account_id: accountId
     });
     return response.data;
   } catch (error) {
