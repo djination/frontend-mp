@@ -17,6 +17,7 @@ import MasterPosition from "./pages/Parameter/MasterPosition";
 import MasterAccountType from "./pages/Parameter/MasterAccountType";
 import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
 import SettlementMethodPage from "./pages/SettlementMethod/SettlementMethodPage";
+import RevenueRule from "./pages/RevenueRule/RevenueRule";
 
 function App() {
   const { isAuthenticated } = useAuth(); // Menggunakan AuthContext untuk mendapatkan status autentikasi
@@ -27,6 +28,7 @@ function App() {
       <div className={isAuthenticated ? "ml-64" : ""}>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/revenue-rules" element={<RevenueRule />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
           <Route path="/account" element={isAuthenticated ? <AccountList /> : <Navigate to="/login" />} />
