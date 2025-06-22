@@ -19,6 +19,7 @@ import MasterAccountType from "./pages/Parameter/MasterAccountType";
 import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
 import SettlementMethodPage from "./pages/SettlementMethod/SettlementMethodPage";
 import MasterDocumentType from "./pages/Parameter/MasterDocumentType";
+import RevenueRule from "./pages/RevenueRule/RevenueRule";
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -84,6 +85,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+              <Route path="/revenue-rules" element={<RevenueRule />} />
               <Route path="/account" element={isAuthenticated ? <AccountList /> : <Navigate to="/login" />} />
               <Route path="/account/add" element={isAuthenticated ? <AddAccount /> : <Navigate to="/login" />} />
               <Route path="/account/edit/:id" element={isAuthenticated ? <EditAccount /> : <Navigate to="/login" />} />
