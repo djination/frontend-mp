@@ -76,18 +76,12 @@ const AccountForm = ({
   const [initialAccountDocuments, setInitialAccountDocuments] = useState([]);
   
   const fetchAccountDocuments = async (accountId) => {
-    console.log('Fetching documents for account:', accountId);
     if (!accountId) return;
     
     try {
-      console.log('Fetching documents for account:', accountId);
       const response = await getAccountDocuments(accountId);
-      console.log('Document API response:', response);
       
       if (response?.data) {
-        // Cek struktur data
-        console.log('Document data structure:', response.data);
-        
         let documents = [];
         
         // Handle berbagai kemungkinan format data
@@ -98,16 +92,12 @@ const AccountForm = ({
         } else if (typeof response.data === 'object' && !Array.isArray(response.data)) {
           documents = Object.values(response.data);
         }
-        
-        console.log('Processed documents:', documents);
         setAccountDocuments(documents);
         setInitialAccountDocuments(documents);
       } else {
-        console.warn('No document data in response');
         setAccountDocuments([]);
       }
     } catch (error) {
-      console.error("Error fetching documents:", error);
       message.error('Failed to fetch account documents');
       setAccountDocuments([]);
     }
@@ -374,9 +364,6 @@ const AccountForm = ({
       console.error("Cannot save documents: invalid input");
       return;
     }
-    
-    console.log(`Saving ${documentItems.length} documents for account ${accountId}`);
-    
     // Handle only new documents with file uploads
     const newDocuments = documentItems.filter(doc => 
       doc.tempId && !doc.id && doc.file && doc.document_type
@@ -406,18 +393,8 @@ const AccountForm = ({
           formData.append('expires_at', expiryDate);
         }
         
-        // Log untuk debug
-        console.log('Uploading document with data:', {
-          filename: doc.filename,
-          type: doc.document_type,
-          expires: doc.expires_at,
-          accountId: accountId
-        });
-        
         // Tambahkan timeout lebih lama untuk file besar
         const response = await uploadAccountDocument(formData);
-        console.log('Upload response:', response);
-        console.log(`Document uploaded: ${doc.filename}`);
       } catch (error) {
         console.error(`Error uploading document ${doc.filename}:`, error);
         // Tampilkan detail error jika ada

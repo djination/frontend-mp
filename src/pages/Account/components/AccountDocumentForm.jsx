@@ -35,8 +35,6 @@ const AccountDocumentForm = ({
     const handlePreview = (record) => {
         const apiUrl = import.meta.env.VITE_BASE_URL || 'http://localhost:5000';
         
-        console.log("Preview record:", record);
-        
         if (record.url) {
             // File lokal (baru diupload)
             setPreviewUrl(record.url);
@@ -94,9 +92,6 @@ const AccountDocumentForm = ({
     useEffect(() => {
         fetchDocumentTypes();
         if (Array.isArray(accountDocuments)) {
-            // Tambahkan console log untuk debug
-            console.log("Setting initial documents:", accountDocuments);
-            
             // Proses dokumen untuk memastikan semua field yang dibutuhkan tersedia
             const processedDocs = accountDocuments.map(doc => ({
                 ...doc,
@@ -108,7 +103,6 @@ const AccountDocumentForm = ({
             
             setDocuments(processedDocs);
         } else {
-            console.warn("accountDocuments is not an array:", accountDocuments);
             setDocuments([]);
         }
     }, [accountDocuments]);
@@ -118,8 +112,6 @@ const AccountDocumentForm = ({
         try {
             setLoading(true);
             const response = await getDocumentTypes();
-            console.log('Document Types API response:', response); // Tambahkan log
-            
             if (response?.data) {
             // Pastikan kita mengambil array yang benar
             let types = [];
@@ -130,19 +122,14 @@ const AccountDocumentForm = ({
             } else if (Array.isArray(response.data.data)) {
                 types = response.data.data;
             } else if (typeof response.data === 'object') {
-                console.log('Document types response is object, not array:', response.data);
                 types = Object.values(response.data);
             }
             
-            // Log data final untuk memastikan struktur benar
-            console.log('Document types processed:', types);
             setDocumentTypes(types);
             } else {
-            console.warn('No document types found in response');
             setDocumentTypes([]);
             }
         } catch (error) {
-            console.error('Failed to fetch document types:', error);
             message.error('Failed to fetch document types');
             
             // Tambahkan fallback data jika API gagal
@@ -203,8 +190,6 @@ const AccountDocumentForm = ({
                 fileType: file.type
             }
         };
-        console.log('New document to be added:', newDocument);
-
         const updatedDocuments = [...documents, newDocument];
         setDocuments(updatedDocuments);
         onChange(updatedDocuments);
@@ -228,9 +213,6 @@ const AccountDocumentForm = ({
     // Fungsi untuk render preview berdasarkan tipe file
     const renderPreviewContent = () => {
         if (!previewUrl) return <div>No preview available</div>;
-
-        console.log("Rendering preview for type:", previewType);
-
         // Untuk gambar
         if (previewType && previewType.includes('image')) {
             return (
@@ -327,12 +309,6 @@ const AccountDocumentForm = ({
                             size="small"
                         />
                     </Popconfirm>
-                    <Button 
-                        size="small" 
-                        onClick={() => handlePreview(record)}
-                    >
-                        View
-                    </Button>
                 </Space>
             )
         }

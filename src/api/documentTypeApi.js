@@ -4,10 +4,8 @@ import axiosInstance from '../config/axiosInstance';
 export const getDocumentTypes = async (params = {}) => {
   try {
     const response = await axiosInstance.get('/document-type', { params });
-    console.log('API Response:', response);
     return response;
   } catch (error) {
-    console.error('API Error:', error);
     throw error;
   }
 };
