@@ -10,17 +10,19 @@ import AccountAddressForm from './AccountAddressForm';
 import AccountPICForm from './AccountPICForm';
 import AccountBankForm from './AccountBankForm';
 import AccountServiceForm from './AccountServiceForm';
+import AccountDocumentForm from './AccountDocumentForm';
 
 // API calls
 import { getAccountCategories } from '../../../api/accountCategoryApi';
 import { getAccountTypes } from '../../../api/accountTypeApi';
 import { getIndustries } from '../../../api/industryApi';
 import { getBusinessTypes } from '../../../api/businessTypeApi';
-import { getAccounts, createAccount, updateAccount, generateAccountNo, getParentAccounts } from '../../../api/accountApi';
+import { createAccount, updateAccount, generateAccountNo, getParentAccounts } from '../../../api/accountApi';
 import { createAccountPIC, updateAccountPIC, deleteAccountPIC } from '../../../api/accountPICApi';
 import { createAccountAddress, updateAccountAddress, deleteAccountAddress } from '../../../api/accountAddressApi';
 import { createAccountBank, updateAccountBank, deleteAccountBank } from '../../../api/accountBankApi';
 import { createAccountService, updateAccountService, deleteAccountService, getAccountServicesByAccount } from '../../../api/accountServiceApi';
+import { getAccountDocuments, uploadAccountDocument, deleteAccountDocument } from '../../../api/accountDocumentApi';
 
 const buildTreeData = (accounts, selfId) => {
   if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return [];
@@ -35,9 +37,21 @@ const buildTreeData = (accounts, selfId) => {
         : undefined,
     }));
 };
+
+const cleanPayload = (obj, allowedFields) => {
+  const result = {};
+  allowedFields.forEach(field => {
+    if (obj[field] !== undefined) {
+      result[field] = obj[field];
+    }
+  });
+  return result;
+};
+
 const AccountForm = ({
   initialValues = {},
   isEdit = false,
+  onFinish,
   ...props
 }) => {
   const [form] = Form.useForm();
@@ -52,13 +66,53 @@ const AccountForm = ({
   const [pics, setPics] = useState([]);
   const [accountBanks, setAccountBanks] = useState([]);
   const [accountServices, setAccountServices] = useState([]);
+  const [accountDocuments, setAccountDocuments] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);
   const [hierarchyWarning, setHierarchyWarning] = useState(null);
   const [initialAddresses, setInitialAddresses] = useState([]);
   const [initialPICs, setInitialPICs] = useState([]);
   const [initialAccountBanks, setInitialAccountBanks] = useState([]);
   const [initialAccountServices, setInitialAccountServices] = useState([]);
+  const [initialAccountDocuments, setInitialAccountDocuments] = useState([]);
   
+  const fetchAccountDocuments = async (accountId) => {
+    console.log('Fetching documents for account:', accountId);
+    if (!accountId) return;
+    
+    try {
+      console.log('Fetching documents for account:', accountId);
+      const response = await getAccountDocuments(accountId);
+      console.log('Document API response:', response);
+      
+      if (response?.data) {
+        // Cek struktur data
+        console.log('Document data structure:', response.data);
+        
+        let documents = [];
+        
+        // Handle berbagai kemungkinan format data
+        if (Array.isArray(response.data)) {
+          documents = response.data;
+        } else if (Array.isArray(response.data.data)) {
+          documents = response.data.data;
+        } else if (typeof response.data === 'object' && !Array.isArray(response.data)) {
+          documents = Object.values(response.data);
+        }
+        
+        console.log('Processed documents:', documents);
+        setAccountDocuments(documents);
+        setInitialAccountDocuments(documents);
+      } else {
+        console.warn('No document data in response');
+        setAccountDocuments([]);
+      }
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      message.error('Failed to fetch account documents');
+      setAccountDocuments([]);
+    }
+  };
+
   useEffect(() => {
     const fetchTreeParentAccounts = async () => {
       const response = await getParentAccounts({ page: 1, limit: 1000 });
@@ -98,6 +152,7 @@ const AccountForm = ({
       const accountId = initialValues.id;
       if (accountId) {
         fetchAccountServices(accountId);
+        fetchAccountDocuments(accountId);
       }
       
 
@@ -119,7 +174,6 @@ const AccountForm = ({
       fetchAccountTypes(),
       fetchAccountCategories(),
       fetchTypeOfBusinesses(),
-      // fetchAccountServices(),
     ]);
   };
 
@@ -241,6 +295,7 @@ const AccountForm = ({
     }
   };
 
+  //Helper: Simpan Bank Account ke Backend
   const saveAccountBanks = async (bankItems, accountId) => {
     for (const bank of bankItems) {
       const allowedFields = [
@@ -267,13 +322,12 @@ const AccountForm = ({
     }
   };
 
+  // Helper: Simpan Service Account ke Backend
   const saveAccountServices = async (serviceItems, accountId) => {
     if (!accountId) {
       console.error("Cannot save services: accountId is undefined");
       return;
     }
-    
-    
   
     for (const service of serviceItems) {
       const allowedFields = [
@@ -311,9 +365,70 @@ const AccountForm = ({
         console.error(`Error saving service ${serviceId}:`, error);
         throw new Error(`Failed to update service with ID ${serviceId}: ${error.message}`);
       }
+    }    
+  };
+
+  // Helper: Simpan dokumen ke Backend
+  const saveAccountDocuments = async (documentItems, accountId) => {
+    if (!accountId || !Array.isArray(documentItems)) {
+      console.error("Cannot save documents: invalid input");
+      return;
     }
     
+    console.log(`Saving ${documentItems.length} documents for account ${accountId}`);
     
+    // Handle only new documents with file uploads
+    const newDocuments = documentItems.filter(doc => 
+      doc.tempId && !doc.id && doc.file && doc.document_type
+    );
+    
+    for (const doc of newDocuments) {
+      try {
+        const formData = new FormData();
+        
+        // Append file dengan nama yang benar sesuai dengan nama field yang diharapkan backend
+        formData.append('file', doc.file);
+        
+        // Append other fields
+        formData.append('account_id', accountId);
+        formData.append('document_type', doc.document_type);
+        
+        // Format tanggal expires_at dengan benar jika ada
+        if (doc.expires_at) {
+          // Pastikan format tanggal sesuai yang diharapkan backend (YYYY-MM-DD)
+          // Jika sudah dalam string format, gunakan langsung
+          const expiryDate = typeof doc.expires_at === 'string' 
+            ? doc.expires_at 
+            : doc.expires_at instanceof Date 
+              ? doc.expires_at.toISOString().split('T')[0]
+              : doc.expires_at;
+              
+          formData.append('expires_at', expiryDate);
+        }
+        
+        // Log untuk debug
+        console.log('Uploading document with data:', {
+          filename: doc.filename,
+          type: doc.document_type,
+          expires: doc.expires_at,
+          accountId: accountId
+        });
+        
+        // Tambahkan timeout lebih lama untuk file besar
+        const response = await uploadAccountDocument(formData);
+        console.log('Upload response:', response);
+        console.log(`Document uploaded: ${doc.filename}`);
+      } catch (error) {
+        console.error(`Error uploading document ${doc.filename}:`, error);
+        // Tampilkan detail error jika ada
+        if (error.response && error.response.data) {
+          console.error('Server response:', error.response.data);
+          message.error(`Failed to upload document: ${error.response.data.message || 'Unknown error'}`);
+        } else {
+          message.error(`Failed to upload document: ${doc.filename}`);
+        }
+      }
+    }
   };
 
   // Submit utama
@@ -366,6 +481,10 @@ const AccountForm = ({
         for (const accountService of deletedAccountServices) {
           await deleteAccountService(accountService.id);
         }
+        const deletedDocuments = getDeletedItems(initialAccountDocuments, accountDocuments);
+        for (const doc of deletedDocuments) {
+          await deleteAccountDocument(doc.id);
+        }
       }
 
       // Simpan/Update relasi setelah accountId didapat
@@ -390,6 +509,11 @@ const AccountForm = ({
         } catch (error) {
           message.error('Failed to save service accounts');
         }
+        try {
+          await saveAccountDocuments(accountDocuments, accountId);
+        } catch (error) {
+          message.error('Failed to save account documents');
+        }
       }
       message.success(isEdit ? 'Account updated successfully' : 'Account created successfully');
       navigate('/account');
@@ -402,12 +526,7 @@ const AccountForm = ({
 
   // TreeSelect data untuk Parent Account
   const parentTreeDataAccount = [
-    { title: '-- No Parent --', value: null, key: 'no-parent' },
-    ...buildTreeData(treeParentAccounts, isEdit ? initialValues.id : null)
-  ];
-  // TreeSelect data untuk Parent Service
-  const parentTreeDataService = [
-    { title: '-- No Parent --', value: null, key: 'no-parent' },
+    { title: '-- No Parent --', value: 'no-parent', key: 'no-parent' },
     ...buildTreeData(treeParentAccounts, isEdit ? initialValues.id : null)
   ];
 
@@ -468,6 +587,15 @@ const AccountForm = ({
                   treeData={parentTreeDataAccount}
                   filterTreeNode={(input, node) =>
                     (node.title || '').toLowerCase().includes(input.toLowerCase())
+                  }
+                  // Convert 'no-parent' back to null when submitting
+                  onChange={value => {
+                    form.setFieldsValue({ parent_id: value === 'no-parent' ? null : value });
+                  }}
+                  value={
+                    form.getFieldValue('parent_id') === null || form.getFieldValue('parent_id') === undefined
+                      ? 'no-parent'
+                      : form.getFieldValue('parent_id')
                   }
                 />
               </Form.Item>
@@ -601,6 +729,18 @@ const AccountForm = ({
         <AccountServiceForm
           accountServices={accountServices}
           onChange={setAccountServices}
+          accountId={initialValues.id}
+          isEdit={isEdit}
+        />
+      )
+    },
+    {
+      key: 'documents',
+      label: 'Documents',
+      children: (
+        <AccountDocumentForm
+          accountDocuments={accountDocuments}
+          onChange={setAccountDocuments}
           accountId={initialValues.id}
           isEdit={isEdit}
         />

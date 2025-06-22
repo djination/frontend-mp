@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Tema untuk mode terang dan gelap */
+@layer base {
+  :root {
+    --primary-color: #1e3a8a;
+    --primary-hover: #2563eb;
+    --background-color: #f0f2f5;
+    --text-color: #000000;
+    --card-bg: #ffffff;
+    --border-color: #e6e6e6;
+  }
+
+  [data-theme="dark"] {
+    --primary-color: #1890ff;
+    --primary-hover: #40a9ff;
+    --background-color: #141414;
+    --text-color: #ffffff;
+    --card-bg: #1f1f1f;
+    --border-color: #303030;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s, color 0.3s;
+  }
+}
+
+/* Kustomisasi komponen Ant Design */
+@layer components {
+  .ant-card,
+  .ant-table {
+    @apply bg-white dark:bg-gray-800;
+  }
+
+  .ant-btn-primary {
+    @apply bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500;
+  }
+}
