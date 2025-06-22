@@ -85,7 +85,6 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-              <Route path="/revenue-rules" element={<RevenueRule />} />
               <Route path="/account" element={isAuthenticated ? <AccountList /> : <Navigate to="/login" />} />
               <Route path="/account/add" element={isAuthenticated ? <AddAccount /> : <Navigate to="/login" />} />
               <Route path="/account/edit/:id" element={isAuthenticated ? <EditAccount /> : <Navigate to="/login" />} />
@@ -99,8 +98,9 @@ function App() {
                 <Route path="account-type" element={isAuthenticated ? <MasterAccountType /> : <Navigate to="/login" />} />
                 <Route path="account-category" element={isAuthenticated ? <MasterAccountCategory /> : <Navigate to="/login" />} />
                 <Route path="services" element={isAuthenticated ? <ServicesPage /> : <Navigate to="/login" />} />
-                <Route path="settlement-methods" element={isAuthenticated ? <SettlementMethodPage /> : <Navigate to="/login" />} />
+                {/* <Route path="settlement-methods" element={isAuthenticated ? <SettlementMethodPage /> : <Navigate to="/login" />} /> */}
                 <Route path="document-type" element={isAuthenticated ? <MasterDocumentType /> : <Navigate to="/login" />} />
+                <Route path="revenue-rules" element={isAuthenticated ? <RevenueRule />  : <Navigate to="/login" />} />
               </Route>
               <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
             </Routes>

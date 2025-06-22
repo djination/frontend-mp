@@ -46,8 +46,9 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
     { key: '/parameter/account-type', label: 'Account Type', icon: <ProfileOutlined /> },
     { key: '/parameter/account-category', label: 'Account Category', icon: <ProfileOutlined /> },
     { key: '/parameter/services', label: 'Services', icon: <ControlOutlined /> },
-    { key: '/parameter/settlement-methods', label: 'Settlement Methods', icon: <CreditCardOutlined /> },
-    { key: '/parameter/document-type', label: 'Document Type', icon: <FileTextOutlined /> }
+    // { key: '/parameter/settlement-methods', label: 'Settlement Methods', icon: <CreditCardOutlined /> },
+    { key: '/parameter/document-type', label: 'Document Type', icon: <FileTextOutlined /> },
+    { key: '/parameter/revenue-rules', label: 'Revenue Rule', icon: <CreditCardOutlined /> }
   ];
 
   // Mendapatkan current path untuk active state
