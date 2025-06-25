@@ -3,15 +3,14 @@ import { Modal, Form, Tabs, Button, Spin, message } from 'antd';
 import PropTypes from 'prop-types';
 import ChargingMetricForm from './ChargingMetricForm';
 import BillingRulesForm from './BillingRulesForm';
-import { getAccountRevenueRulesByAccountService } from '../../../../api/accountRevenueRuleApi';
+import { getAccountRevenueRulesByAccountServiceAsTree, createAccountRevenueRulesFromTree } from '../../../../api/accountRevenueRuleApi';
 
 const CRITICAL_PATHS = [
   ['charging_metric', 'dedicated', 'tiers'],
-  ['charging_metric', 'dedicated', 'package', 'tiers'],
   ['charging_metric', 'non_dedicated', 'tiers'],
 ];
 
-// Memastikan setiap path adalah array
+// Ensure each path is an array
 const ensureArrayPath = (obj, pathArr) => {
   let current = obj;
   for (let i = 0; i < pathArr.length - 1; i++) {
@@ -20,186 +19,6 @@ const ensureArrayPath = (obj, pathArr) => {
   }
   const last = pathArr[pathArr.length - 1];
   if (!Array.isArray(current[last])) current[last] = [];
-};
-
-// Transformasi rules dari backend ke format form
-const transformRulesToFormValues = (rules) => {
-  // Initialize form values with default structure
-  const values = {
-    charging_metric: {
-      type: 'dedicated',
-      dedicated: { 
-        tiers: [], 
-        package: { tiers: [] } 
-      },
-      non_dedicated: { tiers: [] }
-    },
-    billing_rules: {
-      billing_method: { methods: [] },
-      tax_rules: {},
-      term_of_payment: {}
-    }
-  };
-
-  // Ensure all critical array paths exist
-  CRITICAL_PATHS.forEach(path => ensureArrayPath(values, path));
-
-  // Find charging_metric type first (to set the base structure)
-  const typeRule = rules.find(rule => rule.rule_category === 'charging_metric' && rule.rule_path === 'type');
-  if (typeRule) {
-    values.charging_metric.type = typeRule.rule_value;
-  }
-
-  // Parse all tier indexes from the rules
-  const tierMap = {
-    dedicated: {},
-    non_dedicated: {},
-    package: {}
-  };
-
-  // First pass: identify all tier indexes
-  rules.forEach(rule => {
-    if (rule.rule_category !== 'charging_metric') return;
-    
-    // Dedicated tiers
-    const dedicatedMatch = rule.rule_path.match(/^dedicated\.tiers\.(\d+)\./);
-    if (dedicatedMatch) {
-      const tierIndex = parseInt(dedicatedMatch[1]);
-      if (!tierMap.dedicated[tierIndex]) {
-        tierMap.dedicated[tierIndex] = {};
-      }
-    }
-    
-    // Non-dedicated tiers
-    const nonDedicatedMatch = rule.rule_path.match(/^non_dedicated\.tiers\.(\d+)\./);
-    if (nonDedicatedMatch) {
-      const tierIndex = parseInt(nonDedicatedMatch[1]);
-      if (!tierMap.non_dedicated[tierIndex]) {
-        tierMap.non_dedicated[tierIndex] = {};
-      }
-    }
-    
-    // Package tiers
-    const packageMatch = rule.rule_path.match(/^dedicated\.package\.tiers\.(\d+)\./);
-    if (packageMatch) {
-      const tierIndex = parseInt(packageMatch[1]);
-      if (!tierMap.package[tierIndex]) {
-        tierMap.package[tierIndex] = {};
-      }
-    }
-  });
-
-  // Initialize tier arrays with the correct length
-  const dedicatedTierCount = Object.keys(tierMap.dedicated).length;
-  const nonDedicatedTierCount = Object.keys(tierMap.non_dedicated).length;
-  const packageTierCount = Object.keys(tierMap.package).length;
-
-  values.charging_metric.dedicated.tiers = new Array(dedicatedTierCount).fill().map(() => ({}));
-  values.charging_metric.non_dedicated.tiers = new Array(nonDedicatedTierCount).fill().map(() => ({}));
-  values.charging_metric.dedicated.package.tiers = new Array(packageTierCount).fill().map(() => ({}));
-
-  // Second pass: populate values
-  rules.forEach(rule => {
-    const { rule_category, rule_path, rule_value } = rule;
-    
-    if (!values[rule_category]) {
-      values[rule_category] = {};
-    }
-    
-    const parts = rule_path.split('.');
-    let current = values[rule_category];
-    
-    // Process each part of the path
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
-      
-      // Handle array indexes
-      if (!isNaN(parseInt(part))) {
-        const index = parseInt(part);
-        
-        // Ensure array exists and has enough elements
-        if (!Array.isArray(current)) {
-          console.warn(`Expected array at ${parts.slice(0, i).join('.')}`);
-          continue;
-        }
-        
-        while (current.length <= index) {
-          current.push({});
-        }
-        
-        current = current[index];
-      } else {
-        if (!current[part]) {
-          // Check if next part is a number (array index)
-          const nextPart = parts[i + 1];
-          current[part] = !isNaN(parseInt(nextPart)) ? [] : {};
-        }
-        current = current[part];
-      }
-    }
-    
-    // Set the final value with type conversion
-    const lastPart = parts[parts.length - 1];
-    let parsedValue = rule_value;
-    
-    // Convert string values to appropriate types
-    if (rule_value === 'true') parsedValue = true;
-    else if (rule_value === 'false') parsedValue = false;
-    else if (!isNaN(parseFloat(rule_value)) && isFinite(rule_value)) {
-      parsedValue = parseFloat(rule_value);
-    }
-    
-    current[lastPart] = parsedValue;
-  });
-
-  console.log('🔄 Form values after transformation:', values);
-  return values;
-};
-
-// Convert form values back to API format
-const transformFormValuesToRules = (values) => {
-  const rules = [];
-  
-  const processValue = (obj, category, path = []) => {
-    if (obj === undefined || obj === null) return;
-    
-    // Handle different value types
-    if (typeof obj !== 'object') {
-      // Scalar value
-      rules.push({
-        rule_category: category,
-        rule_path: path.join('.'),
-        rule_value: String(obj)
-      });
-      return;
-    }
-    
-    // Handle arrays
-    if (Array.isArray(obj)) {
-      obj.forEach((item, index) => {
-        if (item === undefined || item === null) return;
-        processValue(item, category, [...path, index]);
-      });
-      return;
-    }
-    
-    // Handle objects
-    Object.entries(obj).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
-      processValue(value, category, [...path, key]);
-    });
-  };
-  
-  // Process charging_metric and billing_rules
-  if (values.charging_metric) {
-    processValue(values.charging_metric, 'charging_metric');
-  }
-  
-  if (values.billing_rules) {
-    processValue(values.billing_rules, 'billing_rules');
-  }
-  
-  return rules;
 };
 
 // Main component
@@ -215,6 +34,7 @@ const RevenueRuleModal = ({
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('charging_metric');
   const [messageApi, contextHolder] = message.useMessage();
+  const [fetchedData, setFetchedData] = useState(null);
 
   // Fetch rules when modal opens
   useEffect(() => {
@@ -223,40 +43,124 @@ const RevenueRuleModal = ({
     form.resetFields();
     
     const fetchRules = async () => {
-      if (!accountId || !accountService?.id) return;
+      if (!accountId || !accountService) return;
       
       setLoading(true);
       try {
-        console.log(`Fetching revenue rules for account: ${accountId}, service: ${accountService.id}`);
-        const response = await getAccountRevenueRulesByAccountService(accountId, accountService.id);
+        // Check if we have an account service relationship ID or just a service ID
+        const accountServiceId = accountService.id;
+        const serviceId = '12e6fef0-2b55-48ea-99ce-f8665f4c840c';
         
-        if (response?.data?.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
-          console.log('✅ Rules fetched from backend:', response.data.data);
+        console.log(`Fetching revenue rules for account: ${accountId}`);
+        console.log(`Account service ID: ${accountServiceId}, Service ID: ${serviceId}`);
+        
+        let response;
+        
+        if (accountServiceId) {
+          // We have an account service relationship ID, use it directly
+          console.log(`Using account service relationship ID: ${accountServiceId}`);
+          response = await getAccountRevenueRulesByAccountServiceAsTree(accountId, accountServiceId);
+        } else if (serviceId) {
+          // We only have a service ID, the backend should handle creating the relationship
+          console.log(`Using service ID: ${serviceId}`);
+          response = await getAccountRevenueRulesByAccountServiceAsTree(accountId, serviceId);
+        } else {
+          console.error('No account service ID or service ID available');
+          message.error('Service information not available');
+          return;
+        }
+        
+        if (response?.data?.success && response.data.data) {
+          console.log('✅ Tree structure received from backend:', response.data.data);
           
-          // Transform backend rules to form format
-          const formValues = transformRulesToFormValues(response.data.data);
+          // Extract the actual data from the nested response
+          const treeData = response.data.data;
+          console.log('Extracted tree data:', treeData);
+          
+          // Store the fetched data
+          setFetchedData(treeData);
+          
+          // Ensure proper structure exists with fallbacks
+          const formValues = {
+            charging_metric: {
+              type: treeData.charging_metric?.type || 'dedicated',
+              dedicated: treeData.charging_metric?.dedicated || { tiers: [] },
+              non_dedicated: treeData.charging_metric?.non_dedicated || { tiers: [] }
+            },
+            billing_rules: {
+              billing_method: treeData.billing_rules?.billing_method || { methods: [] },
+              tax_rules: treeData.billing_rules?.tax_rules || {},
+              term_of_payment: treeData.billing_rules?.term_of_payment || {}
+            }
+          };
+          
+          // Ensure critical array paths exist
+          CRITICAL_PATHS.forEach(path => ensureArrayPath(formValues, path));
+          
           console.log('Setting form values:', formValues);
+          console.log('Form values structure check:', {
+            charging_metric_type: formValues.charging_metric.type,
+            dedicated_tiers_length: formValues.charging_metric.dedicated?.tiers?.length,
+            billing_methods_length: formValues.billing_rules.billing_method?.methods?.length,
+            tax_rules_type: formValues.billing_rules.tax_rules?.type,
+            term_of_payment_days: formValues.billing_rules.term_of_payment?.days
+          });
           
-          // Set form values with a slight delay to ensure form is ready
+          // Set form values with a delay to ensure form is ready
           setTimeout(() => {
             form.setFieldsValue(formValues);
+            console.log('Form values set successfully');
+            
+            // Verify the values were set correctly
+            const currentValues = form.getFieldsValue();
+            console.log('Current form values after setting:', currentValues);
+            
+            // Check if values were actually set
+            if (!currentValues.charging_metric || !currentValues.billing_rules) {
+              console.warn('Form values were not set properly, trying again...');
+              setTimeout(() => {
+                form.setFieldsValue(formValues);
+                console.log('Form values set again:', form.getFieldsValue());
+              }, 100);
+            }
           }, 200);
         } else {
-          console.log('No rules found in backend, using initialRules:', initialRules);
-          if (initialRules.length > 0) {
-            const formValues = transformRulesToFormValues(initialRules);
-            form.setFieldsValue(formValues);
-          }
+          console.log('No rules found in backend, initializing with default structure');
+          // Initialize with default structure
+          const defaultValues = {
+            charging_metric: {
+              type: 'dedicated',
+              dedicated: { tiers: [] },
+              non_dedicated: { tiers: [] }
+            },
+            billing_rules: {
+              billing_method: { methods: [] },
+              tax_rules: {},
+              term_of_payment: {}
+            }
+          };
+          
+          form.setFieldsValue(defaultValues);
         }
       } catch (error) {
         console.error('Error fetching revenue rules:', error);
         message.error('Failed to load revenue rules');
         
-        // Fall back to initialRules if backend fetch fails
-        if (initialRules.length > 0) {
-          const formValues = transformRulesToFormValues(initialRules);
-          form.setFieldsValue(formValues);
-        }
+        // Initialize with default structure on error
+        const defaultValues = {
+          charging_metric: {
+            type: 'dedicated',
+            dedicated: { tiers: [] },
+            non_dedicated: { tiers: [] }
+          },
+          billing_rules: {
+            billing_method: { methods: [] },
+            tax_rules: {},
+            term_of_payment: {}
+          }
+        };
+        
+        form.setFieldsValue(defaultValues);
       } finally {
         setLoading(false);
       }
@@ -264,6 +168,56 @@ const RevenueRuleModal = ({
 
     fetchRules();
   }, [visible, accountId, accountService, form, initialRules]);
+
+  // Monitor form values to prevent reset
+  useEffect(() => {
+    if (visible) {
+      const checkFormValues = () => {
+        const currentValues = form.getFieldsValue();
+        console.log('Form values check:', currentValues);
+        
+        // If form values are empty but we should have data, restore them
+        if (currentValues.charging_metric && 
+            (!currentValues.charging_metric.dedicated?.tiers?.length && 
+             !currentValues.charging_metric.non_dedicated?.tiers?.length)) {
+          console.warn('Form values appear to be reset, checking if we need to restore...');
+        }
+      };
+      
+      // Check form values after a delay to see if they were reset
+      const timer = setTimeout(checkFormValues, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, form]);
+
+  // Apply fetched data when available and form is ready
+  useEffect(() => {
+    if (fetchedData && visible) {
+      console.log('Applying fetched data to form:', fetchedData);
+      
+      const formValues = {
+        charging_metric: {
+          type: fetchedData.charging_metric?.type || 'dedicated',
+          dedicated: fetchedData.charging_metric?.dedicated || { tiers: [] },
+          non_dedicated: fetchedData.charging_metric?.non_dedicated || { tiers: [] }
+        },
+        billing_rules: {
+          billing_method: fetchedData.billing_rules?.billing_method || { methods: [] },
+          tax_rules: fetchedData.billing_rules?.tax_rules || {},
+          term_of_payment: fetchedData.billing_rules?.term_of_payment || {}
+        }
+      };
+      
+      // Ensure critical array paths exist
+      CRITICAL_PATHS.forEach(path => ensureArrayPath(formValues, path));
+      
+      // Apply with a longer delay to ensure form components are fully mounted
+      setTimeout(() => {
+        form.setFieldsValue(formValues);
+        console.log('Fetched data applied to form:', form.getFieldsValue());
+      }, 300);
+    }
+  }, [fetchedData, visible, form]);
   
   // Fix array structure if needed
   const fixFormArrayFields = (silent = false) => {
@@ -279,9 +233,9 @@ const RevenueRuleModal = ({
       currentValues.charging_metric.dedicated = {};
     }
     
-    // Ensure package section
-    if (!currentValues.charging_metric.dedicated.package) {
-      currentValues.charging_metric.dedicated.package = {};
+    // Ensure non_dedicated section
+    if (!currentValues.charging_metric.non_dedicated) {
+      currentValues.charging_metric.non_dedicated = {};
     }
     
     // Ensure critical arrays
@@ -299,7 +253,7 @@ const RevenueRuleModal = ({
     setActiveTab(key);
     
     // Fix array structures when switching tabs
-    setTimeout(fixFormArrayFields, 0); 
+    setTimeout(() => fixFormArrayFields(true), 0); 
   };
 
   const handleSubmit = async () => {
@@ -311,18 +265,53 @@ const RevenueRuleModal = ({
       // Fix array structures
       fixFormArrayFields(true);
       
-      // Transform to API format
-      const rules = transformFormValuesToRules(values);
-      console.log('Transformed rules for API:', rules);
+      // Get the final form values after fixing
+      const finalValues = form.getFieldsValue();
+      console.log('accountService values:', accountService);
+      console.log('Final values:', finalValues);
       
-      // Save rules
+      // Determine which ID to use for the payload
+      const accountServiceId = accountService.id;
+      const serviceId = accountService.service_id;
+      
+      let payloadAccountServiceId;
+      if (accountServiceId) {
+        payloadAccountServiceId = accountServiceId;
+        console.log(`Using account service relationship ID for payload: ${payloadAccountServiceId}`);
+      } else if (serviceId) {
+        payloadAccountServiceId = serviceId;
+        console.log(`Using service ID for payload: ${payloadAccountServiceId}`);
+      } else {
+        throw new Error('No account service ID or service ID available');
+      }
+      
+      // Prepare payload for tree structure API
+      const payload = {
+        account_id: accountId,
+        account_service_id: payloadAccountServiceId,
+        charging_metric: finalValues.charging_metric,
+        billing_rules: finalValues.billing_rules
+      };
+      
+      console.log('Sending tree payload to API:', payload);
+      
+      // Save using tree structure API
       setLoading(true);
-      if (onSave) {
-        onSave(rules);
+      const response = await createAccountRevenueRulesFromTree(payload);
+      
+      if (response?.data?.success) {
         messageApi.success('Revenue rules saved successfully');
+        console.log('✅ Rules saved successfully:', response.data);
+        
+        if (onSave) {
+          // Call the onSave callback with the original tree structure
+          onSave(finalValues);
+        }
+      } else {
+        throw new Error('Failed to save rules');
       }
     } catch (error) {
-      console.error('Form validation error:', error);
+      console.error('Form validation or save error:', error);
       if (error.errorFields) {
         messageApi.error('Please fill in all required fields');
       } else {
@@ -341,7 +330,6 @@ const RevenueRuleModal = ({
         open={visible}
         onCancel={onCancel}
         width={800}
-        destroyOnHidden={true}
         maskClosable={false}
         footer={[
           <Button key="cancel" onClick={onCancel}>

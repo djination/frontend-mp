@@ -138,11 +138,30 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
 const BillingRulesForm = ({ form }) => {
     const watchTaxRuleType = Form.useWatch(['billing_rules', 'tax_rules', 'type'], form);
     
+    // Initialize billing methods if not exists, but don't override existing data
+    useEffect(() => {
+        const currentMethods = form.getFieldValue(['billing_rules', 'billing_method', 'methods']);
+        if (!Array.isArray(currentMethods) || currentMethods.length === 0) {
+            console.log('Initializing empty billing methods array');
+            form.setFieldsValue({
+                billing_rules: {
+                    ...form.getFieldValue(['billing_rules']),
+                    billing_method: {
+                        ...form.getFieldValue(['billing_rules', 'billing_method']),
+                        methods: [{}]
+                    }
+                }
+            });
+        } else {
+            console.log('Billing methods already exist:', currentMethods);
+        }
+    }, [form]);
+    
     return (
         <Card title="Billing Rules" className="revenue-rule-card">
             {/* BILLING METHOD */}
             <Card type="inner" title="Billing Method">
-                <Form.List name={['billing_rules', 'billing_method', 'methods']} initialValue={[{}]}>
+                <Form.List name={['billing_rules', 'billing_method', 'methods']}>
                     {(fields, { add, remove }) => (
                         <BillingMethodFields fields={fields} add={add} remove={remove} form={form} />
                     )}

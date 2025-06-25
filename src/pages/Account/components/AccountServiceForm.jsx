@@ -146,10 +146,11 @@ const AccountServiceForm = ({
         message.error('Service ID not found');
         return;
       }
-      
+      const accountServiceId = accountServiceMap[serviceId]?.id;
       setCurrentService({
         ...nodeData,
         accountService: {
+          id: accountServiceId,
           account_id: accountId,
           service_id: serviceId,
           service: nodeData
@@ -227,7 +228,7 @@ const AccountServiceForm = ({
   };
 
   if (error) return <Alert type="error" message="Error" description={error} />;
-  if (loading) return <Spin tip="Loading services..." />;
+  if (loading) return <Spin size="large"><div style={{ height: 200 }}>Loading services...</div></Spin>;
   if (!serviceTree.length) return <Empty description="No services available" />;
 
   return (

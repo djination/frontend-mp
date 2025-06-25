@@ -1,5 +1,78 @@
 import axios from '../config/axiosInstance';
 
+// Tree Structure API Methods (New)
+export const getAccountRevenueRulesByAccountServiceAsTree = async (accountId, accountServiceId) => {
+  try {
+    console.log(`Fetching revenue rules as tree for account ${accountId}, service ${accountServiceId}`);
+    const response = await axios.get(`/account-revenue-rules/tree/account/${accountId}/service/${accountServiceId}`);
+    
+    console.log('Tree API Response:', {
+      status: response.status,
+      hasData: !!response.data,
+      dataStructure: response.data ? Object.keys(response.data) : null,
+      hasNestedData: !!response.data?.data,
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching revenue rules as tree:', error);
+    
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+    } else {
+      console.error('Error setting up request:', error.message);
+    }
+    
+    throw error;
+  }
+};
+
+export const createAccountRevenueRulesFromTree = async (data) => {
+  try {
+    // Ensure data format matches the tree structure DTO
+    const sanitizedData = {
+      account_id: data.account_id,
+      account_service_id: data.account_service_id,
+      charging_metric: data.charging_metric || null,
+      billing_rules: data.billing_rules || null
+    };
+    
+    console.log('Sending tree data to /account-revenue-rules/tree:', sanitizedData);
+    
+    const response = await axios.post('/account-revenue-rules/tree', sanitizedData, {
+      timeout: 30000, // 30 second timeout
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Error creating revenue rules from tree:', error);
+    
+    if (error.response) {
+      console.error('SERVER ERROR - Tree Structure:');
+      if (error.response.status === 500) {
+        console.error('- Tree to flat conversion error');
+        console.error('- Database constraint violations');
+        console.error('- Invalid tree structure causing server exception');
+      }
+      console.error('Response data:', error.response.data);
+      console.error('Response status:', error.response.status);
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+    } else {
+      console.error('Error setting up request:', error.message);
+    }
+    
+    throw error;
+  }
+};
+
+// Existing Flat Structure API Methods (Backward Compatibility)
 export const getAccountRevenueRulesByAccountService = async (accountId, accountServiceId) => {
   try {
     console.log(`Fetching revenue rules for account ${accountId}, service ${accountServiceId}`);
@@ -35,7 +108,7 @@ export const getAccountRevenueRulesByAccountService = async (accountId, accountS
 
 export const createAccountRevenueRules = async (data) => {
   try {
-    // Memastikan format data sesuai dengan API
+    // Ensure data format matches the flat structure DTO
     const sanitizedData = {
       account_id: data.account_id,
       account_service_id: data.account_service_id,
@@ -79,7 +152,7 @@ export const createAccountRevenueRules = async (data) => {
   }
 };
 
-// Helper untuk debugging rule conversion
+// Helper for debugging rule structure
 export const logRuleStructure = (rules) => {
   if (!Array.isArray(rules)) {
     console.error('Rules is not an array:', rules);
@@ -122,4 +195,10 @@ export const logRuleStructure = (rules) => {
       console.log('  }');
     });
   });
+};
+
+// Helper for debugging tree structure
+export const logTreeStructure = (treeData) => {
+  console.log('🌳 Tree Structure:');
+  console.log(JSON.stringify(treeData, null, 2));
 };
