@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Form, Input, Select, Button, Card, Row, Col,
-  Switch, Tabs, message, Space, TreeSelect, Divider, Alert
+  Switch, Tabs, message, Space, TreeSelect, Divider, Alert, App
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,6 +23,7 @@ import { createAccountAddress, updateAccountAddress, deleteAccountAddress } from
 import { createAccountBank, updateAccountBank, deleteAccountBank } from '../../../api/accountBankApi';
 import { createAccountService, updateAccountService, deleteAccountService, getAccountServicesByAccount } from '../../../api/accountServiceApi';
 import { getAccountDocuments, uploadAccountDocument, deleteAccountDocument } from '../../../api/accountDocumentApi';
+import { createAccountRevenueRules } from '../../../api/accountRevenueRuleApi';
 
 const buildTreeData = (accounts, selfId) => {
   if (!accounts || !Array.isArray(accounts) || accounts.length === 0) return [];
@@ -56,6 +57,7 @@ const AccountForm = ({
 }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { message, notification, modal } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [industries, setIndustries] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
@@ -408,8 +410,120 @@ const AccountForm = ({
     }
   };
 
+  // Helper untuk menyimpan revenue rules dari account services
+  const saveAccountRevenueRules = async (accountId, services) => {
+    if (!accountId || !Array.isArray(services)) return;
+    
+    // Cek apakah ada revenue rules yang disimpan di localStorage
+    let revenueRulesByService = {};
+    try {
+      const savedRules = localStorage.getItem(`revenueRules_${accountId}`);
+      if (savedRules) {
+        revenueRulesByService = JSON.parse(savedRules);
+      }
+    } catch (error) {
+      console.error("Error parsing saved revenue rules:", error);
+    }
+    
+    // Tambahkan revenue rules yang sudah ada ke service yang sesuai
+    for (const service of services) {
+      const serviceId = service.service_id || (service.service && service.service.id);
+      if (serviceId && revenueRulesByService[serviceId]) {
+        service.revenue_rules = revenueRulesByService[serviceId];
+      }
+    }
+    
+    // Bersihkan localStorage setelah disimpan ke API
+    localStorage.removeItem(`revenueRules_${accountId}`);
+    
+    return services;
+  };
+
+  // Di fungsi saveRevenueRulesToBackend, ubah format payload:
+  const saveRevenueRulesToBackend = async (accountId, services) => {
+    if (!accountId || !Array.isArray(services)) return;
+    
+    // Filter services yang memiliki revenue_rules
+    const servicesToProcess = services.filter(service => 
+      service.revenue_rules && Array.isArray(service.revenue_rules) && service.revenue_rules.length > 0
+    );
+    
+    if (servicesToProcess.length === 0) return;
+    
+    // Tambahkan variabel untuk menghitung hasil
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const service of servicesToProcess) {
+      const serviceId = service.service_id || (service.service && service.service.id);
+      if (!serviceId) continue;
+      
+      try {
+        const accountServiceId = service.id;
+        
+        if (!accountServiceId) {
+          console.error(`Cannot save revenue rules: missing account_service_id for service ${serviceId}`);
+          errorCount++;
+          continue;
+        }
+        
+        // Validasi rules sebelum dikirim
+        const validRules = service.revenue_rules
+          .filter(rule => rule && rule.rule_category && rule.rule_path)
+          .map(rule => ({
+            rule_category: String(rule.rule_category),
+            rule_path: String(rule.rule_path),
+            rule_value: rule.rule_value !== undefined ? String(rule.rule_value) : ''
+          }));
+        
+        if (validRules.length === 0) {
+          console.warn(`No valid rules found for service ${serviceId}`);
+          continue;
+        }
+
+        // Format payload dengan rules yang valid
+        const payload = {
+          account_id: accountId,
+          account_service_id: accountServiceId,
+          rules: validRules
+        };
+        
+        console.log(`Sending ${validRules.length} revenue rules for service ${serviceId}`);
+        await createAccountRevenueRules(payload);
+        console.log(`Revenue rules saved successfully for service ${serviceId}`);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        console.error(`Error saving revenue rules for service ${serviceId}:`, error);
+        
+        // Detail log untuk error 500
+        if (error.response && error.response.status === 500) {
+          console.error('Server error details:', error.response.data);
+          // Jika gagal karena error 500, simpan rules di localStorage untuk debugging
+          try {
+            localStorage.setItem(`debug_rules_${serviceId}`, 
+                                JSON.stringify(service.revenue_rules));
+          } catch (e) {
+            console.error('Failed to save debug data:', e);
+          }
+        }
+        
+        message.error(`Failed to save revenue rules for ${service.service?.name || 'service'}`);
+      }
+    }
+    
+    // Tampilkan hasil akhir
+    if (successCount > 0) {
+      message.success(`Successfully saved revenue rules for ${successCount} service(s)`);
+    }
+    if (errorCount > 0) {
+      message.warning(`Failed to save revenue rules for ${errorCount} service(s)`);
+    }
+  };
+
   // Submit utama
   const handleSubmit = async (values) => {
+    console.log('account service:',accountServices);
     setLoading(true);
     try {
       let accountNo = values.account_no;
@@ -482,7 +596,9 @@ const AccountForm = ({
           message.error('Failed to save bank accounts');
         }
         try {
-          await saveAccountServices(accountServices, accountId);
+          const servicesToSave = await saveAccountRevenueRules(accountId, accountServices);
+          await saveAccountServices(servicesToSave || accountServices, accountId);
+          await saveRevenueRulesToBackend(accountId, servicesToSave || accountServices);
         } catch (error) {
           message.error('Failed to save service accounts');
         }

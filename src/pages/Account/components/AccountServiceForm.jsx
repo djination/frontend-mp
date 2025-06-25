@@ -1,7 +1,36 @@
-import { useState, useEffect } from 'react';
-import { Tree, Empty, Spin, Alert } from 'antd';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { App } from 'antd';
+import { Tree, Empty, Spin, Alert, Button } from 'antd';
+import { SettingOutlined } from '@ant-design/icons';
 import { getServices } from '../../../api/serviceApi';
+import { getAccountServicesByAccount } from '../../../api/accountServiceApi';
 import PropTypes from 'prop-types';
+import RevenueRuleModal from './AccountRevenueRule/AccountRevenueRuleModal';
+
+const getAllExpandableKeys = (services) => {
+  if (!Array.isArray(services)) return [];
+  const keys = [];
+  const collect = (items) => {
+    items.forEach(item => {
+      if (item.id) keys.push(item.id);
+      if (item.children?.length) collect(item.children);
+    });
+  };
+  collect(services);
+  return keys;
+};
+
+const buildTreeData = (services) => {
+  if (!Array.isArray(services)) return [];
+  return services.map(s => ({
+    title: s.name,
+    key: s.id,
+    name: s.name,
+    id: s.id,
+    serviceData: s,
+    children: s.children?.length ? buildTreeData(s.children) : undefined,
+  }));
+};
 
 const AccountServiceForm = ({
   accountServices = [],
@@ -14,194 +43,192 @@ const AccountServiceForm = ({
   const [error, setError] = useState(null);
   const [checkedKeys, setCheckedKeys] = useState([]);
   const [expandedKeys, setExpandedKeys] = useState([]);
-  
-  // Fetch services saat komponen dimount
-  useEffect(() => {
-    fetchServices();
-  }, []);
+  const [revenueRuleModalVisible, setRevenueRuleModalVisible] = useState(false);
+  const [currentService, setCurrentService] = useState(null);
+  const [accountServiceMap, setAccountServiceMap] = useState({});
+  const serviceIdMapRef = useRef({});
+  const { message } = App.useApp();
 
-  // Update checkedKeys saat accountServices berubah
-  useEffect(() => {
-    try {
-      
-      
-      // Defensive check
-      if (!Array.isArray(accountServices)) {
-        console.warn("accountServices is not an array:", accountServices);
-        setCheckedKeys([]);
-        return;
+  const [revenueRules, setRevenueRules] = useState(() => {
+    if (accountId) {
+      try {
+        const savedRules = localStorage.getItem(`revenueRules_${accountId}`);
+        return savedRules ? JSON.parse(savedRules) : {};
+      } catch {
+        return {};
       }
-
-      const ids = accountServices
-        .filter(s => s && (s.service_id || (s.service && s.service.id)))
-        .map(s => s.service_id || (s.service && s.service.id));
-      
-      
-      setCheckedKeys(ids);
-    } catch (err) {
-      console.error("Error processing accountServices:", err);
-      setError("Error processing services data");
-      setCheckedKeys([]);
     }
-  }, [accountServices]);
+    return {};
+  });
 
-  // Ambil data services dari API
-  const fetchServices = async () => {
+  useEffect(() => {
+    if (accountId && Object.keys(revenueRules).length > 0) {
+      try {
+        localStorage.setItem(`revenueRules_${accountId}`, JSON.stringify(revenueRules));
+      } catch {}
+    }
+  }, [revenueRules, accountId]);
+
+  const fetchAccountServices = useCallback(async () => {
+    try {
+      const response = await getAccountServicesByAccount(accountId);
+      const mapping = {};
+      if (response?.data) {
+        let accountServicesData = [];
+        if (Array.isArray(response.data)) {
+          accountServicesData = response.data;
+        } else if (Array.isArray(response.data.data)) {
+          accountServicesData = response.data.data;
+        } else if (typeof response.data.data === 'object' && response.data.data !== null) {
+          accountServicesData = [response.data.data];
+        }
+        accountServicesData.forEach(accountService => {
+          if (accountService?.service_id) {
+            mapping[accountService.service_id] = accountService;
+          }
+        });
+      }
+      setAccountServiceMap(mapping);
+    } catch {}
+  }, [accountId]);
+
+  const fetchServices = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await getServices();
-      
-      
       let servicesData = [];
       if (Array.isArray(response?.data)) {
         servicesData = response.data;
       } else if (Array.isArray(response?.data?.data)) {
         servicesData = response.data.data;
-      } else {
-        console.warn("Unexpected services response format:", response);
-        servicesData = [];
       }
-      
-      // Konversi ke format Tree Ant Design
-      const treeData = buildTreeData(servicesData);
-      setServiceTree(treeData);
-      
-      // Expand keys
-      const allKeys = getAllExpandableKeys(servicesData);
-      setExpandedKeys(allKeys);
-    } catch (err) {
-      console.error('Failed to fetch services:', err);
+      setServiceTree(buildTreeData(servicesData));
+      setExpandedKeys(getAllExpandableKeys(servicesData));
+    } catch {
       setError("Failed to load services. Please try again.");
       setServiceTree([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Get all keys for expansion
-  const getAllExpandableKeys = (services) => {
-    if (!Array.isArray(services)) return [];
-    
-    let keys = [];
-    const collect = (items) => {
-      items.forEach(item => {
-        if (item.id) keys.push(item.id);
-        if (item.children && item.children.length > 0) {
-          collect(item.children);
-        }
-      });
-    };
-    
-    collect(services);
-    return keys;
-  };
+  useEffect(() => {
+    fetchServices();
+    if (accountId) fetchAccountServices();
+  }, [accountId, fetchServices, fetchAccountServices]);
 
-  // Recursive function untuk build tree data
-  const buildTreeData = (services) => {
-    if (!services || !Array.isArray(services)) return [];
-    
-    return services.map(s => ({
-      title: s.name,
-      key: s.id,
-      children: s.children && s.children.length > 0 
-        ? buildTreeData(s.children) 
-        : undefined,
-    }));
-  };
+  useEffect(() => {
+    if (!Array.isArray(accountServices)) {
+      setCheckedKeys([]);
+      return;
+    }
+    const ids = accountServices
+      .filter(s => s && (s.service_id || (s.service && s.service.id)))
+      .map(s => s.service_id || (s.service && s.service.id));
+    setCheckedKeys(ids);
 
-  // Flatten tree untuk pencarian service by id
-  const flattenServiceTree = (services) => {
-    if (!Array.isArray(services)) return [];
-    
-    let result = [];
-    const flatten = (items) => {
-      items.forEach(service => {
-        result.push(service);
-        if (service.children && service.children.length > 0) {
-          flatten(service.children);
-        }
-      });
-    };
-    
-    flatten(services);
-    return result;
-  };
+    const rulesMap = {};
+    accountServices.forEach(service => {
+      const serviceId = service.service_id || (service.service && service.service.id);
+      if (serviceId && service.revenue_rules) {
+        rulesMap[serviceId] = service.revenue_rules;
+      }
+    });
+    if (Object.keys(rulesMap).length > 0) setRevenueRules(rulesMap);
+  }, [accountServices]);
 
-  // Handle saat checkbox diubah
-  const onCheck = (checked) => {
+  const handleRevenueRuleClick = (nodeData, e) => {
+    e.stopPropagation();
     try {
-      
-      setCheckedKeys(checked);
-
-      // Konversi original services ke map untuk lookup cepat
-      const originalServicesMap = {};
-      if (Array.isArray(accountServices)) {
-        accountServices.forEach(svc => {
-          const serviceId = svc.service_id || (svc.service && svc.service.id);
-          if (serviceId) {
-            originalServicesMap[serviceId] = svc;
-          }
-        });
+      const serviceId = nodeData.key || nodeData.id;
+      if (!serviceId) {
+        message.error('Service ID not found');
+        return;
       }
       
-      // Flatten services untuk mencari data service
-      const allServices = [];
-      const traverseTree = (nodes) => {
-        nodes.forEach(node => {
-          allServices.push({
-            id: node.key,
-            name: node.title
-          });
-          if (node.children && node.children.length > 0) {
-            traverseTree(node.children);
-          }
-        });
-      };
-      
-      traverseTree(serviceTree);
-      
-      // Buat accountServices baru berdasarkan ID yang dipilih
-      const newAccountServices = checked.map(serviceId => {
-        // Cek jika service ini sudah ada sebelumnya
-        if (originalServicesMap[serviceId]) {
-          return originalServicesMap[serviceId];
-        }
-        
-        // Jika baru, cari datanya dari tree
-        const serviceData = allServices.find(s => s.id === serviceId) || { id: serviceId, name: `Service ${serviceId.substring(0, 8)}` };
-        
-        return {
-          tempId: `temp-${serviceId}-${Date.now()}`,
-          service_id: serviceId,
-          service: { 
-            id: serviceId,
-            name: serviceData.name
-          },
+      setCurrentService({
+        ...nodeData,
+        accountService: {
           account_id: accountId,
-          is_active: true
-        };
+          service_id: serviceId,
+          service: nodeData
+        }
       });
-      
-      // Update parent component
-      onChange(newAccountServices);
-    } catch (err) {
-      console.error("Error handling check event:", err);
-      setError("Error updating selected services");
+      setRevenueRuleModalVisible(true);
+    } catch (error) {
+      console.error("Error opening revenue rule modal:", error);
+      message.error("Could not open revenue rules. Please try again.");
     }
   };
-  
-  if (error) {
-    return <Alert type="error" message="Error" description={error} />;
-  }
-  
-  if (loading) {
-    return <Spin tip="Loading services..." />;
-  }
 
-  if (!serviceTree.length) {
-    return <Empty description="No services available" />;
-  }
+  const handleModalClose = () => {
+    setRevenueRuleModalVisible(false);
+    setCurrentService(null);
+  };
+
+  const handleSaveRevenueRule = (serviceId, rules) => {
+    const id = serviceId || (currentService && (currentService.key || currentService.id));
+    if (!id) return;
+    setRevenueRules(prev => ({ ...prev, [serviceId]: rules }));
+    
+    // Simpan account_service_id jika tersedia
+    const accountServiceId = currentService?.accountService?.id;
+    if (accountServiceId) {
+      console.log(`Saving account_service_id ${accountServiceId} for service ${id}`);
+      // Simpan account_service_id bersama rules
+    }
+    
+    const updatedServices = (accountServices || []).map(service => {
+      const sid = service.service_id || (service.service && service.service.id);
+      if (sid === id) return { ...service, revenue_rules: rules };
+      return service;
+    });
+    
+    onChange(updatedServices);
+    handleModalClose();
+  };
+
+  const onCheck = (checked) => {
+    setCheckedKeys(checked);
+    const originalServicesMap = {};
+    if (Array.isArray(accountServices)) {
+      accountServices.forEach(svc => {
+        const serviceId = svc.service_id || (svc.service && svc.service.id);
+        if (serviceId) originalServicesMap[serviceId] = svc;
+      });
+    }
+    const findServiceInTree = (nodes, serviceId) => {
+      for (const node of nodes) {
+        if (node.key === serviceId) return { name: node.name || node.title, id: node.id };
+        if (node.children?.length) {
+          const found = findServiceInTree(node.children, serviceId);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const newAccountServices = checked.map(serviceId => {
+      if (originalServicesMap[serviceId]) return originalServicesMap[serviceId];
+      const serviceData = findServiceInTree(serviceTree, serviceId);
+      const newService = {
+        service_id: serviceId,
+        service: serviceData || { id: serviceId },
+        account_id: accountId,
+        is_active: true
+      };
+      if (revenueRules[serviceId]) {
+        serviceIdMapRef.current[serviceId] = serviceId;
+        newService.revenue_rules = revenueRules[serviceId];
+      }
+      return newService;
+    });
+    onChange(newAccountServices);
+  };
+
+  if (error) return <Alert type="error" message="Error" description={error} />;
+  if (loading) return <Spin tip="Loading services..." />;
+  if (!serviceTree.length) return <Empty description="No services available" />;
 
   return (
     <div className="service-tree-container">
@@ -213,7 +240,44 @@ const AccountServiceForm = ({
         onCheck={onCheck}
         onExpand={setExpandedKeys}
         defaultExpandAll
+        titleRender={nodeData => {
+          const isChecked = checkedKeys.includes(nodeData.key);
+          const isLeafNode = !nodeData.children || nodeData.children.length === 0;
+          const hasRevenueRules = !!revenueRules[nodeData.key];
+          return (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%'
+            }}>
+              <span>{nodeData.name || nodeData.title}</span>
+              {isLeafNode && isChecked && (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<SettingOutlined />}
+                  onClick={e => handleRevenueRuleClick(nodeData, e)}
+                  disabled={!accountId}
+                >
+                  Revenue Rules{hasRevenueRules ? ' ✓' : ''}
+                </Button>
+              )}
+            </div>
+          );
+        }}
       />
+      {revenueRuleModalVisible && currentService && (
+        <RevenueRuleModal
+          key={`modal-${currentService.id}-${Date.now()}`}
+          visible={revenueRuleModalVisible}
+          onCancel={handleModalClose}
+          accountId={accountId}
+          accountService={currentService.accountService}
+          onSave={rules => handleSaveRevenueRule(currentService.id, rules)}
+          initialRules={revenueRules[currentService.id] || []}
+        />
+      )}
     </div>
   );
 };
