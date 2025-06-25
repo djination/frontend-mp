@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Form, Radio, Card, Space } from 'antd';
+import { Form, Radio, Card, Space, Checkbox } from 'antd';
 import { CurrencyInput, PercentageInput } from '../../../../components/NumericInput';
-
-// Utility: Select component for options
-const SelectField = ({ value, onChange, options, ...props }) => (
+ // Utility: Select component for options
+ const SelectField = ({ value, onChange, options, ...props }) => (
     <select style={{ width: 200 }} value={value} onChange={onChange} {...props}>
         <option value="">Select Type</option>
         {options.map(opt => (
@@ -11,9 +10,9 @@ const SelectField = ({ value, onChange, options, ...props }) => (
         ))}
     </select>
 );
-
 // Add-Ons Fields (shared)
 function AddOnsFields({ form, name, parentPath }) {
+
     const handleSelectChange = (field, addOnsName, value) => {
         const currentValues = form.getFieldValue([...parentPath, name, 'add_ons_types']) || [];
         const updated = [...currentValues];
@@ -57,20 +56,16 @@ function AddOnsFields({ form, name, parentPath }) {
                                         label="Add-Ons Type"
                                         rules={[{ required: true, message: 'Please select add-ons type' }]}
                                     >
-                                        <SelectField
-                                            value={addOnsTypeValue}
-                                            onChange={e =>
-                                                handleSelectChange(
-                                                    { type: e.target.value, billing_type: undefined, amount: undefined },
-                                                    addOnsName,
-                                                    e.target.value
-                                                )
-                                            }
-                                            options={[
-                                                { value: 'system_integration', label: 'System Integration' },
-                                                { value: 'infrastructure', label: 'Infrastructure' }
-                                            ]}
-                                        />
+                                        <Radio.Group onChange={e =>
+                                            handleSelectChange(
+                                                { type: e.target.value, billing_type: undefined, amount: undefined },
+                                                addOnsName,
+                                                e.target.value
+                                            )
+                                        }>
+                                            <Radio value="system_integration">System Integration</Radio>
+                                            <Radio value="infrastructure">Infrastructure</Radio>
+                                        </Radio.Group>
                                     </Form.Item>
 
                                     {addOnsTypeValue === 'system_integration' && (
@@ -81,20 +76,16 @@ function AddOnsFields({ form, name, parentPath }) {
                                                 label="Billing Type"
                                                 rules={[{ required: true, message: 'Please select billing type' }]}
                                             >
-                                                <SelectField
-                                                    value={billingTypeValue}
-                                                    onChange={e =>
-                                                        handleSelectChange(
-                                                            { billing_type: e.target.value },
-                                                            addOnsName,
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    options={[
-                                                        { value: 'otc', label: 'OTC' },
-                                                        { value: 'monthly', label: 'Monthly' }
-                                                    ]}
-                                                />
+                                                <Radio.Group onChange={e =>
+                                                    handleSelectChange(
+                                                        { billing_type: e.target.value },
+                                                        addOnsName,
+                                                        e.target.value
+                                                    )
+                                                }>
+                                                    <Radio value="otc">OTC</Radio>
+                                                    <Radio value="monthly">Monthly</Radio>
+                                                </Radio.Group>
                                             </Form.Item>
                                             <Form.Item
                                                 {...addOnsRest}
@@ -137,129 +128,100 @@ function AddOnsFields({ form, name, parentPath }) {
 }
 
 // Dedicated Tier Fields
-function DedicatedTierFields({ fields, add, remove, form }) {
-    // Added debug log for fields
-    useEffect(() => {
-        console.log('DedicatedTierFields - fields:', fields);
-    }, [fields]);
+function DedicatedTierFields({ fields, form }) {
+    if (!Array.isArray(fields) || fields.length === 0) return null;
+    const { key, name, ...restField } = fields[0];
+    const tierType = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', name, 'type']);
+    const hasAddOns = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', name, 'has_add_ons']);
 
-    if (!Array.isArray(fields)) {
-        return (
-            <div>
-                <p style={{ color: 'red' }}>Error: Form data format is not valid</p>
-                <Form.Item>
-                    <a onClick={() => add()} style={{ color: '#1890ff' }}>+ Add Row</a>
-                </Form.Item>
-            </div>
-        );
-    }
     const handleTypeChange = (name, value) => {
-        const currentValues = form.getFieldValue(['charging_metric', 'dedicated', 'tiers']) || [];
-        const updated = [...currentValues];
-        updated[name] = { ...updated[name], type: value };
+        const updated = [{ ...form.getFieldValue(['charging_metric', 'dedicated', 'tiers', 0]), type: value }];
         form.setFieldsValue({ charging_metric: { dedicated: { tiers: updated } } });
-        
-        console.log(`Dedicated tier ${name} type changed to ${value}`);
+    };
+    const handleAddOnsChange = (name, checked) => {
+        const updated = [{ ...form.getFieldValue(['charging_metric', 'dedicated', 'tiers', 0]), has_add_ons: checked }];
+        if (!checked) updated[0].add_ons_types = undefined;
+        form.setFieldsValue({ charging_metric: { dedicated: { tiers: updated } } });
     };
 
     return (
-        <>
-            {fields.map(({ key, name, ...restField }) => {
-                const tierType = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', name, 'type']);
-                console.log(`Rendering dedicated tier ${name}, type:`, tierType);
-                return (
-                    <div key={key} style={{ marginBottom: 16, border: '1px solid #eee', padding: 16, borderRadius: 4 }}>
-                        <Form.Item
-                            {...restField}
-                            name={[name, 'type']}
-                            label="Dedicated Type"
-                            rules={[{ required: true, message: 'Please select dedicated type' }]}
-                        >
-                            <SelectField
-                                value={tierType}
-                                onChange={e => handleTypeChange(name, e.target.value)}
-                                options={[
-                                    { value: 'package', label: 'Package' },
-                                    { value: 'non_package', label: 'Non Package' },
-                                    { value: 'add_ons', label: 'Add-Ons' }
-                                ]}
-                            />
-                        </Form.Item>
-
-                        {tierType === 'package' && (
-                            <div className="rule-subsection">
-                                <Form.List name={['charging_metric', 'dedicated', 'package', 'tiers']}>
-                                    {(pkgFields, { add: addPkg, remove: removePkg }) => (
-                                        <>
-                                            {pkgFields.map(({ key: pkgKey, name: pkgName, ...pkgRest }) => (
-                                                <Space key={pkgKey} align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
-                                                    <Form.Item {...pkgRest} name={[pkgName, 'min']} rules={[{ required: true, message: 'Min required' }]}>
-                                                        <CurrencyInput placeholder="Min (Rp)" />
-                                                    </Form.Item>
-                                                    <span> - </span>
-                                                    <Form.Item {...pkgRest} name={[pkgName, 'max']} rules={[{ required: true, message: 'Max required' }]}>
-                                                        <CurrencyInput placeholder="Max (Rp)" />
-                                                    </Form.Item>
-                                                    <span>=</span>
-                                                    <Form.Item {...pkgRest} name={[pkgName, 'amount']} rules={[{ required: true, message: 'Amount required' }]}>
-                                                        <CurrencyInput placeholder="Amount (Rp)" />
-                                                    </Form.Item>
-                                                    {pkgFields.length > 1 && (
-                                                        <a onClick={() => removePkg(pkgName)} style={{ color: 'red' }}>Remove</a>
-                                                    )}
-                                                </Space>
-                                            ))}
-                                            <Form.Item>
-                                                <a onClick={() => addPkg()} style={{ color: '#1890ff' }}>+ Add Tier</a>
-                                            </Form.Item>
-                                        </>
-                                    )}
-                                </Form.List>
-                            </div>
-                        )}
-
-                        {tierType === 'non_package' && (
-                            <div className="rule-subsection">
-                                <Form.Item
-                                    {...restField}
-                                    name={[name, 'non_package_type']}
-                                    label="Non Package Type"
-                                    rules={[{ required: true, message: 'Please select non package type' }]}
-                                >
-                                    <Radio.Group>
-                                        <Radio value="machine_only">Machine Only</Radio>
-                                        <Radio value="service_only">Service Only</Radio>
-                                    </Radio.Group>
-                                </Form.Item>
-                                <Form.Item
-                                    {...restField}
-                                    name={[name, 'amount']}
-                                    label="Non Package Amount"
-                                    rules={[{ required: true, message: 'Please input non package amount' }]}
-                                >
-                                    <CurrencyInput placeholder="Enter non package amount" />
-                                </Form.Item>
-                            </div>
-                        )}
-
-                        {tierType === 'add_ons' && (
-                            <AddOnsFields
-                                form={form}
-                                name={name}
-                                parentPath={['charging_metric', 'dedicated', 'tiers']}
-                            />
-                        )}
-
-                        {fields.length > 1 && (
-                            <a onClick={() => remove(name)} style={{ color: 'red', marginTop: 8, display: 'inline-block' }}>Remove</a>
-                        )}
-                    </div>
-                );
-            })}
-            <Form.Item>
-                <a onClick={() => add()} style={{ color: '#1890ff' }}>+ Add Row</a>
+        <div key={key} style={{ marginBottom: 16, border: '1px solid #eee', padding: 16, borderRadius: 4 }}>
+            <Form.Item
+                {...restField}
+                name={[name, 'type']}
+                label="Dedicated Type"
+                rules={[{ required: true, message: 'Please select dedicated type' }]}
+            >
+                <Radio.Group onChange={e => handleTypeChange(name, e.target.value)}>
+                    <Radio value="package">Package</Radio>
+                    <Radio value="non_package">Non Package</Radio>
+                </Radio.Group>
             </Form.Item>
-        </>
+            {tierType === 'package' && (
+                <div className="rule-subsection">
+                    <Form.List name={['charging_metric', 'dedicated', 'package', 'tiers']}>
+                        {(pkgFields, { add: addPkg, remove: removePkg }) => (
+                            <>
+                                {pkgFields.map(({ key: pkgKey, name: pkgName, ...pkgRest }) => (
+                                    <Space key={pkgKey} align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
+                                        <Form.Item {...pkgRest} name={[pkgName, 'min']} rules={[{ required: true, message: 'Min required' }]}> <CurrencyInput placeholder="Min (Rp)" /> </Form.Item>
+                                        <span> - </span>
+                                        <Form.Item {...pkgRest} name={[pkgName, 'max']} rules={[{ required: true, message: 'Max required' }]}> <CurrencyInput placeholder="Max (Rp)" /> </Form.Item>
+                                        <span>=</span>
+                                        <Form.Item {...pkgRest} name={[pkgName, 'amount']} rules={[{ required: true, message: 'Amount required' }]}> <CurrencyInput placeholder="Amount (Rp)" /> </Form.Item>
+                                        {pkgFields.length > 1 && (
+                                            <a onClick={() => removePkg(pkgName)} style={{ color: 'red' }}>Remove</a>
+                                        )}
+                                    </Space>
+                                ))}
+                                <Form.Item>
+                                    <a onClick={() => addPkg()} style={{ color: '#1890ff' }}>+ Add Tier</a>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
+                </div>
+            )}
+            {tierType === 'non_package' && (
+                <div className="rule-subsection">
+                    <Form.Item
+                        {...restField}
+                        name={[name, 'non_package_type']}
+                        label="Non Package Type"
+                        rules={[{ required: true, message: 'Please select non package type' }]}
+                    >
+                        <Radio.Group>
+                            <Radio value="machine_only">Machine Only</Radio>
+                            <Radio value="service_only">Service Only</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+                    <Form.Item
+                        {...restField}
+                        name={[name, 'amount']}
+                        label="Non Package Amount"
+                        rules={[{ required: true, message: 'Please input non package amount' }]}
+                    >
+                        <CurrencyInput placeholder="Enter non package amount" />
+                    </Form.Item>
+                </div>
+            )}
+            {tierType && (
+                <Form.Item
+                    {...restField}
+                    name={[name, 'has_add_ons']}
+                    valuePropName="checked"
+                >
+                    <Checkbox onChange={e => handleAddOnsChange(name, e.target.checked)}>Include Add-Ons</Checkbox>
+                </Form.Item>
+            )}
+            {tierType && hasAddOns && (
+                <AddOnsFields
+                    form={form}
+                    name={name}
+                    parentPath={['charging_metric', 'dedicated', 'tiers']}
+                />
+            )}
+        </div>
     );
 }
 
@@ -450,7 +412,6 @@ const ensureArrayStructure = (form, chargingType) => {
     }
 
     if (updated) {
-        console.log('Updating form structure:', currentValues);
         form.setFieldsValue({ charging_metric: currentValues });
     }
 
@@ -459,22 +420,54 @@ const ensureArrayStructure = (form, chargingType) => {
 
 const ChargingMetricForm = ({ form }) => {
     const [chargingType, setChargingType] = useState(null);
-    const [isInitialized, setIsInitialized] = useState(false);
     const watchChargingType = Form.useWatch(['charging_metric', 'type'], form);
 
     // Inisialisasi saat komponen mount
     const initializeFormStructure = useCallback(() => {
-        const currentValues = form.getFieldValue(['charging_metric']);
-        
-        console.log('Current charging_metric values:', currentValues);
-        
-        if (currentValues?.type && !chargingType) {
-            console.log(`Setting charging type to ${currentValues.type} from existing data`);
-            setChargingType(currentValues.type);
+        const currentValues = form.getFieldValue(['charging_metric']) || {};
+        let changed = false;
+
+        if (currentValues?.type) {
+            if (currentValues.type === 'dedicated') {
+                if (!currentValues.dedicated || !Array.isArray(currentValues.dedicated.tiers) || currentValues.dedicated.tiers.length === 0) {
+                    form.setFieldsValue({
+                        charging_metric: {
+                            ...currentValues,
+                            dedicated: {
+                                ...currentValues.dedicated,
+                                tiers: [{}],
+                            },
+                            non_dedicated: {
+                                ...currentValues.non_dedicated,
+                                tiers: [],
+                            },
+                        },
+                    });
+                    changed = true;
+                }
+            } else if (currentValues.type === 'non_dedicated') {
+                if (!currentValues.non_dedicated || !Array.isArray(currentValues.non_dedicated.tiers) || currentValues.non_dedicated.tiers.length === 0) {
+                    form.setFieldsValue({
+                        charging_metric: {
+                            ...currentValues,
+                            non_dedicated: {
+                                ...currentValues.non_dedicated,
+                                tiers: [{}],
+                            },
+                            dedicated: {
+                                ...currentValues.dedicated,
+                                tiers: [],
+                            },
+                        },
+                    });
+                    changed = true;
+                }
+            }
         }
-        
-        ensureArrayStructure(form, currentValues?.type || chargingType);
-    }, [form, chargingType]);
+        if (!changed) {
+            ensureArrayStructure(form, currentValues?.type);
+        }
+    }, [form]);
 
     useEffect(() => {
         initializeFormStructure();
@@ -484,36 +477,84 @@ const ChargingMetricForm = ({ form }) => {
     useEffect(() => {
         if (watchChargingType) {
             ensureArrayStructure(form, watchChargingType);
+            // Otomatis tambahkan satu tier jika belum ada
+            if (watchChargingType === 'dedicated') {
+                const tiers = form.getFieldValue(['charging_metric', 'dedicated', 'tiers']);
+                if (!Array.isArray(tiers) || tiers.length === 0) {
+                    form.setFieldsValue({
+                        charging_metric: {
+                            ...form.getFieldValue(['charging_metric']),
+                            dedicated: {
+                                ...form.getFieldValue(['charging_metric', 'dedicated']),
+                                tiers: [{}],
+                            },
+                        },
+                    });
+                }
+            } else if (watchChargingType === 'non_dedicated') {
+                const tiers = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']);
+                if (!Array.isArray(tiers) || tiers.length === 0) {
+                    form.setFieldsValue({
+                        charging_metric: {
+                            ...form.getFieldValue(['charging_metric']),
+                            non_dedicated: {
+                                ...form.getFieldValue(['charging_metric', 'non_dedicated']),
+                                tiers: [{}],
+                            },
+                        },
+                    });
+                }
+            }
         }
     }, [form, watchChargingType]);
 
-     // Update state when form value changes
+    // Update state when form value changes
     useEffect(() => {
         if (watchChargingType && watchChargingType !== chargingType) {
-            console.log(`Charging type changed from ${chargingType} to ${watchChargingType}`);
             setChargingType(watchChargingType);
         }
     }, [watchChargingType, chargingType]);
-    
-    // Log whenever form values change for debugging
-    useEffect(() => {
-        const chargeValues = form.getFieldValue(['charging_metric']);
-        console.log('Form value update - charging_metric:', chargeValues);
-        
-        // Check if tiers are properly initialized
-        if (chargeValues?.dedicated?.tiers) {
-            console.log('Dedicated tiers:', chargeValues.dedicated.tiers);
+
+    const handleChargingTypeChange = (value) => {
+        ensureArrayStructure(form, value);
+
+        if (value === 'dedicated') {
+            form.setFieldsValue({
+                charging_metric: {
+                    ...form.getFieldValue(['charging_metric']),
+                    dedicated: {
+                        ...form.getFieldValue(['charging_metric', 'dedicated']),
+                        tiers: [{}],
+                    },
+                    non_dedicated: {
+                        ...form.getFieldValue(['charging_metric', 'non_dedicated']),
+                        tiers: [],
+                    },
+                },
+            });
+        } else if (value === 'non_dedicated') {
+            form.setFieldsValue({
+                charging_metric: {
+                    ...form.getFieldValue(['charging_metric']),
+                    non_dedicated: {
+                        ...form.getFieldValue(['charging_metric', 'non_dedicated']),
+                        tiers: [{}],
+                    },
+                    dedicated: {
+                        ...form.getFieldValue(['charging_metric', 'dedicated']),
+                        tiers: [],
+                    },
+                },
+            });
         }
-        
-        if (chargeValues?.non_dedicated?.tiers) {
-            console.log('Non-dedicated tiers:', chargeValues.non_dedicated.tiers);
-        }
-    }, [form]);
+        // PENTING: set state setelah setFieldsValue agar re-render
+        setChargingType(value);
+    };
 
     return (
         <Card title="Charging Metric" className="revenue-rule-card">
             <Form.Item name={['charging_metric', 'type']} label="Charging Type">
-                <Radio.Group>
+                <Radio.Group onChange={e => handleChargingTypeChange(e.target.value)}>
                     <Radio value="dedicated">Dedicated</Radio>
                     <Radio value="non_dedicated">Non Dedicated</Radio>
                 </Radio.Group>
@@ -521,28 +562,9 @@ const ChargingMetricForm = ({ form }) => {
 
             {chargingType === 'dedicated' && (
                 <div className="rule-subsection">
-                    {/* This ensures the tiers array is created if it doesn't exist */}
-                    <Form.Item noStyle shouldUpdate>
-                        {() => {
-                            const tiers = form.getFieldValue(['charging_metric', 'dedicated', 'tiers']);
-                            if (!Array.isArray(tiers)) {
-                                console.log('Initializing dedicated tiers array');
-                                form.setFieldsValue({
-                                    charging_metric: { 
-                                        ...form.getFieldValue(['charging_metric']),
-                                        dedicated: { 
-                                            ...form.getFieldValue(['charging_metric', 'dedicated']),
-                                            tiers: [] 
-                                        } 
-                                    }
-                                });
-                            }
-                            return null;
-                        }}
-                    </Form.Item>
                     <Form.List name={['charging_metric', 'dedicated', 'tiers']}>
-                        {(fields, { add, remove }) => (
-                            <DedicatedTierFields fields={fields} add={add} remove={remove} form={form} />
+                        {(fields) => (
+                            <DedicatedTierFields fields={fields} form={form} />
                         )}
                     </Form.List>
                 </div>
@@ -550,12 +572,10 @@ const ChargingMetricForm = ({ form }) => {
 
             {chargingType === 'non_dedicated' && (
                 <div className="rule-subsection">
-                    {/* This ensures the non_dedicated tiers array is created if it doesn't exist */}
                     <Form.Item noStyle shouldUpdate>
                         {() => {
                             const tiers = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']);
                             if (!Array.isArray(tiers)) {
-                                console.log('Initializing non_dedicated tiers array');
                                 form.setFieldsValue({
                                     charging_metric: { 
                                         ...form.getFieldValue(['charging_metric']),
