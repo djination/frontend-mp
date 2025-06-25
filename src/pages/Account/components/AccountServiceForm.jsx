@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { App } from 'antd';
-import { Tree, Empty, Spin, Alert, Button } from 'antd';
-import { SettingOutlined } from '@ant-design/icons';
+import { App, Tooltip, Button, Badge } from 'antd';
+import { Tree, Empty, Spin, Alert } from 'antd';
+import { SettingOutlined, CheckCircleTwoTone } from '@ant-design/icons';
 import { getServices } from '../../../api/serviceApi';
 import { getAccountServicesByAccount } from '../../../api/accountServiceApi';
 import PropTypes from 'prop-types';
@@ -231,7 +231,7 @@ const AccountServiceForm = ({
   if (!serviceTree.length) return <Empty description="No services available" />;
 
   return (
-    <div className="service-tree-container">
+    <div className="service-tree-container" style={{ padding: 16 }}>
       <Tree
         checkable
         treeData={serviceTree}
@@ -245,23 +245,43 @@ const AccountServiceForm = ({
           const isLeafNode = !nodeData.children || nodeData.children.length === 0;
           const hasRevenueRules = !!revenueRules[nodeData.key];
           return (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              width: '100%'
-            }}>
-              <span>{nodeData.name || nodeData.title}</span>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+                background: isChecked ? '#f6ffed' : undefined,
+                borderRadius: 6,
+                padding: '2px 8px',
+                transition: 'background 0.2s'
+              }}
+            >
+              <span style={{ fontWeight: isChecked ? 600 : 400 }}>
+                {nodeData.name || nodeData.title}
+              </span>
               {isLeafNode && isChecked && (
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<SettingOutlined />}
-                  onClick={e => handleRevenueRuleClick(nodeData, e)}
-                  disabled={!accountId}
-                >
-                  Revenue Rules{hasRevenueRules ? ' ✓' : ''}
-                </Button>
+                <Tooltip title={hasRevenueRules ? 'Edit Revenue Rules' : 'Set Revenue Rules'}>
+                  <Button
+                    type={hasRevenueRules ? 'default' : 'primary'}
+                    size="small"
+                    icon={
+                      hasRevenueRules
+                        ? <CheckCircleTwoTone twoToneColor="#52c41a" />
+                        : <SettingOutlined />
+                    }
+                    onClick={e => handleRevenueRuleClick(nodeData, e)}
+                    disabled={!accountId}
+                    style={{
+                      marginLeft: 8,
+                      borderColor: hasRevenueRules ? '#52c41a' : undefined,
+                      color: hasRevenueRules ? '#52c41a' : undefined,
+                      background: hasRevenueRules ? '#f6ffed' : undefined,
+                      fontWeight: 500
+                    }}
+                  >
+                  </Button>
+                </Tooltip>
               )}
             </div>
           );
