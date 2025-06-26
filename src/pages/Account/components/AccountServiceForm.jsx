@@ -81,9 +81,16 @@ const AccountServiceForm = ({
           accountServicesData = response.data.data;
         } else if (typeof response.data.data === 'object' && response.data.data !== null) {
           accountServicesData = [response.data.data];
-        }
+        }        
         accountServicesData.forEach(accountService => {
-          if (accountService.data.length > 0) {
+          // Add validation to ensure the data structure is correct
+          if (accountService && 
+              accountService.data && 
+              Array.isArray(accountService.data) && 
+              accountService.data.length > 0 &&
+              accountService.data[0] &&
+              accountService.data[0].service &&
+              accountService.data[0].service.id) {
             mapping[accountService.data[0].service.id] = accountService;
           }
         });
@@ -91,6 +98,8 @@ const AccountServiceForm = ({
       setAccountServiceMap(mapping);
     } catch (error) {
       console.error('Error fetching account services:', error);
+      // Don't set error state here as it's not critical for the main functionality
+      setAccountServiceMap({});
     }
   }, [accountId]);
 
@@ -148,7 +157,25 @@ const AccountServiceForm = ({
         message.error('Service ID not found');
         return;
       }
-      const accountServiceId = accountServiceMap[serviceId].data[0].id;
+
+      // Check if accountServiceMap has the service and has the expected structure
+      const accountServiceData = accountServiceMap[serviceId];
+      if (!accountServiceData || !accountServiceData.data || !Array.isArray(accountServiceData.data) || accountServiceData.data.length === 0) {
+        // If no existing account service data, create a new one
+        setCurrentService({
+          ...nodeData,
+          accountService: {
+            id: null, // Will be set when saved
+            account_id: accountId,
+            service_id: serviceId,
+            service: nodeData
+          }
+        });
+        setRevenueRuleModalVisible(true);
+        return;
+      }
+      
+      const accountServiceId = accountServiceData.data[0].id;
       setCurrentService({
         ...nodeData,
         accountService: {
@@ -171,24 +198,47 @@ const AccountServiceForm = ({
   };
 
   const handleSaveRevenueRule = (serviceId, rules) => {
-    const id = serviceId || (currentService && (currentService.key || currentService.id));
-    if (!id) return;
-    setRevenueRules(prev => ({ ...prev, [serviceId]: rules }));
-    
-    // Simpan account_service_id jika tersedia
-    const accountServiceId = currentService?.accountService?.id;
-    if (accountServiceId) {
-      // Simpan account_service_id bersama rules
+    try {
+      const id = serviceId || (currentService && (currentService.key || currentService.id));
+      if (!id) {
+        console.error('No service ID available for saving revenue rules');
+        return;
+      }
+      
+      setRevenueRules(prev => ({ ...prev, [id]: rules }));
+      
+      // Check if we need to update existing services or create new ones
+      const existingServiceIndex = (accountServices || []).findIndex(service => {
+        const sid = service.service_id || (service.service && service.service.id);
+        return sid === id;
+      });
+      
+      let updatedServices;
+      if (existingServiceIndex >= 0) {
+        // Update existing service
+        updatedServices = [...accountServices];
+        updatedServices[existingServiceIndex] = {
+          ...updatedServices[existingServiceIndex],
+          revenue_rules: rules
+        };
+      } else {
+        // Create new service entry
+        const newService = {
+          service_id: id,
+          service: currentService?.service || { id },
+          account_id: accountId,
+          is_active: true,
+          revenue_rules: rules
+        };
+        updatedServices = [...(accountServices || []), newService];
+      }
+      
+      onChange(updatedServices);
+      handleModalClose();
+    } catch (error) {
+      console.error('Error saving revenue rules:', error);
+      message.error('Failed to save revenue rules. Please try again.');
     }
-    
-    const updatedServices = (accountServices || []).map(service => {
-      const sid = service.service_id || (service.service && service.service.id);
-      if (sid === id) return { ...service, revenue_rules: rules };
-      return service;
-    });
-    
-    onChange(updatedServices);
-    handleModalClose();
   };
 
   const onCheck = (checked) => {
