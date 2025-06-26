@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Modal, Form, Tabs, Button, Spin, message } from 'antd';
 import PropTypes from 'prop-types';
 import ChargingMetricForm from './ChargingMetricForm';
@@ -8,6 +8,7 @@ import { getAccountRevenueRulesByAccountServiceAsTree, createAccountRevenueRules
 const CRITICAL_PATHS = [
   ['charging_metric', 'dedicated', 'tiers'],
   ['charging_metric', 'non_dedicated', 'tiers'],
+  ['billing_rules', 'billing_method', 'methods'],
 ];
 
 // Ensure each path is an array
@@ -19,6 +20,212 @@ const ensureArrayPath = (obj, pathArr) => {
   }
   const last = pathArr[pathArr.length - 1];
   if (!Array.isArray(current[last])) current[last] = [];
+};
+
+// Comprehensive data mapping utility
+const mapApiResponseToFormData = (apiData) => {
+  console.log('Mapping API response to form data:', apiData);
+  
+  // Initialize default structure
+  const defaultFormData = {
+    charging_metric: {
+      type: 'dedicated',
+      dedicated: { tiers: [] },
+      non_dedicated: { tiers: [] }
+    },
+    billing_rules: {
+      billing_method: { methods: [] },
+      tax_rules: {},
+      term_of_payment: {}
+    }
+  };
+
+  // Extract the actual data from the nested response structure
+  let actualData = apiData;
+  if (apiData && apiData.success && apiData.data) {
+    console.log('Extracting data from nested response structure');
+    actualData = apiData.data;
+  } else if (apiData && apiData.data) {
+    console.log('Extracting data from data property');
+    actualData = apiData.data;
+  }
+
+  console.log('Actual data to map:', actualData);
+
+  // If no data from API, return default structure
+  if (!actualData || (actualData.data.charging_metric === null && actualData.data.billing_rules === null)) {
+    console.log('No data from API, using default structure');
+    return defaultFormData;
+  }
+
+  const formData = { ...defaultFormData };
+
+  // Map charging_metric
+  if (actualData.data.charging_metric) {
+    console.log('Mapping charging_metric:', actualData.data.charging_metric);
+    
+    formData.charging_metric = {
+      type: actualData.data.charging_metric.type || 'dedicated',
+      dedicated: { tiers: [] },
+      non_dedicated: { tiers: [] }
+    };
+
+    // Map dedicated tiers
+    if (actualData.data.charging_metric.dedicated && Array.isArray(actualData.data.charging_metric.dedicated.tiers)) {
+      console.log('Mapping dedicated tiers:', actualData.data.charging_metric.dedicated.tiers);
+      formData.charging_metric.dedicated.tiers = actualData.data.charging_metric.dedicated.tiers.map((tier, index) => {
+        console.log(`Mapping dedicated tier ${index}:`, tier);
+        return {
+          type: tier.type || 'package',
+          package: tier.package || { tiers: [] },
+          non_package_type: tier.non_package_type || 'machine_only',
+          amount: tier.amount || 0,
+          has_add_ons: tier.has_add_ons || false,
+          add_ons_types: Array.isArray(tier.add_ons_types) ? tier.add_ons_types.map((addon, addonIndex) => {
+            console.log(`Mapping addon ${addonIndex} in dedicated tier ${index}:`, addon);
+            return {
+              type: addon.type || 'system_integration',
+              billing_type: addon.billing_type || 'otc',
+              amount: addon.amount || 0
+            };
+          }) : []
+        };
+      });
+    }
+
+    // Map non_dedicated tiers
+    if (actualData.data.charging_metric.non_dedicated && Array.isArray(actualData.data.charging_metric.non_dedicated.tiers)) {
+      console.log('Mapping non_dedicated tiers:', actualData.data.charging_metric.non_dedicated.tiers);
+      formData.charging_metric.non_dedicated.tiers = actualData.data.charging_metric.non_dedicated.tiers.map((tier, index) => {
+        console.log(`Mapping non_dedicated tier ${index}:`, tier);
+        return {
+          type: tier.type || 'transaction_fee',
+          transaction_fee_type: tier.transaction_fee_type || 'fixed_rate',
+          fixed_rate_value: tier.fixed_rate_value || 0,
+          percentage_value: tier.percentage_value || 0,
+          subscription_type: tier.subscription_type || 'monthly',
+          subscription_amount: tier.subscription_amount || 0,
+          yearly_discount: tier.yearly_discount || 0,
+          add_ons_types: Array.isArray(tier.add_ons_types) ? tier.add_ons_types.map((addon, addonIndex) => {
+            console.log(`Mapping addon ${addonIndex} in non_dedicated tier ${index}:`, addon);
+            return {
+              type: addon.type || 'system_integration',
+              billing_type: addon.billing_type || 'otc',
+              amount: addon.amount || 0
+            };
+          }) : []
+        };
+      });
+    }
+  }
+
+  // Map billing_rules
+  if (actualData.data.billing_rules) {
+    console.log('Mapping billing_rules:', actualData.data.billing_rules);
+    
+    formData.billing_rules = {
+      billing_method: { methods: [] },
+      tax_rules: {},
+      term_of_payment: {}
+    };
+
+    // Map billing methods
+    if (actualData.data.billing_rules.billing_method && Array.isArray(actualData.data.billing_rules.billing_method.methods)) {
+      console.log('Mapping billing methods:', actualData.data.billing_rules.billing_method.methods);
+      formData.billing_rules.billing_method.methods = actualData.data.billing_rules.billing_method.methods.map((method, index) => {
+        console.log(`Mapping billing method ${index}:`, method);
+        return {
+          type: method.type || 'auto_deduct',
+          auto_deduct: method.auto_deduct || { is_enabled: true },
+          post_paid: method.post_paid || {
+            type: 'transaction',
+            transaction: { schedule: 'weekly' },
+            subscription: { schedule: 'monthly' },
+            custom_fee: 0
+          }
+        };
+      });
+    }
+
+    // Map tax rules
+    if (actualData.data.billing_rules.tax_rules) {
+      console.log('Mapping tax rules:', actualData.data.billing_rules.tax_rules);
+      formData.billing_rules.tax_rules = {
+        type: actualData.data.billing_rules.tax_rules.type || 'include',
+        rate: actualData.data.billing_rules.tax_rules.rate || 11
+      };
+    }
+
+    // Map term of payment
+    if (actualData.data.billing_rules.term_of_payment) {
+      console.log('Mapping term of payment:', actualData.data.billing_rules.term_of_payment);
+      formData.billing_rules.term_of_payment = {
+        days: actualData.data.billing_rules.term_of_payment.days || 30
+      };
+    }
+  }
+
+  // Ensure critical array paths exist
+  CRITICAL_PATHS.forEach(path => ensureArrayPath(formData, path));
+
+  console.log('Final mapped form data:', formData);
+  
+  // Validate the mapped structure
+  validateFormDataStructure(formData);
+  
+  return formData;
+};
+
+// Validation function to ensure proper structure
+const validateFormDataStructure = (formData) => {
+  console.log('Validating form data structure...');
+  
+  const errors = [];
+  
+  // Validate charging_metric structure
+  if (!formData.charging_metric) {
+    errors.push('Missing charging_metric');
+  } else {
+    if (!formData.charging_metric.type) {
+      errors.push('Missing charging_metric.type');
+    }
+    if (!formData.charging_metric.dedicated) {
+      errors.push('Missing charging_metric.dedicated');
+    } else if (!Array.isArray(formData.charging_metric.dedicated.tiers)) {
+      errors.push('charging_metric.dedicated.tiers is not an array');
+    }
+    if (!formData.charging_metric.non_dedicated) {
+      errors.push('Missing charging_metric.non_dedicated');
+    } else if (!Array.isArray(formData.charging_metric.non_dedicated.tiers)) {
+      errors.push('charging_metric.non_dedicated.tiers is not an array');
+    }
+  }
+  
+  // Validate billing_rules structure
+  if (!formData.billing_rules) {
+    errors.push('Missing billing_rules');
+  } else {
+    if (!formData.billing_rules.billing_method) {
+      errors.push('Missing billing_rules.billing_method');
+    } else if (!Array.isArray(formData.billing_rules.billing_method.methods)) {
+      errors.push('billing_rules.billing_method.methods is not an array');
+    }
+    if (!formData.billing_rules.tax_rules) {
+      errors.push('Missing billing_rules.tax_rules');
+    }
+    if (!formData.billing_rules.term_of_payment) {
+      errors.push('Missing billing_rules.term_of_payment');
+    }
+  }
+  
+  if (errors.length > 0) {
+    console.error('Form data structure validation errors:', errors);
+    console.error('Form data:', formData);
+  } else {
+    console.log('✅ Form data structure validation passed');
+  }
+  
+  return errors.length === 0;
 };
 
 // Main component
@@ -36,11 +243,53 @@ const RevenueRuleModal = ({
   const [messageApi, contextHolder] = message.useMessage();
   const [fetchedData, setFetchedData] = useState(null);
 
+  // Robust form initialization function
+  const initializeFormWithData = useCallback((formData) => {
+    console.log('Initializing form with data:', formData);
+    
+    // Ensure the form is ready
+    if (!form) {
+      console.warn('Form not ready, skipping initialization');
+      return;
+    }
+    
+    // Reset form first
+    form.resetFields();
+    
+    // Set form values with proper timing
+    setTimeout(() => {
+      try {
+        form.setFieldsValue(formData);
+        console.log('✅ Form initialized successfully with data');
+        
+        // Verify the values were set correctly
+        const currentValues = form.getFieldsValue();
+        console.log('Current form values after initialization:', currentValues);
+        
+        // Check if critical structures exist
+        const hasChargingMetric = currentValues.charging_metric && 
+          (currentValues.charging_metric.dedicated?.tiers?.length > 0 || 
+           currentValues.charging_metric.non_dedicated?.tiers?.length > 0);
+        
+        const hasBillingRules = currentValues.billing_rules && 
+          currentValues.billing_rules.billing_method?.methods?.length > 0;
+        
+        if (!hasChargingMetric || !hasBillingRules) {
+          console.warn('Form initialization incomplete, retrying...');
+          setTimeout(() => {
+            form.setFieldsValue(formData);
+            console.log('Form re-initialized:', form.getFieldsValue());
+          }, 200);
+        }
+      } catch (error) {
+        console.error('Error initializing form:', error);
+      }
+    }, 100);
+  }, [form]);
+
   // Fetch rules when modal opens
   useEffect(() => {
     if (!visible) return;
-    
-    form.resetFields();
     
     const fetchRules = async () => {
       if (!accountId || !accountService) return;
@@ -70,104 +319,38 @@ const RevenueRuleModal = ({
           return;
         }
         
-        if (response?.data?.success && response.data.data) {
-          console.log('✅ Tree structure received from backend:', response.data.data);
+        if (response?.data?.success) {
+          console.log('✅ Tree structure received from backend:', response.data);
           
           // Extract the actual data from the nested response
-          const treeData = response.data.data;
+          const treeData = response.data;
           console.log('Extracted tree data:', treeData);
           
           // Store the fetched data
           setFetchedData(treeData);
           
-          // Ensure proper structure exists with fallbacks
-          const formValues = {
-            charging_metric: {
-              type: treeData.charging_metric?.type || 'dedicated',
-              dedicated: treeData.charging_metric?.dedicated || { tiers: [] },
-              non_dedicated: treeData.charging_metric?.non_dedicated || { tiers: [] }
-            },
-            billing_rules: {
-              billing_method: treeData.billing_rules?.billing_method || { methods: [] },
-              tax_rules: treeData.billing_rules?.tax_rules || {},
-              term_of_payment: treeData.billing_rules?.term_of_payment || {}
-            }
-          };
-          
-          // Ensure critical array paths exist
-          CRITICAL_PATHS.forEach(path => ensureArrayPath(formValues, path));
+          // Map API response to form data using the utility function
+          const formValues = mapApiResponseToFormData(treeData);
           
           console.log('Setting form values:', formValues);
-          console.log('Form values structure check:', {
-            charging_metric_type: formValues.charging_metric.type,
-            dedicated_tiers_length: formValues.charging_metric.dedicated?.tiers?.length,
-            billing_methods_length: formValues.billing_rules.billing_method?.methods?.length,
-            tax_rules_type: formValues.billing_rules.tax_rules?.type,
-            term_of_payment_days: formValues.billing_rules.term_of_payment?.days
-          });
           
-          // Set form values with a delay to ensure form is ready
-          setTimeout(() => {
-            form.setFieldsValue(formValues);
-            console.log('Form values set successfully');
-            
-            // Verify the values were set correctly
-            const currentValues = form.getFieldsValue();
-            console.log('Current form values after setting:', currentValues);
-            
-            // Check if values were actually set
-            if (!currentValues.charging_metric || !currentValues.billing_rules) {
-              console.warn('Form values were not set properly, trying again...');
-              setTimeout(() => {
-                form.setFieldsValue(formValues);
-                console.log('Form values set again:', form.getFieldsValue());
-              }, 100);
-            }
-          }, 200);
-        } else {
-          console.log('No rules found in backend, initializing with default structure');
-          // Initialize with default structure
-          const defaultValues = {
-            charging_metric: {
-              type: 'dedicated',
-              dedicated: { tiers: [] },
-              non_dedicated: { tiers: [] }
-            },
-            billing_rules: {
-              billing_method: { methods: [] },
-              tax_rules: {},
-              term_of_payment: {}
-            }
-          };
-          
-          form.setFieldsValue(defaultValues);
+          // Use the robust initialization function
+          initializeFormWithData(formValues);
         }
       } catch (error) {
         console.error('Error fetching revenue rules:', error);
         message.error('Failed to load revenue rules');
         
-        // Initialize with default structure on error
-        const defaultValues = {
-          charging_metric: {
-            type: 'dedicated',
-            dedicated: { tiers: [] },
-            non_dedicated: { tiers: [] }
-          },
-          billing_rules: {
-            billing_method: { methods: [] },
-            tax_rules: {},
-            term_of_payment: {}
-          }
-        };
-        
-        form.setFieldsValue(defaultValues);
+        // Initialize with default structure on error using the mapping utility
+        const defaultValues = mapApiResponseToFormData(null);
+        initializeFormWithData(defaultValues);
       } finally {
         setLoading(false);
       }
     };
 
     fetchRules();
-  }, [visible, accountId, accountService, form, initialRules]);
+  }, [visible, accountId, accountService, initializeFormWithData]);
 
   // Monitor form values to prevent reset
   useEffect(() => {
@@ -195,29 +378,13 @@ const RevenueRuleModal = ({
     if (fetchedData && visible) {
       console.log('Applying fetched data to form:', fetchedData);
       
-      const formValues = {
-        charging_metric: {
-          type: fetchedData.charging_metric?.type || 'dedicated',
-          dedicated: fetchedData.charging_metric?.dedicated || { tiers: [] },
-          non_dedicated: fetchedData.charging_metric?.non_dedicated || { tiers: [] }
-        },
-        billing_rules: {
-          billing_method: fetchedData.billing_rules?.billing_method || { methods: [] },
-          tax_rules: fetchedData.billing_rules?.tax_rules || {},
-          term_of_payment: fetchedData.billing_rules?.term_of_payment || {}
-        }
-      };
+      // Use the mapping utility to ensure proper structure
+      const formValues = mapApiResponseToFormData(fetchedData);
       
-      // Ensure critical array paths exist
-      CRITICAL_PATHS.forEach(path => ensureArrayPath(formValues, path));
-      
-      // Apply with a longer delay to ensure form components are fully mounted
-      setTimeout(() => {
-        form.setFieldsValue(formValues);
-        console.log('Fetched data applied to form:', form.getFieldsValue());
-      }, 300);
+      // Use the robust initialization function
+      initializeFormWithData(formValues);
     }
-  }, [fetchedData, visible, form]);
+  }, [fetchedData, visible, initializeFormWithData]);
   
   // Fix array structure if needed
   const fixFormArrayFields = (silent = false) => {
@@ -236,6 +403,16 @@ const RevenueRuleModal = ({
     // Ensure non_dedicated section
     if (!currentValues.charging_metric.non_dedicated) {
       currentValues.charging_metric.non_dedicated = {};
+    }
+    
+    // Ensure billing_rules structure
+    if (!currentValues.billing_rules) {
+      currentValues.billing_rules = {};
+    }
+    
+    // Ensure billing_method structure
+    if (!currentValues.billing_rules.billing_method) {
+      currentValues.billing_rules.billing_method = {};
     }
     
     // Ensure critical arrays

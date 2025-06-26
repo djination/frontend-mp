@@ -7,7 +7,6 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
         {fields.map(({ key, name, ...restField }) => {
             const methodType = form.getFieldValue(['billing_rules', 'billing_method', 'methods', name, 'type']);
             const postPaidType = form.getFieldValue(['billing_rules', 'billing_method', 'methods', name, 'post_paid', 'type']);
-            const hybridPostPaidType = form.getFieldValue(['billing_rules', 'billing_method', 'methods', name, 'hybrid', 'post_paid', 'type']);
             
             return (
                 <div key={key} style={{ marginBottom: 16, border: '1px solid #eee', padding: 16, borderRadius: 4 }}>
@@ -141,19 +140,56 @@ const BillingRulesForm = ({ form }) => {
     // Initialize billing methods if not exists, but don't override existing data
     useEffect(() => {
         const currentMethods = form.getFieldValue(['billing_rules', 'billing_method', 'methods']);
+        console.log('BillingRulesForm - Current billing methods:', currentMethods);
+        
         if (!Array.isArray(currentMethods) || currentMethods.length === 0) {
-            console.log('Initializing empty billing methods array');
+            console.log('BillingRulesForm - Initializing empty billing methods array');
             form.setFieldsValue({
                 billing_rules: {
                     ...form.getFieldValue(['billing_rules']),
                     billing_method: {
                         ...form.getFieldValue(['billing_rules', 'billing_method']),
-                        methods: [{}]
+                        methods: [{
+                            type: 'auto_deduct',
+                            auto_deduct: { is_enabled: true },
+                            post_paid: {
+                                type: 'transaction',
+                                transaction: { schedule: 'weekly' },
+                                subscription: { schedule: 'monthly' },
+                                custom_fee: 0
+                            }
+                        }]
                     }
                 }
             });
         } else {
-            console.log('Billing methods already exist:', currentMethods);
+            console.log('BillingRulesForm - Billing methods already exist:', currentMethods);
+            
+            // Ensure each method has proper structure
+            const updatedMethods = currentMethods.map(method => ({
+                type: method.type || 'auto_deduct',
+                auto_deduct: method.auto_deduct || { is_enabled: true },
+                post_paid: method.post_paid || {
+                    type: 'transaction',
+                    transaction: { schedule: 'weekly' },
+                    subscription: { schedule: 'monthly' },
+                    custom_fee: 0
+                }
+            }));
+            
+            // Only update if structure is different
+            if (JSON.stringify(currentMethods) !== JSON.stringify(updatedMethods)) {
+                console.log('BillingRulesForm - Updating billing methods structure');
+                form.setFieldsValue({
+                    billing_rules: {
+                        ...form.getFieldValue(['billing_rules']),
+                        billing_method: {
+                            ...form.getFieldValue(['billing_rules', 'billing_method']),
+                            methods: updatedMethods
+                        }
+                    }
+                });
+            }
         }
     }, [form]);
     
