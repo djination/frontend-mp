@@ -24,8 +24,6 @@ const ensureArrayPath = (obj, pathArr) => {
 
 // Comprehensive data mapping utility
 const mapApiResponseToFormData = (apiData) => {
-  console.log('Mapping API response to form data:', apiData);
-  
   // Initialize default structure
   const defaultFormData = {
     charging_metric: {
@@ -43,18 +41,13 @@ const mapApiResponseToFormData = (apiData) => {
   // Extract the actual data from the nested response structure
   let actualData = apiData;
   if (apiData && apiData.success && apiData.data) {
-    console.log('Extracting data from nested response structure');
     actualData = apiData.data;
   } else if (apiData && apiData.data) {
-    console.log('Extracting data from data property');
     actualData = apiData.data;
   }
 
-  console.log('Actual data to map:', actualData);
-
   // If no data from API, return default structure
   if (!actualData || (actualData.data.charging_metric === null && actualData.data.billing_rules === null)) {
-    console.log('No data from API, using default structure');
     return defaultFormData;
   }
 
@@ -62,8 +55,6 @@ const mapApiResponseToFormData = (apiData) => {
 
   // Map charging_metric
   if (actualData.data.charging_metric) {
-    console.log('Mapping charging_metric:', actualData.data.charging_metric);
-    
     formData.charging_metric = {
       type: actualData.data.charging_metric.type || 'dedicated',
       dedicated: { tiers: [] },
@@ -72,9 +63,7 @@ const mapApiResponseToFormData = (apiData) => {
 
     // Map dedicated tiers
     if (actualData.data.charging_metric.dedicated && Array.isArray(actualData.data.charging_metric.dedicated.tiers)) {
-      console.log('Mapping dedicated tiers:', actualData.data.charging_metric.dedicated.tiers);
       formData.charging_metric.dedicated.tiers = actualData.data.charging_metric.dedicated.tiers.map((tier, index) => {
-        console.log(`Mapping dedicated tier ${index}:`, tier);
         return {
           type: tier.type || 'package',
           package: tier.package || { tiers: [] },
@@ -82,7 +71,6 @@ const mapApiResponseToFormData = (apiData) => {
           amount: tier.amount || 0,
           has_add_ons: tier.has_add_ons || false,
           add_ons_types: Array.isArray(tier.add_ons_types) ? tier.add_ons_types.map((addon, addonIndex) => {
-            console.log(`Mapping addon ${addonIndex} in dedicated tier ${index}:`, addon);
             return {
               type: addon.type || 'system_integration',
               billing_type: addon.billing_type || 'otc',
@@ -95,9 +83,7 @@ const mapApiResponseToFormData = (apiData) => {
 
     // Map non_dedicated tiers
     if (actualData.data.charging_metric.non_dedicated && Array.isArray(actualData.data.charging_metric.non_dedicated.tiers)) {
-      console.log('Mapping non_dedicated tiers:', actualData.data.charging_metric.non_dedicated.tiers);
       formData.charging_metric.non_dedicated.tiers = actualData.data.charging_metric.non_dedicated.tiers.map((tier, index) => {
-        console.log(`Mapping non_dedicated tier ${index}:`, tier);
         return {
           type: tier.type || 'transaction_fee',
           transaction_fee_type: tier.transaction_fee_type || 'fixed_rate',
@@ -107,7 +93,6 @@ const mapApiResponseToFormData = (apiData) => {
           subscription_amount: tier.subscription_amount || 0,
           yearly_discount: tier.yearly_discount || 0,
           add_ons_types: Array.isArray(tier.add_ons_types) ? tier.add_ons_types.map((addon, addonIndex) => {
-            console.log(`Mapping addon ${addonIndex} in non_dedicated tier ${index}:`, addon);
             return {
               type: addon.type || 'system_integration',
               billing_type: addon.billing_type || 'otc',
@@ -121,8 +106,6 @@ const mapApiResponseToFormData = (apiData) => {
 
   // Map billing_rules
   if (actualData.data.billing_rules) {
-    console.log('Mapping billing_rules:', actualData.data.billing_rules);
-    
     formData.billing_rules = {
       billing_method: { methods: [] },
       tax_rules: {},
@@ -131,9 +114,7 @@ const mapApiResponseToFormData = (apiData) => {
 
     // Map billing methods
     if (actualData.data.billing_rules.billing_method && Array.isArray(actualData.data.billing_rules.billing_method.methods)) {
-      console.log('Mapping billing methods:', actualData.data.billing_rules.billing_method.methods);
       formData.billing_rules.billing_method.methods = actualData.data.billing_rules.billing_method.methods.map((method, index) => {
-        console.log(`Mapping billing method ${index}:`, method);
         return {
           type: method.type || 'auto_deduct',
           auto_deduct: method.auto_deduct || { is_enabled: true },
@@ -149,7 +130,6 @@ const mapApiResponseToFormData = (apiData) => {
 
     // Map tax rules
     if (actualData.data.billing_rules.tax_rules) {
-      console.log('Mapping tax rules:', actualData.data.billing_rules.tax_rules);
       formData.billing_rules.tax_rules = {
         type: actualData.data.billing_rules.tax_rules.type || 'include',
         rate: actualData.data.billing_rules.tax_rules.rate || 11
@@ -157,8 +137,7 @@ const mapApiResponseToFormData = (apiData) => {
     }
 
     // Map term of payment
-    if (actualData.data.billing_rules.term_of_payment) {
-      console.log('Mapping term of payment:', actualData.data.billing_rules.term_of_payment);
+    if (actualData.data.billing_rules.term_of_payment) {  
       formData.billing_rules.term_of_payment = {
         days: actualData.data.billing_rules.term_of_payment.days || 30
       };
@@ -168,8 +147,6 @@ const mapApiResponseToFormData = (apiData) => {
   // Ensure critical array paths exist
   CRITICAL_PATHS.forEach(path => ensureArrayPath(formData, path));
 
-  console.log('Final mapped form data:', formData);
-  
   // Validate the mapped structure
   validateFormDataStructure(formData);
   
@@ -178,8 +155,6 @@ const mapApiResponseToFormData = (apiData) => {
 
 // Validation function to ensure proper structure
 const validateFormDataStructure = (formData) => {
-  console.log('Validating form data structure...');
-  
   const errors = [];
   
   // Validate charging_metric structure
@@ -245,8 +220,6 @@ const RevenueRuleModal = ({
 
   // Robust form initialization function
   const initializeFormWithData = useCallback((formData) => {
-    console.log('Initializing form with data:', formData);
-    
     // Ensure the form is ready
     if (!form) {
       console.warn('Form not ready, skipping initialization');
@@ -259,13 +232,9 @@ const RevenueRuleModal = ({
     // Set form values with proper timing
     setTimeout(() => {
       try {
-        form.setFieldsValue(formData);
-        console.log('✅ Form initialized successfully with data');
-        
+        form.setFieldsValue(formData);        
         // Verify the values were set correctly
-        const currentValues = form.getFieldsValue();
-        console.log('Current form values after initialization:', currentValues);
-        
+        const currentValues = form.getFieldsValue();        
         // Check if critical structures exist
         const hasChargingMetric = currentValues.charging_metric && 
           (currentValues.charging_metric.dedicated?.tiers?.length > 0 || 
@@ -278,7 +247,6 @@ const RevenueRuleModal = ({
           console.warn('Form initialization incomplete, retrying...');
           setTimeout(() => {
             form.setFieldsValue(formData);
-            console.log('Form re-initialized:', form.getFieldsValue());
           }, 200);
         }
       } catch (error) {
@@ -298,20 +266,15 @@ const RevenueRuleModal = ({
       try {
         // Check if we have an account service relationship ID or just a service ID
         const accountServiceId = accountService.id;
-        const serviceId = '12e6fef0-2b55-48ea-99ce-f8665f4c840c';
-        
-        console.log(`Fetching revenue rules for account: ${accountId}`);
-        console.log(`Account service ID: ${accountServiceId}, Service ID: ${serviceId}`);
+        const serviceId = accountService.service_id;
         
         let response;
         
         if (accountServiceId) {
           // We have an account service relationship ID, use it directly
-          console.log(`Using account service relationship ID: ${accountServiceId}`);
           response = await getAccountRevenueRulesByAccountServiceAsTree(accountId, accountServiceId);
         } else if (serviceId) {
           // We only have a service ID, the backend should handle creating the relationship
-          console.log(`Using service ID: ${serviceId}`);
           response = await getAccountRevenueRulesByAccountServiceAsTree(accountId, serviceId);
         } else {
           console.error('No account service ID or service ID available');
@@ -320,19 +283,14 @@ const RevenueRuleModal = ({
         }
         
         if (response?.data?.success) {
-          console.log('✅ Tree structure received from backend:', response.data);
-          
           // Extract the actual data from the nested response
           const treeData = response.data;
-          console.log('Extracted tree data:', treeData);
           
           // Store the fetched data
           setFetchedData(treeData);
           
           // Map API response to form data using the utility function
           const formValues = mapApiResponseToFormData(treeData);
-          
-          console.log('Setting form values:', formValues);
           
           // Use the robust initialization function
           initializeFormWithData(formValues);
@@ -357,7 +315,6 @@ const RevenueRuleModal = ({
     if (visible) {
       const checkFormValues = () => {
         const currentValues = form.getFieldsValue();
-        console.log('Form values check:', currentValues);
         
         // If form values are empty but we should have data, restore them
         if (currentValues.charging_metric && 
@@ -376,8 +333,6 @@ const RevenueRuleModal = ({
   // Apply fetched data when available and form is ready
   useEffect(() => {
     if (fetchedData && visible) {
-      console.log('Applying fetched data to form:', fetchedData);
-      
       // Use the mapping utility to ensure proper structure
       const formValues = mapApiResponseToFormData(fetchedData);
       
@@ -437,15 +392,12 @@ const RevenueRuleModal = ({
     try {
       // Validate and get form values
       const values = await form.validateFields();
-      console.log('Form values before submit:', values);
       
       // Fix array structures
       fixFormArrayFields(true);
       
       // Get the final form values after fixing
       const finalValues = form.getFieldsValue();
-      console.log('accountService values:', accountService);
-      console.log('Final values:', finalValues);
       
       // Determine which ID to use for the payload
       const accountServiceId = accountService.id;
@@ -454,10 +406,8 @@ const RevenueRuleModal = ({
       let payloadAccountServiceId;
       if (accountServiceId) {
         payloadAccountServiceId = accountServiceId;
-        console.log(`Using account service relationship ID for payload: ${payloadAccountServiceId}`);
       } else if (serviceId) {
         payloadAccountServiceId = serviceId;
-        console.log(`Using service ID for payload: ${payloadAccountServiceId}`);
       } else {
         throw new Error('No account service ID or service ID available');
       }
@@ -470,15 +420,12 @@ const RevenueRuleModal = ({
         billing_rules: finalValues.billing_rules
       };
       
-      console.log('Sending tree payload to API:', payload);
-      
       // Save using tree structure API
       setLoading(true);
       const response = await createAccountRevenueRulesFromTree(payload);
       
       if (response?.data?.success) {
         messageApi.success('Revenue rules saved successfully');
-        console.log('✅ Rules saved successfully:', response.data);
         
         if (onSave) {
           // Call the onSave callback with the original tree structure

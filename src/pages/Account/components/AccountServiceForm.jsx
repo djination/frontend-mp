@@ -83,13 +83,15 @@ const AccountServiceForm = ({
           accountServicesData = [response.data.data];
         }
         accountServicesData.forEach(accountService => {
-          if (accountService?.service_id) {
-            mapping[accountService.service_id] = accountService;
+          if (accountService.data.length > 0) {
+            mapping[accountService.data[0].service.id] = accountService;
           }
         });
       }
       setAccountServiceMap(mapping);
-    } catch {}
+    } catch (error) {
+      console.error('Error fetching account services:', error);
+    }
   }, [accountId]);
 
   const fetchServices = useCallback(async () => {
@@ -146,7 +148,7 @@ const AccountServiceForm = ({
         message.error('Service ID not found');
         return;
       }
-      const accountServiceId = accountServiceMap[serviceId]?.id;
+      const accountServiceId = accountServiceMap[serviceId].data[0].id;
       setCurrentService({
         ...nodeData,
         accountService: {
@@ -176,7 +178,6 @@ const AccountServiceForm = ({
     // Simpan account_service_id jika tersedia
     const accountServiceId = currentService?.accountService?.id;
     if (accountServiceId) {
-      console.log(`Saving account_service_id ${accountServiceId} for service ${id}`);
       // Simpan account_service_id bersama rules
     }
     

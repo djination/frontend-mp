@@ -497,14 +497,12 @@ const ChargingMetricForm = ({ form }) => {
     // Initialize form structure when component mounts
     const initializeFormStructure = useCallback(() => {
         const currentValues = form.getFieldValue(['charging_metric']) || {};
-        console.log('ChargingMetricForm - Initializing form structure with current values:', currentValues);
         
         let changed = false;
 
         if (currentValues?.type) {
             if (currentValues.type === 'dedicated') {
                 if (!currentValues.dedicated || !Array.isArray(currentValues.dedicated.tiers) || currentValues.dedicated.tiers.length === 0) {
-                    console.log('ChargingMetricForm - Initializing dedicated tiers');
                     form.setFieldsValue({
                         charging_metric: {
                             ...currentValues,
@@ -529,7 +527,6 @@ const ChargingMetricForm = ({ form }) => {
                 }
             } else if (currentValues.type === 'non_dedicated') {
                 if (!currentValues.non_dedicated || !Array.isArray(currentValues.non_dedicated.tiers) || currentValues.non_dedicated.tiers.length === 0) {
-                    console.log('ChargingMetricForm - Initializing non_dedicated tiers');
                     form.setFieldsValue({
                         charging_metric: {
                             ...currentValues,
@@ -568,13 +565,11 @@ const ChargingMetricForm = ({ form }) => {
     // Update structure when type changes
     useEffect(() => {
         if (watchChargingType) {
-            console.log('ChargingMetricForm - Charging type changed to:', watchChargingType);
             ensureArrayStructure(form, watchChargingType);
             // Automatically add one tier if none exists
             if (watchChargingType === 'dedicated') {
                 const tiers = form.getFieldValue(['charging_metric', 'dedicated', 'tiers']);
                 if (!Array.isArray(tiers) || tiers.length === 0) {
-                    console.log('ChargingMetricForm - Adding default dedicated tier');
                     form.setFieldsValue({
                         charging_metric: {
                             ...form.getFieldValue(['charging_metric']),
@@ -595,7 +590,6 @@ const ChargingMetricForm = ({ form }) => {
             } else if (watchChargingType === 'non_dedicated') {
                 const tiers = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']);
                 if (!Array.isArray(tiers) || tiers.length === 0) {
-                    console.log('ChargingMetricForm - Adding default non_dedicated tier');
                     form.setFieldsValue({
                         charging_metric: {
                             ...form.getFieldValue(['charging_metric']),
@@ -627,7 +621,6 @@ const ChargingMetricForm = ({ form }) => {
     }, [watchChargingType, chargingType]);
 
     const handleChargingTypeChange = (value) => {
-        console.log('ChargingMetricForm - Handling charging type change to:', value);
         ensureArrayStructure(form, value);
 
         if (value === 'dedicated') {

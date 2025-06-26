@@ -140,10 +140,8 @@ const BillingRulesForm = ({ form }) => {
     // Initialize billing methods if not exists, but don't override existing data
     useEffect(() => {
         const currentMethods = form.getFieldValue(['billing_rules', 'billing_method', 'methods']);
-        console.log('BillingRulesForm - Current billing methods:', currentMethods);
         
         if (!Array.isArray(currentMethods) || currentMethods.length === 0) {
-            console.log('BillingRulesForm - Initializing empty billing methods array');
             form.setFieldsValue({
                 billing_rules: {
                     ...form.getFieldValue(['billing_rules']),
@@ -163,8 +161,6 @@ const BillingRulesForm = ({ form }) => {
                 }
             });
         } else {
-            console.log('BillingRulesForm - Billing methods already exist:', currentMethods);
-            
             // Ensure each method has proper structure
             const updatedMethods = currentMethods.map(method => ({
                 type: method.type || 'auto_deduct',
@@ -179,7 +175,6 @@ const BillingRulesForm = ({ form }) => {
             
             // Only update if structure is different
             if (JSON.stringify(currentMethods) !== JSON.stringify(updatedMethods)) {
-                console.log('BillingRulesForm - Updating billing methods structure');
                 form.setFieldsValue({
                     billing_rules: {
                         ...form.getFieldValue(['billing_rules']),
