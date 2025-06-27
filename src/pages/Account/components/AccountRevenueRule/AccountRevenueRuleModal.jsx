@@ -266,8 +266,8 @@ const RevenueRuleModal = ({
       try {
         // Check if we have an account service relationship ID or just a service ID
         const accountServiceId = accountService.id;
+        console.log('accountServiceId', accountServiceId);
         const serviceId = accountService.service_id;
-        
         let response;
         
         if (accountServiceId) {

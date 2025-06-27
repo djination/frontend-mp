@@ -87,11 +87,15 @@ const AccountServiceForm = ({
           if (accountService && 
               accountService.data && 
               Array.isArray(accountService.data) && 
-              accountService.data.length > 0 &&
-              accountService.data[0] &&
-              accountService.data[0].service &&
-              accountService.data[0].service.id) {
-            mapping[accountService.data[0].service.id] = accountService;
+              accountService.data.length > 0) {
+            // Map all services in the data array, not just index 0
+            accountService.data.forEach(serviceData => {
+              if (serviceData && 
+                  serviceData.service && 
+                  serviceData.service.id) {
+                mapping[serviceData.service.id] = accountService;
+              }
+            });
           }
         });
       }
@@ -158,7 +162,6 @@ const AccountServiceForm = ({
         return;
       }
 
-      // Check if accountServiceMap has the service and has the expected structure
       const accountServiceData = accountServiceMap[serviceId];
       if (!accountServiceData || !accountServiceData.data || !Array.isArray(accountServiceData.data) || accountServiceData.data.length === 0) {
         // If no existing account service data, create a new one
@@ -175,11 +178,30 @@ const AccountServiceForm = ({
         return;
       }
       
-      const accountServiceId = accountServiceData.data[0].id;
+      // Find the specific account service by serviceId
+      const foundAccountService = accountServiceData.data.find(accountService => 
+        accountService.service && accountService.service.id === serviceId
+      );
+      
+      if (!foundAccountService) {
+        // If service not found in the data, create a new one
+        setCurrentService({
+          ...nodeData,
+          accountService: {
+            id: null, // Will be set when saved
+            account_id: accountId,
+            service_id: serviceId,
+            service: nodeData
+          }
+        });
+        setRevenueRuleModalVisible(true);
+        return;
+      }
+      
       setCurrentService({
         ...nodeData,
         accountService: {
-          id: accountServiceId,
+          id: foundAccountService.id,
           account_id: accountId,
           service_id: serviceId,
           service: nodeData

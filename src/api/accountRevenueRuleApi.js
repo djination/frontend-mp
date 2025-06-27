@@ -3,15 +3,7 @@ import axios from '../config/axiosInstance';
 // Tree Structure API Methods (New)
 export const getAccountRevenueRulesByAccountServiceAsTree = async (accountId, accountServiceId) => {
   try {
-    console.log(`Fetching revenue rules as tree for account ${accountId}, service ${accountServiceId}`);
     const response = await axios.get(`/account-revenue-rules/tree/account/${accountId}/service/${accountServiceId}`);
-    
-    console.log('Tree API Response:', {
-      status: response.status,
-      hasData: !!response.data,
-      dataStructure: response.data ? Object.keys(response.data) : null,
-      hasNestedData: !!response.data?.data,
-    });
     
     return response;
   } catch (error) {
@@ -39,8 +31,6 @@ export const createAccountRevenueRulesFromTree = async (data) => {
       charging_metric: data.charging_metric || null,
       billing_rules: data.billing_rules || null
     };
-    
-    console.log('Sending tree data to /account-revenue-rules/tree:', sanitizedData);
     
     const response = await axios.post('/account-revenue-rules/tree', sanitizedData, {
       timeout: 30000, // 30 second timeout
@@ -75,19 +65,7 @@ export const createAccountRevenueRulesFromTree = async (data) => {
 // Existing Flat Structure API Methods (Backward Compatibility)
 export const getAccountRevenueRulesByAccountService = async (accountId, accountServiceId) => {
   try {
-    console.log(`Fetching revenue rules for account ${accountId}, service ${accountServiceId}`);
     const response = await axios.get(`/account-revenue-rules/account/${accountId}/service/${accountServiceId}`);
-    
-    // Logging response structure for debugging
-    console.log('API Response structure:', {
-      status: response.status,
-      hasData: !!response.data,
-      dataIsArray: Array.isArray(response.data),
-      dataStructure: response.data ? Object.keys(response.data) : null,
-      hasNestedData: !!response.data?.data,
-      nestedDataIsArray: Array.isArray(response.data?.data),
-      nestedDataLength: response.data?.data ? response.data.data.length : null
-    });
     
     return response;
   } catch (error) {
