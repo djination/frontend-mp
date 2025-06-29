@@ -1,6 +1,33 @@
-import { useState, useEffect } from 'react';
-import { Form, Radio, Card, Divider, Space } from 'antd';
+import { useEffect } from 'react';
+import { Form, Radio, Card, Divider } from 'antd';
 import { CurrencyInput } from '../../../../components/NumericInput';
+
+// Schema constants (should match AccountRevenueRuleModal.jsx)
+const BILLING_METHOD_TYPES = {
+  AUTO_DEDUCT: 'auto_deduct',
+  POST_PAID: 'post_paid'
+};
+
+const POST_PAID_TYPES = {
+  TRANSACTION: 'transaction',
+  SUBSCRIPTION: 'subscription'
+};
+
+const POST_PAID_SCHEDULES = {
+  WEEKLY: 'weekly',
+  MONTHLY: 'monthly',
+  YEARLY: 'yearly'
+};
+
+const TAX_RULE_TYPES = {
+  INCLUDE: 'include',
+  EXCLUDE: 'exclude'
+};
+
+const PAYMENT_TERMS = {
+  FOURTEEN_DAYS: 14,
+  THIRTY_DAYS: 30
+};
 
 const BillingMethodFields = ({ fields, add, remove, form }) => (
     <>
@@ -29,13 +56,13 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
                             value={methodType}
                         >
                             <option value="">Select Method</option>
-                            <option value="auto_deduct">Auto Deduct</option>
-                            <option value="post_paid">Post Paid</option>
+                            <option value={BILLING_METHOD_TYPES.AUTO_DEDUCT}>Auto Deduct</option>
+                            <option value={BILLING_METHOD_TYPES.POST_PAID}>Post Paid</option>
                         </select>
                     </Form.Item>
                     
                     {/* AUTO DEDUCT */}
-                    {methodType === 'auto_deduct' && (
+                    {methodType === BILLING_METHOD_TYPES.AUTO_DEDUCT && (
                         <div className="rule-subsection">
                             <Form.Item
                                 {...restField}
@@ -52,7 +79,7 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
                     )}
                     
                     {/* POST PAID */}
-                    {methodType === 'post_paid' && (
+                    {methodType === BILLING_METHOD_TYPES.POST_PAID && (
                         <div className="rule-subsection">
                             <Form.Item
                                 {...restField}
@@ -76,12 +103,12 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
                                     }}
                                     value={postPaidType}
                                 >
-                                    <Radio value="transaction">Transaction</Radio>
-                                    <Radio value="subscription">Subscription</Radio>
+                                    <Radio value={POST_PAID_TYPES.TRANSACTION}>Transaction</Radio>
+                                    <Radio value={POST_PAID_TYPES.SUBSCRIPTION}>Subscription</Radio>
                                 </Radio.Group>
                             </Form.Item>
                             
-                            {postPaidType === 'transaction' && (
+                            {postPaidType === POST_PAID_TYPES.TRANSACTION && (
                                 <Form.Item
                                     {...restField}
                                     name={[name, 'post_paid', 'transaction', 'schedule']}
@@ -89,12 +116,12 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
                                     rules={[{ required: true, message: 'Please select schedule' }]}
                                 >
                                     <Radio.Group>
-                                        <Radio value="weekly">Weekly</Radio>
-                                        <Radio value="monthly">Monthly</Radio>
+                                        <Radio value={POST_PAID_SCHEDULES.WEEKLY}>Weekly</Radio>
+                                        <Radio value={POST_PAID_SCHEDULES.MONTHLY}>Monthly</Radio>
                                     </Radio.Group>
                                 </Form.Item>
                             )}
-                            {postPaidType === 'subscription' && (
+                            {postPaidType === POST_PAID_TYPES.SUBSCRIPTION && (
                                 <Form.Item
                                     {...restField}
                                     name={[name, 'post_paid', 'subscription', 'schedule']}
@@ -102,8 +129,8 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
                                     rules={[{ required: true, message: 'Please select schedule' }]}
                                 >
                                     <Radio.Group>
-                                        <Radio value="monthly">Monthly</Radio>
-                                        <Radio value="yearly">Yearly</Radio>
+                                        <Radio value={POST_PAID_SCHEDULES.MONTHLY}>Monthly</Radio>
+                                        <Radio value={POST_PAID_SCHEDULES.YEARLY}>Yearly</Radio>
                                     </Radio.Group>
                                 </Form.Item>
                             )}
@@ -134,57 +161,16 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
     </>
 );
 
+// Robust BillingRulesForm with form-managed state  
 const BillingRulesForm = ({ form }) => {
-    const watchTaxRuleType = Form.useWatch(['billing_rules', 'tax_rules', 'type'], form);
-    
-    // Initialize billing methods if not exists, but don't override existing data
+    // Initialize from form data
     useEffect(() => {
-        const currentMethods = form.getFieldValue(['billing_rules', 'billing_method', 'methods']);
-        
-        if (!Array.isArray(currentMethods) || currentMethods.length === 0) {
-            form.setFieldsValue({
-                billing_rules: {
-                    ...form.getFieldValue(['billing_rules']),
-                    billing_method: {
-                        ...form.getFieldValue(['billing_rules', 'billing_method']),
-                        methods: [{
-                            type: 'auto_deduct',
-                            auto_deduct: { is_enabled: true },
-                            post_paid: {
-                                type: 'transaction',
-                                transaction: { schedule: 'weekly' },
-                                subscription: { schedule: 'monthly' },
-                                custom_fee: 0
-                            }
-                        }]
-                    }
-                }
-            });
-        } else {
-            // Ensure each method has proper structure
-            const updatedMethods = currentMethods.map(method => ({
-                type: method.type || 'auto_deduct',
-                auto_deduct: method.auto_deduct || { is_enabled: true },
-                post_paid: method.post_paid || {
-                    type: 'transaction',
-                    transaction: { schedule: 'weekly' },
-                    subscription: { schedule: 'monthly' },
-                    custom_fee: 0
-                }
-            }));
-            
-            // Only update if structure is different
-            if (JSON.stringify(currentMethods) !== JSON.stringify(updatedMethods)) {
-                form.setFieldsValue({
-                    billing_rules: {
-                        ...form.getFieldValue(['billing_rules']),
-                        billing_method: {
-                            ...form.getFieldValue(['billing_rules', 'billing_method']),
-                            methods: updatedMethods
-                        }
-                    }
-                });
-            }
+        const billingRules = form.getFieldValue(['billing_rules']);
+        if (billingRules) {
+            console.log('🔍 BillingRulesForm - Current form data:', billingRules);
+            console.log(`📊 Billing methods: ${billingRules.billing_method?.methods?.length || 0}`);
+            console.log('📊 Tax rules:', billingRules.tax_rules);
+            console.log('📊 Payment term:', billingRules.term_of_payment);
         }
     }, [form]);
     
@@ -209,8 +195,8 @@ const BillingRulesForm = ({ form }) => {
                     rules={[{ required: true, message: 'Please select tax rule' }]}
                 >
                     <Radio.Group>
-                        <Radio value="include">Include</Radio>
-                        <Radio value="exclude">Exclude</Radio>
+                        <Radio value={TAX_RULE_TYPES.INCLUDE}>Include</Radio>
+                        <Radio value={TAX_RULE_TYPES.EXCLUDE}>Exclude</Radio>
                     </Radio.Group>
                 </Form.Item>
             </Card>
@@ -225,8 +211,8 @@ const BillingRulesForm = ({ form }) => {
                     rules={[{ required: true, message: 'Please select payment term' }]}
                 >
                     <Radio.Group>
-                        <Radio value={14}>14 days</Radio>
-                        <Radio value={30}>30 days</Radio>
+                        <Radio value={PAYMENT_TERMS.FOURTEEN_DAYS}>14 days</Radio>
+                        <Radio value={PAYMENT_TERMS.THIRTY_DAYS}>30 days</Radio>
                     </Radio.Group>
                 </Form.Item>
             </Card>
