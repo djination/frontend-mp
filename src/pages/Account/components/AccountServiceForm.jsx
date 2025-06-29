@@ -257,6 +257,8 @@ const AccountServiceForm = ({
       
       onChange(updatedServices);
       handleModalClose();
+      // fetch account services
+      fetchAccountServices();
     } catch (error) {
       console.error('Error saving revenue rules:', error);
       message.error('Failed to save revenue rules. Please try again.');

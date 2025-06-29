@@ -351,10 +351,8 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
 
 // Container component for all Dedicated Tier Fields
 function DedicatedTierFields({ fields, add, remove, form }) {
-    console.log('🎯 DedicatedTierFields received fields:', fields);
     
     if (!Array.isArray(fields)) {
-        console.log('⚠️ Fields is not an array:', fields);
         return (
             <div>
                 <p style={{ color: 'red' }}>Error: Form data format is not valid</p>
@@ -366,7 +364,6 @@ function DedicatedTierFields({ fields, add, remove, form }) {
     }
     
     if (fields.length === 0) {
-        console.log('⚠️ No dedicated tiers found, showing add button');
         return (
             <div>
                 <p>No dedicated tiers configured.</p>
@@ -377,12 +374,10 @@ function DedicatedTierFields({ fields, add, remove, form }) {
         );
     }
     
-    console.log(`✅ Rendering ${fields.length} dedicated tier(s)`);
     
     return (
         <>
             {fields.map(({ key, name, ...restField }) => {
-                console.log(`📝 Rendering dedicated tier ${name}:`, { key, name, restField });
                 
                 return (
                     <DedicatedTierField
@@ -392,7 +387,6 @@ function DedicatedTierFields({ fields, add, remove, form }) {
                         restField={restField}
                         form={form}
                         onRemove={() => {
-                            console.log(`🗑️ Removing dedicated tier ${name}`);
                             remove && remove(name);
                         }}
                         canRemove={fields.length > 1}
@@ -403,7 +397,6 @@ function DedicatedTierFields({ fields, add, remove, form }) {
             <Form.Item>
                 <a 
                     onClick={() => {
-                        console.log('➕ Adding new dedicated tier');
                         add && add();
                     }} 
                     style={{ color: '#1890ff' }}
@@ -574,7 +567,6 @@ const ChargingMetricForm = ({ form }) => {
     // Update local state when form value changes
     useEffect(() => {
         if (watchChargingType && watchChargingType !== chargingType) {
-            console.log('🔄 Charging type changed:', watchChargingType);
             setChargingType(watchChargingType);
         }
     }, [watchChargingType, chargingType]);
@@ -583,7 +575,6 @@ const ChargingMetricForm = ({ form }) => {
     useEffect(() => {
         const currentType = form.getFieldValue(['charging_metric', 'type']);
         if (currentType && currentType !== chargingType) {
-            console.log('🔄 Initial charging type from form:', currentType);
             setChargingType(currentType);
         }
     }, [form, chargingType]);
@@ -656,55 +647,5 @@ const ChargingMetricForm = ({ form }) => {
         </Card>
     );
 };
-
-// // Debug utility for testing form structure
-// window.testChargingMetricStructure = (formInstance) => {
-//     console.log('🧪 Testing ChargingMetricForm structure...');
-    
-//     const chargingMetric = formInstance.getFieldValue(['charging_metric']);
-//     console.log('📊 Current charging metric:', chargingMetric);
-    
-//     const issues = [];
-    
-//     if (!chargingMetric) {
-//         issues.push('Missing charging_metric');
-//     } else {
-//         if (!chargingMetric.type) {
-//             issues.push('Missing charging_metric.type');
-//         }
-        
-//         if (!Array.isArray(chargingMetric.dedicated?.tiers)) {
-//             issues.push('dedicated.tiers is not an array');
-//         } else {
-//             console.log(`✅ Dedicated tiers: ${chargingMetric.dedicated.tiers.length} tiers`);
-//             chargingMetric.dedicated.tiers.forEach((tier, index) => {
-//                 console.log(`  Tier ${index}:`, tier);
-//             });
-//         }
-        
-//         if (!Array.isArray(chargingMetric.non_dedicated?.tiers)) {
-//             issues.push('non_dedicated.tiers is not an array');
-//         } else {
-//             console.log(`✅ Non-dedicated tiers: ${chargingMetric.non_dedicated.tiers.length} tiers`);
-//             chargingMetric.non_dedicated.tiers.forEach((tier, index) => {
-//                 console.log(`  Tier ${index}:`, tier);
-//             });
-//         }
-//     }
-    
-//     if (issues.length === 0) {
-//         console.log('✅ ChargingMetricForm structure is valid!');
-//     } else {
-//         console.log('❌ Issues found:', issues);
-//     }
-    
-//     return {
-//         valid: issues.length === 0,
-//         issues,
-//         structure: chargingMetric
-//     };
-// };
-
-// console.log('🔧 ChargingMetric debug utility available: window.testChargingMetricStructure(formInstance)');
 
 export default ChargingMetricForm;

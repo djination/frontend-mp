@@ -163,16 +163,6 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
 
 // Robust BillingRulesForm with form-managed state  
 const BillingRulesForm = ({ form }) => {
-    // Initialize from form data
-    useEffect(() => {
-        const billingRules = form.getFieldValue(['billing_rules']);
-        if (billingRules) {
-            console.log('🔍 BillingRulesForm - Current form data:', billingRules);
-            console.log(`📊 Billing methods: ${billingRules.billing_method?.methods?.length || 0}`);
-            console.log('📊 Tax rules:', billingRules.tax_rules);
-            console.log('📊 Payment term:', billingRules.term_of_payment);
-        }
-    }, [form]);
     
     return (
         <Card title="Billing Rules" className="revenue-rule-card">
