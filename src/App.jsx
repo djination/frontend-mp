@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ConfigProvider, theme, App as AntdApp } from 'antd';
+import { useAuth } from "./components/AuthContext";
+
+// Page components
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import Sidebar from "./components/Sidebar";
-import { useAuth } from "./components/AuthContext";
+import LoadingSpinner from "./components/LoadingSpinner";
+import NotFoundPage from "./pages/NotFound";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
+import MenuManagementPage from "./pages/UserRole/MenuManagementPage";
+import RoleManagementPage from "./pages/UserRole/RoleManagementPage";
+
+// Existing page imports
 import ServicesPage from "./pages/Services/ServicesPage";
 import AccountList from './pages/Account/AccountListPage';
 import AddAccount from './pages/Account/AddAccountPage';
@@ -17,24 +25,28 @@ import MasterBankCategory from "./pages/Parameter/MasterBankCategory";
 import MasterPosition from "./pages/Parameter/MasterPosition";
 import MasterAccountType from "./pages/Parameter/MasterAccountType";
 import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
-import SettlementMethodPage from "./pages/SettlementMethod/SettlementMethodPage";
 import MasterDocumentType from "./pages/Parameter/MasterDocumentType";
 import RevenueRule from "./pages/RevenueRule/RevenueRule";
 
+// Component map for dynamic routing
+import { componentMap } from './utils/componentMap';
+
+// Layout component that includes Sidebar
+import Layout from './components/Layout';
+
 function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading, userMenus, hasPermission } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
 
-  // Effect untuk mendeteksi perubahan tema dari komponen lain
+  // Effect to detect theme changes
   useEffect(() => {
     const handleStorageChange = () => {
-      const currentTheme = localStorage.getItem('theme');
-      setIsDarkMode(currentTheme === 'dark');
+      setIsDarkMode(localStorage.getItem('theme') === 'dark');
     };
-
+    
     window.addEventListener('storage', handleStorageChange);
     
-    // Untuk mendeteksi perubahan yang dilakukan dalam aplikasi yang sama
+    // For detecting changes made in the same application
     const checkThemeChange = setInterval(() => {
       const currentTheme = localStorage.getItem('theme');
       if ((currentTheme === 'dark') !== isDarkMode) {
@@ -48,7 +60,77 @@ function App() {
     };
   }, [isDarkMode]);
 
+  // Don't render anything until we've checked auth
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
   const { defaultAlgorithm, darkAlgorithm } = theme;
+
+  // Find component by path
+  const getComponentForPath = (path) => {
+    // Check in component map first
+    if (componentMap[path]) {
+      return componentMap[path];
+    }
+    
+    // Fallback for existing routes not yet in component map
+    const staticRoutes = {
+      '/dashboard': Dashboard,
+      '/account': AccountList,
+      '/account/add': AddAccount,
+      '/account/edit/:id': EditAccount,
+      '/parameter/industry': MasterIndustry,
+      '/parameter/business-type': MasterBusinessType,
+      '/parameter/bank': MasterBank,
+      '/parameter/bank-category': MasterBankCategory,
+      '/parameter/position': MasterPosition,
+      '/parameter/account-type': MasterAccountType,
+      '/parameter/account-category': MasterAccountCategory,
+      '/parameter/services': ServicesPage,
+      '/parameter/document-type': MasterDocumentType,
+      '/parameter/revenue-rules': RevenueRule,
+    };
+    
+    if (staticRoutes[path]) {
+      return staticRoutes[path];
+    }
+    
+    // Default to NotFound
+    return NotFoundPage;
+  };
+
+  // Check if user has access to a specific path
+  const hasAccessToPath = (path) => {
+    if (!isAuthenticated) return false;
+    
+    // During initial setup, allow access to all routes
+    if (!userMenus || userMenus.length === 0) return true;
+    
+    // Special case for admin routes that aren't in menus yet
+    if (path === '/menus' && hasPermission('menu:read')) return true;
+    if (path === '/roles' && hasPermission('role:read')) return true;
+    
+    // Default routes that should always be accessible
+    if (path === '/dashboard') return true;
+    
+    // Recursive function to check paths in menu tree
+    const checkPathInMenus = (menus, targetPath) => {
+      for (const menu of menus) {
+        if (menu.path === targetPath && menu.isActive) {
+          return true;
+        }
+        if (menu.children?.length) {
+          if (checkPathInMenus(menu.children, targetPath)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    
+    return checkPathInMenus(userMenus, path);
+  };
 
   return (
     <AntdApp
@@ -72,40 +154,76 @@ function App() {
       }}
     >
       <Router>
-        {isAuthenticated && <Sidebar setGlobalIsDarkMode={setIsDarkMode} />}
-        <div 
-          className={`${isAuthenticated ? "ml-64" : ""} min-h-screen transition-colors duration-300`}
-          style={{ 
-            backgroundColor: isDarkMode ? '#141414' : '#f0f2f5',
-            color: isDarkMode ? '#ffffff' : '#000000'
-          }}
-        >
-          <div className="p-4">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-              <Route path="/account" element={isAuthenticated ? <AccountList /> : <Navigate to="/login" />} />
-              <Route path="/account/add" element={isAuthenticated ? <AddAccount /> : <Navigate to="/login" />} />
-              <Route path="/account/edit/:id" element={isAuthenticated ? <EditAccount /> : <Navigate to="/login" />} />
-              {/* Group all parameter routes under /parameter */}
-              <Route path="/parameter">
-                <Route path="industry" element={isAuthenticated ? <MasterIndustry /> : <Navigate to="/login" />} />
-                <Route path="business-type" element={isAuthenticated ? <MasterBusinessType /> : <Navigate to="/login" />} />
-                <Route path="bank" element={isAuthenticated ? <MasterBank /> : <Navigate to="/login" />} />
-                <Route path="bank-category" element={isAuthenticated ? <MasterBankCategory /> : <Navigate to="/login" />} />
-                <Route path="position" element={isAuthenticated ? <MasterPosition /> : <Navigate to="/login" />} />
-                <Route path="account-type" element={isAuthenticated ? <MasterAccountType /> : <Navigate to="/login" />} />
-                <Route path="account-category" element={isAuthenticated ? <MasterAccountCategory /> : <Navigate to="/login" />} />
-                <Route path="services" element={isAuthenticated ? <ServicesPage /> : <Navigate to="/login" />} />
-                {/* <Route path="settlement-methods" element={isAuthenticated ? <SettlementMethodPage /> : <Navigate to="/login" />} /> */}
-                <Route path="document-type" element={isAuthenticated ? <MasterDocumentType /> : <Navigate to="/login" />} />
-                <Route path="revenue-rules" element={isAuthenticated ? <RevenueRule />  : <Navigate to="/login" />} />
-              </Route>
-              <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
-            </Routes>
-          </div>
-        </div>
+        <Routes>
+          <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
+          <Route path="/register" element={<Register />} />
+          
+          {/* Protected routes wrapped in Layout */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? (
+                <Layout isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          >
+            {/* Default route */}
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+            
+            {/* Admin routes */}
+            <Route
+              path="/menus"
+              element={
+                hasPermission('menu:read') ? <MenuManagementPage /> : <UnauthorizedPage />
+              }
+            />
+            
+            <Route
+              path="/roles"
+              element={
+                hasPermission('role:read') ? <RoleManagementPage /> : <UnauthorizedPage />
+              }
+            />
+            
+            {/* Static routes (keeping for backward compatibility) */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/account" element={<AccountList />} />
+            <Route path="/account/add" element={<AddAccount />} />
+            <Route path="/account/edit/:id" element={<EditAccount />} />
+            
+            {/* Parameter routes */}
+            <Route path="/parameter">
+              <Route path="industry" element={<MasterIndustry />} />
+              <Route path="business-type" element={<MasterBusinessType />} />
+              <Route path="bank" element={<MasterBank />} />
+              <Route path="bank-category" element={<MasterBankCategory />} />
+              <Route path="position" element={<MasterPosition />} />
+              <Route path="account-type" element={<MasterAccountType />} />
+              <Route path="account-category" element={<MasterAccountCategory />} />
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="document-type" element={<MasterDocumentType />} />
+              <Route path="revenue-rules" element={<RevenueRule />} />
+            </Route>
+            
+            {/* Dynamic routes from user menus */}
+            {userMenus && userMenus.map(menu => (
+              <Route
+                key={menu.path}
+                path={menu.path}
+                element={
+                  hasAccessToPath(menu.path) ? 
+                  React.createElement(getComponentForPath(menu.path)) :
+                  <UnauthorizedPage />
+                }
+              />
+            ))}
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
       </Router>
     </AntdApp>
   );
