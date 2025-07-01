@@ -12,6 +12,7 @@ import NotFoundPage from "./pages/NotFound";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import MenuManagementPage from "./pages/UserRole/MenuManagementPage";
 import RoleManagementPage from "./pages/UserRole/RoleManagementPage";
+import UserManagementPage from './pages/UserRole/UserManagementPage';
 
 // Existing page imports
 import ServicesPage from "./pages/Services/ServicesPage";
@@ -90,6 +91,7 @@ function App() {
       '/parameter/services': ServicesPage,
       '/parameter/document-type': MasterDocumentType,
       '/parameter/revenue-rules': RevenueRule,
+      '/users': UserManagementPage,
     };
     
     if (staticRoutes[path]) {
@@ -110,6 +112,7 @@ function App() {
     // Special case for admin routes that aren't in menus yet
     if (path === '/menus' && hasPermission('menu:read')) return true;
     if (path === '/roles' && hasPermission('role:read')) return true;
+    if (path === '/users' && hasPermission('user:read')) return true;
     
     // Default routes that should always be accessible
     if (path === '/dashboard') return true;
@@ -184,6 +187,13 @@ function App() {
               path="/roles"
               element={
                 hasPermission('role:read') ? <RoleManagementPage /> : <UnauthorizedPage />
+              }
+            />
+
+            <Route
+              path="/users"
+              element={
+                hasPermission('user:read') ? <UserManagementPage /> : <UnauthorizedPage />
               }
             />
             
