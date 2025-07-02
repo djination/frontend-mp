@@ -22,7 +22,6 @@ export const getUser = async (id) => {
 
 export const createUser = async (userData) => {
   try {
-    console.log('Creating user with data:', userData); // Debug what's being sent
     const response = await axios.post('/users', userData);
     return response.data;
   } catch (error) {

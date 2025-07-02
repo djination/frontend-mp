@@ -34,7 +34,6 @@ export const getMenu = async (id) => {
 };
 
 export const createMenu = async (menuData) => {
-  console.log('Sending menu data:', menuData); // Add this for debugging
   try {
     const response = await axios.post('/menus', menuData);
     return response.data;
