@@ -8,8 +8,10 @@ import {
   ExclamationCircleOutlined, LockOutlined, UnlockOutlined,
   EyeOutlined, EyeInvisibleOutlined
 } from '@ant-design/icons';
+import { jwtDecode } from 'jwt-decode';
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/userApi';
 import { getRoles } from '../../api/roleApi';
+import { useAuth } from '../../components/AuthContext';
 
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
@@ -20,6 +22,41 @@ const UserManagementPage = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [editForm] = Form.useForm();
   const [searchForm] = Form.useForm();
+  
+  // Get current user info from auth context
+  const { user, userPermissions } = useAuth();
+  
+  // Check if current user is superadmin
+  const isSuperAdmin = () => {
+    // Method 1: Check user from context
+    if (user && user.roles) {
+      const hasSuperAdminRole = user.roles.some(role => role.name?.toLowerCase() === 'superadmin');
+      if (hasSuperAdminRole) return true;
+    }
+
+    // Method 2: Check by username
+    if (user?.username?.toLowerCase() === 'superadmin') {
+      return true;
+    }
+
+    // Method 3: Check JWT token as fallback
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const decoded = jwtDecode(token);
+        if (decoded.roles) {
+          return decoded.roles.some(role => role.name?.toLowerCase() === 'superadmin');
+        }
+        if (decoded.username?.toLowerCase() === 'superadmin') {
+          return true;
+        }
+      }
+    } catch (error) {
+      // Token decode failed, continue with other methods
+    }
+
+    return false;
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -30,7 +67,17 @@ const UserManagementPage = () => {
     setLoading(true);
     try {
       const response = await getUsers(filters);
-      setUsers(response.data);
+      let usersData = response.data;
+      
+      // Filter out superadmin users if current user is not superadmin
+      if (!isSuperAdmin()) {
+        usersData = usersData.filter(user => 
+          user.username?.toLowerCase() !== 'superadmin' &&
+          !user.roles?.some(role => role.name?.toLowerCase() === 'superadmin')
+        );
+      }
+      
+      setUsers(usersData);
     } catch (error) {
       message.error('Failed to fetch users');
       console.error(error);
@@ -42,7 +89,16 @@ const UserManagementPage = () => {
   const fetchRoles = async () => {
     try {
       const response = await getRoles();
-      setRoles(response.data);
+      let rolesData = response.data;
+      
+      // Filter out superadmin role from role selection if current user is not superadmin
+      if (!isSuperAdmin()) {
+        rolesData = rolesData.filter(role => 
+          role.name?.toLowerCase() !== 'superadmin'
+        );
+      }
+      
+      setRoles(rolesData);
     } catch (error) {
       message.error('Failed to fetch roles');
       console.error(error);
@@ -66,6 +122,15 @@ const UserManagementPage = () => {
   };
 
   const handleEdit = (record) => {
+    // Prevent editing superadmin user if current user is not superadmin
+    if (!isSuperAdmin() && (
+      record.username?.toLowerCase() === 'superadmin' ||
+      record.roles?.some(role => role.name?.toLowerCase() === 'superadmin')
+    )) {
+      message.error('You do not have permission to edit SuperAdmin users');
+      return;
+    }
+    
     setEditingRecord(record);
     editForm.setFieldsValue({
       username: record.username,
@@ -81,6 +146,18 @@ const UserManagementPage = () => {
   };
 
   const handleDelete = async (id) => {
+    // Find the user to check if it's superadmin
+    const userToDelete = users.find(u => u.id === id);
+    
+    // Prevent deleting superadmin user if current user is not superadmin
+    if (!isSuperAdmin() && (
+      userToDelete?.username?.toLowerCase() === 'superadmin' ||
+      userToDelete?.roles?.some(role => role.name?.toLowerCase() === 'superadmin')
+    )) {
+      message.error('You do not have permission to delete SuperAdmin users');
+      return;
+    }
+    
     try {
       await deleteUser(id);
       message.success('User deleted successfully');
@@ -99,7 +176,6 @@ const UserManagementPage = () => {
   const handleModalSubmit = async () => {
     try {
         const values = await editForm.validateFields();
-        console.log('Submitting form values:', values); // Debug values
         
         if (editingRecord) {
         await updateUser(editingRecord.id, values);
@@ -190,30 +266,39 @@ const UserManagementPage = () => {
     {
       title: 'Actions',
       key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Tooltip title="Edit">
-            <Button 
-              icon={<EditOutlined />} 
-              onClick={() => handleEdit(record)} 
-              size="small" 
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button 
-              icon={<DeleteOutlined />} 
-              danger 
-              onClick={() => Modal.confirm({
-                title: 'Are you sure you want to delete this user?',
-                icon: <ExclamationCircleOutlined />,
-                content: 'This action cannot be undone.',
-                onOk: () => handleDelete(record.id),
-              })} 
-              size="small" 
-            />
-          </Tooltip>
-        </Space>
-      ),
+      render: (_, record) => {
+        const isSuperAdminUser = record.username?.toLowerCase() === 'superadmin' ||
+                                record.roles?.some(role => role.name?.toLowerCase() === 'superadmin');
+        const canEdit = isSuperAdmin() || !isSuperAdminUser;
+        const canDelete = isSuperAdmin() || !isSuperAdminUser;
+        
+        return (
+          <Space>
+            <Tooltip title={canEdit ? "Edit" : "Cannot edit SuperAdmin user"}>
+              <Button 
+                icon={<EditOutlined />} 
+                onClick={() => handleEdit(record)} 
+                size="small"
+                disabled={!canEdit}
+              />
+            </Tooltip>
+            <Tooltip title={canDelete ? "Delete" : "Cannot delete SuperAdmin user"}>
+              <Button 
+                icon={<DeleteOutlined />} 
+                danger 
+                onClick={() => Modal.confirm({
+                  title: 'Are you sure you want to delete this user?',
+                  icon: <ExclamationCircleOutlined />,
+                  content: 'This action cannot be undone.',
+                  onOk: () => handleDelete(record.id),
+                })} 
+                size="small"
+                disabled={!canDelete}
+              />
+            </Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 

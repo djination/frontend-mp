@@ -284,8 +284,6 @@ const RevenueRuleModal = ({
         charging_metric: values.charging_metric,
         billing_rules: values.billing_rules
       };
-
-      console.log('payload', payload);
       
       const response = await createAccountRevenueRulesFromTree(payload);
       

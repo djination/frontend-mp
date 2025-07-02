@@ -13,6 +13,7 @@ import UnauthorizedPage from "./pages/UnauthorizedPage";
 import MenuManagementPage from "./pages/UserRole/MenuManagementPage";
 import RoleManagementPage from "./pages/UserRole/RoleManagementPage";
 import UserManagementPage from './pages/UserRole/UserManagementPage';
+import ProfilePage from './pages/Profile/ProfilePage';
 
 // Existing page imports
 import ServicesPage from "./pages/Services/ServicesPage";
@@ -92,6 +93,7 @@ function App() {
       '/parameter/document-type': MasterDocumentType,
       '/parameter/revenue-rules': RevenueRule,
       '/users': UserManagementPage,
+      '/profile': ProfilePage,
     };
     
     if (staticRoutes[path]) {

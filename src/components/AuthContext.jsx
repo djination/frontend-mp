@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
-import { getUserMenusAndPermissions } from "../api/userApi";
+import { getUserMenusAndPermissions, getCurrentUser } from "../api/userApi";
 // import axios from "../config/axiosInstance";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
+  const [user, setUser] = useState(null);
   const [userMenus, setUserMenus] = useState([]);
   const [userPermissions, setUserPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("token");
     localStorage.removeItem("refresh");
     setToken(null);
+    setUser(null);
     setUserMenus([]);
     setUserPermissions([]);
   };
@@ -34,14 +36,19 @@ export function AuthProvider({ children }) {
     setToken(storedToken);
     
     if (storedToken) {
-      const fetchUserMenusAndPermissions = async () => {
+      const fetchUserData = async () => {
         try {
-          const response = await getUserMenusAndPermissions();
-          // const response = await axios.get('/users/me/menus-permissions');
-          setUserMenus(response.data.menus || []);
-          setUserPermissions(response.data.permissions || []);
+          // Fetch both user profile and menus/permissions
+          const [userResponse, menusPermissionsResponse] = await Promise.all([
+            getCurrentUser(),
+            getUserMenusAndPermissions()
+          ]);
+          
+          setUser(userResponse.data);
+          setUserMenus(menusPermissionsResponse.data.menus || []);
+          setUserPermissions(menusPermissionsResponse.data.permissions || []);
         } catch (error) {
-          console.error('Failed to fetch user menus and permissions:', error);
+          console.error('Failed to fetch user data:', error);
           // If unauthorized, log out
           if (error.response?.status === 401) {
             logout();
@@ -51,7 +58,7 @@ export function AuthProvider({ children }) {
         }
       };
       
-      fetchUserMenusAndPermissions();
+      fetchUserData();
     } else {
       setLoading(false);
     }
@@ -60,6 +67,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{ 
       token, 
+      user,
       login, 
       logout, 
       isAuthenticated: !!token,

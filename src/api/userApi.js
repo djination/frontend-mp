@@ -68,12 +68,29 @@ export const getUserMenusAndPermissions = async () => {
   }
 };
 
-export const changePassword = async (currentPassword, newPassword) => {
+export const getCurrentUser = async () => {
   try {
-    const response = await axios.post('/users/change-password', {
-      currentPassword,
-      newPassword
-    });
+    const response = await axios.get('/users/me/profile');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching current user profile:', error);
+    throw error;
+  }
+};
+
+export const updateCurrentUserProfile = async (profileData) => {
+  try {
+    const response = await axios.patch('/users/me/profile', profileData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+export const changePassword = async (passwordData) => {
+  try {
+    const response = await axiosInstance.post('/user/change-password', passwordData);
     return response.data;
   } catch (error) {
     console.error('Error changing password:', error);

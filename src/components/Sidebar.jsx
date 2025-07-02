@@ -12,6 +12,14 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
   const [openKeys, setOpenKeys] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   
+  // Debug: Log userMenus when it changes
+  // useEffect(() => {
+  //   console.log('Sidebar - userMenus changed:', userMenus);
+  //   if (userMenus && Array.isArray(userMenus)) {
+  //     console.log('Menu structure:', JSON.stringify(userMenus, null, 2));
+  //   }
+  // }, [userMenus]);
+  
   // Effect for theme
   useEffect(() => {
     const theme = isDarkMode ? 'dark' : 'light';
@@ -27,19 +35,26 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
         if (menu.path === path) {
           return [];
         }
-        if (menu.children?.length) {
+        if (menu.children && menu.children.length > 0) {
           const childKeys = findParentKeys(menu.children, path);
-          if (childKeys.length >= 0) {
+          if (childKeys.length > 0) {
             return [menu.path, ...childKeys];
+          }
+          // Check if any child has the current path
+          const hasChildWithPath = menu.children.some(child => child.path === path);
+          if (hasChildWithPath) {
+            return [menu.path];
           }
         }
       }
       return [];
     };
     
-    const parentKeys = findParentKeys(userMenus, location.pathname);
-    if (parentKeys.length > 0) {
-      setOpenKeys(parentKeys);
+    if (userMenus && userMenus.length > 0) {
+      const parentKeys = findParentKeys(userMenus, location.pathname);
+      if (parentKeys.length > 0) {
+        setOpenKeys(parentKeys);
+      }
     }
   }, [location.pathname, userMenus]);
 
@@ -68,32 +83,44 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
   
   // Recursively build menu items from userMenus
   const buildMenuItems = (menus) => {
-    return menus
-      .filter(menu => menu.isActive)
-      .sort((a, b) => a.displayOrder - b.displayOrder)
-      .map(menu => {
-        const icon = getIcon(menu.icon);
-        
-        if (menu.children && menu.children.length > 0) {
+    if (!menus || !Array.isArray(menus)) {
+      console.warn('Menus is not an array:', menus);
+      return [];
+    }
+    
+    // Gunakan menu tree yang sudah dibangun dari backend
+    const buildItems = (menuList) => {
+      return menuList
+        .filter(menu => menu.isActive !== false) // Allow undefined isActive
+        .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+        .map(menu => {
+          const icon = getIcon(menu.icon);
+          
+          // Jika menu memiliki children, render sebagai submenu
+          if (menu.children && menu.children.length > 0) {
+            return {
+              key: menu.path || `menu-${menu.id}`,
+              icon: icon,
+              label: menu.name,
+              children: buildItems(menu.children),
+              style: { background: isDarkMode ? '#111827' : '#1e3a8a' }
+            };
+          }
+          
+          // Jika tidak ada children, render sebagai menu item biasa
           return {
-            key: menu.path,
+            key: menu.path || `menu-${menu.id}`,
             icon: icon,
             label: menu.name,
-            children: buildMenuItems(menu.children),
-            style: { background: isDarkMode ? '#111827' : '#1e3a8a' }
           };
-        }
-        
-        return {
-          key: menu.path,
-          icon: icon,
-          label: menu.name,
-        };
-      });
+        });
+    };
+    
+    return buildItems(menus);
   };
   
   // Build dynamic menu items
-  const dynamicMenuItems = buildMenuItems(userMenus);
+  const dynamicMenuItems = buildMenuItems(userMenus || []);
   
   // Add logout at the end
   const menuItems = [
@@ -107,10 +134,11 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
     }
   ];
 
-  const handleMenuClick = ({ key }) => {
+  const handleMenuClick = ({ key }) => {    
     if (key === 'logout') {
       handleLogout();
-    } else {
+    } else if (key && key !== '#' && !key.startsWith('menu-')) {
+      // Only navigate if it's a valid path and not a placeholder
       navigate(key);
     }
   };

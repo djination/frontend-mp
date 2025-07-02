@@ -10,6 +10,7 @@ import {
 import { getRoles, createRole, updateRole, deleteRole } from '../../api/roleApi';
 import { getMenuTree } from '../../api/menuApi';
 import { getPermissions, getPermissionsWithCache } from '../../api/permissionApi';
+import { useAuth } from '../../components/AuthContext';
 
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
@@ -26,41 +27,62 @@ const RoleManagementPage = () => {
   const [editForm] = Form.useForm();
   const [activeTab, setActiveTab] = useState('1');
   const [groupedPermissions, setGroupedPermissions] = useState({});
-
-  const debugPermissionData = () => {
-    console.log("Debugging Permission Data:");
-    console.log("Total permissions loaded:", permissions.length);
-    
-    // Group by resource type
-    const resourceCounts = {};
-    permissions.forEach(p => {
-      const resourceType = p.resourceType || 'unknown';
-      resourceCounts[resourceType] = (resourceCounts[resourceType] || 0) + 1;
-    });
-    
-    console.log("Resource type counts:", resourceCounts);
-    console.log("Currently checked permissions:", Object.keys(checkedPermissions).length);
-    
-    // Sample of permissions
-    if (permissions.length > 0) {
-      console.log("Sample permission object:", permissions[0]);
+  
+  // Get current user info from auth context
+  const { user, userPermissions } = useAuth();
+  
+  // Check if current user is superadmin
+  const isSuperAdmin = () => {
+    // Method 1: Check user from context
+    if (user && user.roles) {
+      const hasSuperAdminRole = user.roles.some(role => role.name?.toLowerCase() === 'superadmin');
+      if (hasSuperAdminRole) return true;
     }
+
+    // Method 2: Check by username
+    if (user?.username?.toLowerCase() === 'superadmin') {
+      return true;
+    }
+
+    // Method 3: Check JWT token as fallback
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const decoded = jwtDecode(token);
+        if (decoded.roles) {
+          return decoded.roles.some(role => role.name?.toLowerCase() === 'superadmin');
+        }
+        if (decoded.username?.toLowerCase() === 'superadmin') {
+          return true;
+        }
+      }
+    } catch (error) {
+      // Token decode failed, continue with other methods
+    }
+
+    return false;
   };
 
   useEffect(() => {
     fetchRoles();
     fetchMenuTree();
     fetchPermissions();
-  
-    // Debug after permissions load
-    setTimeout(debugPermissionData, 2000);
   }, []);
 
   const fetchRoles = async () => {
     setLoading(true);
     try {
       const response = await getRoles();
-      setRoles(response.data);
+      let rolesData = response.data;
+      
+      // Filter out superadmin role if current user is not superadmin
+      if (!isSuperAdmin()) {
+        rolesData = rolesData.filter(role => 
+          role.name?.toLowerCase() !== 'superadmin'
+        );
+      }
+      
+      setRoles(rolesData);
     } catch (error) {
       message.error('Failed to fetch roles');
       console.error(error);
@@ -83,11 +105,9 @@ const RoleManagementPage = () => {
   const fetchPermissions = async () => {
     try {
       const response = await getPermissionsWithCache();
-      console.log('API Response for permissions:', response);
       
       // Fix the data extraction - response is the actual API response object
       const permissionsData = response.data || [];
-      console.log('Permissions data:', permissionsData);
       setPermissions(permissionsData);
       
       // Group permissions by resource type
@@ -118,6 +138,12 @@ const RoleManagementPage = () => {
   };
 
   const handleEdit = (record) => {
+    // Prevent editing superadmin role if current user is not superadmin
+    if (!isSuperAdmin() && record.name?.toLowerCase() === 'superadmin') {
+      message.error('You do not have permission to edit the SuperAdmin role');
+      return;
+    }
+    
     setEditingRecord(record);
     editForm.setFieldsValue({
       name: record.name,
@@ -137,6 +163,15 @@ const RoleManagementPage = () => {
   };
 
   const handleDelete = async (id) => {
+    // Find the role to check if it's superadmin
+    const roleToDelete = roles.find(role => role.id === id);
+    
+    // Prevent deleting superadmin role if current user is not superadmin
+    if (!isSuperAdmin() && roleToDelete?.name?.toLowerCase() === 'superadmin') {
+      message.error('You do not have permission to delete the SuperAdmin role');
+      return;
+    }
+    
     try {
       await deleteRole(id);
       message.success('Role deleted successfully');
@@ -208,9 +243,6 @@ const RoleManagementPage = () => {
   const handleMenuCheck = (checkedKeys) => {
     setSelectedMenus(checkedKeys);
 
-    // Debugging
-    console.log("Selected menu keys:", checkedKeys);
-
     // Auto-select permissions based on selected menus
     const newCheckedPermissions = { ...checkedPermissions };
     
@@ -228,9 +260,6 @@ const RoleManagementPage = () => {
               ? lastSegment.slice(0, -1)
               : lastSegment;
             menuToResourceMap[menu.path] = resourceType;
-            
-            // Debug log
-            console.log(`Mapping path ${menu.path} to resource type ${resourceType}`);
           }
         }
         if (menu.children && menu.children.length > 0) {
@@ -240,7 +269,6 @@ const RoleManagementPage = () => {
     };
 
     buildMenuToResourceMap(menuTree);
-    console.log("Menu to resource map:", menuToResourceMap);
   
     // Add hardcoded mappings for common menu paths
     const commonMenuMappings = {
@@ -270,7 +298,6 @@ const RoleManagementPage = () => {
     };
     
     const selectedMenuObjects = findSelectedMenuObjects(menuTree, checkedKeys);
-    console.log("Selected menu objects:", selectedMenuObjects);
     
     // Determine which resource types should have permissions checked
     const resourceTypesToCheck = selectedMenuObjects.reduce((types, menu) => {
@@ -307,15 +334,6 @@ const RoleManagementPage = () => {
       return types;
     }, new Set());
     
-    // Add more debug logs
-    console.log("Resource types to check:", Array.from(resourceTypesToCheck));
-    console.log("Available permissions:", permissions.map(p => ({ 
-      id: p.id.substring(0, 8), 
-      name: p.name, 
-      resourceType: p.resourceType,
-      actionType: p.actionType
-    })));
-    
     // Update permissions based on selected menus
     let autoSelectedCount = 0;
 
@@ -327,7 +345,6 @@ const RoleManagementPage = () => {
       }
     });
     
-    console.log(`Auto-selected ${autoSelectedCount} permissions`);
     setCheckedPermissions({...newCheckedPermissions});
   
     // Switch to permissions tab to show the selections
@@ -385,7 +402,8 @@ const RoleManagementPage = () => {
           <Button 
             icon={<EditOutlined />} 
             onClick={() => handleEdit(record)} 
-            size="small" 
+            size="small"
+            disabled={!isSuperAdmin() && record.name?.toLowerCase() === 'superadmin'}
           />
           <Button 
             icon={<DeleteOutlined />} 
@@ -396,7 +414,8 @@ const RoleManagementPage = () => {
               content: 'This action cannot be undone.',
               onOk: () => handleDelete(record.id),
             })} 
-            size="small" 
+            size="small"
+            disabled={!isSuperAdmin() && record.name?.toLowerCase() === 'superadmin'}
           />
         </Space>
       ),

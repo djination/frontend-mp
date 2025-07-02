@@ -108,8 +108,6 @@ const MenuManagementPage = () => {
         isActive: values.isActive !== undefined ? values.isActive : true
       };
       
-      console.log('Submitting form data:', formData);
-      
       if (editingRecord) {
         await updateMenu(editingRecord.id, formData);
         message.success('Menu updated successfully');

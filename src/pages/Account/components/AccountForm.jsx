@@ -488,9 +488,7 @@ const AccountForm = ({
           rules: validRules
         };
         
-        console.log(`Sending ${validRules.length} revenue rules for service ${serviceId}`);
         await createAccountRevenueRules(payload);
-        console.log(`Revenue rules saved successfully for service ${serviceId}`);
         successCount++;
       } catch (error) {
         errorCount++;
@@ -523,7 +521,6 @@ const AccountForm = ({
 
   // Submit utama
   const handleSubmit = async (values) => {
-    console.log('account service:',accountServices);
     setLoading(true);
     try {
       let accountNo = values.account_no;
