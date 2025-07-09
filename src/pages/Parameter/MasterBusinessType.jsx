@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Table, Button, Form, Input, Select, Space, Card, 
-  message, Tooltip, Popconfirm, Switch, Modal
+  message, Tooltip, Popconfirm, Switch, Modal, Tree, Divider
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, BranchesOutlined, TableOutlined } from '@ant-design/icons';
 
 // Import API
-import { getBusinessTypes, createBusinessType, updateBusinessType, deleteBusinessType } from '../../api/businessTypeApi';
+import { 
+  getBusinessTypes, 
+  createBusinessType, 
+  updateBusinessType, 
+  deleteBusinessType,
+  getParentBusinessTypes,
+  getChildBusinessTypes,
+  getBusinessTypeTree
+} from '../../api/businessTypeApi';
 
 const MasterBusinessType = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
+  const [treeData, setTreeData] = useState([]);
+  const [parentTypes, setParentTypes] = useState([]);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'tree'
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -26,6 +37,8 @@ const MasterBusinessType = () => {
   // Fetch initial data
   useEffect(() => {
     fetchBusinessTypes();
+    fetchParentTypes();
+    fetchTreeData();
   }, []);
 
   const fetchBusinessTypes = async (params = {}) => {
@@ -69,6 +82,50 @@ const MasterBusinessType = () => {
     }
   };
 
+  const fetchParentTypes = async () => {
+    try {
+      const response = await getParentBusinessTypes();
+      setParentTypes(response?.data || []);
+    } catch (error) {
+      message.error('Failed to fetch parent business types');
+      console.error(error);
+    }
+  };
+
+  const fetchTreeData = async () => {
+    try {
+      const response = await getBusinessTypeTree();
+      const formattedTreeData = formatTreeData(response?.data || []);
+      setTreeData(formattedTreeData);
+    } catch (error) {
+      message.error('Failed to fetch business type tree');
+      console.error(error);
+    }
+  };
+
+  const formatTreeData = (data) => {
+    return data.map(parent => ({
+      title: (
+        <div>
+          <strong>{parent.name}</strong>
+          {parent.detail && <div style={{ fontSize: '12px', color: '#666' }}>{parent.detail}</div>}
+        </div>
+      ),
+      key: parent.id,
+      children: parent.children?.map(child => ({
+        title: (
+          <div>
+            {child.name}
+            {child.is_other && <span style={{ color: '#ff4d4f', marginLeft: 8 }}>(Other)</span>}
+            {child.detail && <div style={{ fontSize: '12px', color: '#666' }}>{child.detail}</div>}
+          </div>
+        ),
+        key: child.id,
+        isLeaf: true,
+      })) || []
+    }));
+  };
+
   const handleSearch = (values) => {
     setPagination({
       ...pagination,
@@ -99,7 +156,9 @@ const MasterBusinessType = () => {
     setEditingRecord(record);
     editForm.setFieldsValue({
       name: record.name,
-      details: record.details,
+      detail: record.detail,
+      parent_id: record.parent_id,
+      is_other: record.is_other,
       is_active: record.is_active,
     });
     setModalVisible(true);
@@ -110,6 +169,7 @@ const MasterBusinessType = () => {
       await deleteBusinessType(id);
       message.success('Business type deleted successfully');
       fetchBusinessTypes(form.getFieldsValue());
+      fetchTreeData();
     } catch (error) {
       message.error('Failed to delete business type');
       console.error(error);
@@ -130,6 +190,8 @@ const MasterBusinessType = () => {
       
       setModalVisible(false);
       fetchBusinessTypes(form.getFieldsValue());
+      fetchTreeData();
+      fetchParentTypes();
     } catch (error) {
       if (error.errorFields) {
         return;
@@ -145,11 +207,48 @@ const MasterBusinessType = () => {
       dataIndex: 'name',
       key: 'name',
       sorter: true,
+      render: (text, record) => (
+        <div>
+          <span>{text}</span>
+          {record.is_other && <span style={{ color: '#ff4d4f', marginLeft: 8 }}>(Other)</span>}
+          {record.parent && (
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Parent: {record.parent.name}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       title: 'Details',
       dataIndex: 'detail',
       key: 'detail',
+      render: (text) => (
+        <div style={{ maxWidth: 200, wordBreak: 'break-word' }}>
+          {text}
+        </div>
+      ),
+    },
+    {
+      title: 'Type',
+      key: 'type',
+      render: (_, record) => (
+        <span style={{ 
+          padding: '2px 8px', 
+          borderRadius: '4px', 
+          fontSize: '12px',
+          backgroundColor: record.parent_id ? '#f0f0f0' : '#e6f7ff',
+          color: record.parent_id ? '#666' : '#1890ff'
+        }}>
+          {record.parent_id ? 'Child' : 'Parent'}
+        </span>
+      ),
+      filters: [
+        { text: 'Parent', value: 'parent' },
+        { text: 'Child', value: 'child' },
+      ],
+      onFilter: (value, record) => 
+        value === 'parent' ? !record.parent_id : !!record.parent_id,
     },
     {
       title: 'Status',
@@ -192,6 +291,25 @@ const MasterBusinessType = () => {
   return (
     <div>
       <Card title="Master Business Type">
+        <div style={{ marginBottom: 16 }}>
+          <Space>
+            <Button 
+              type={viewMode === 'table' ? 'primary' : 'default'}
+              icon={<TableOutlined />}
+              onClick={() => setViewMode('table')}
+            >
+              Table View
+            </Button>
+            <Button 
+              type={viewMode === 'tree' ? 'primary' : 'default'}
+              icon={<BranchesOutlined />}
+              onClick={() => setViewMode('tree')}
+            >
+              Tree View
+            </Button>
+          </Space>
+        </div>
+
         <Form
           form={form}
           layout="horizontal"
@@ -203,7 +321,7 @@ const MasterBusinessType = () => {
               <Input placeholder="Search by name" />
             </Form.Item>
             
-            <Form.Item name="details" label="Details">
+            <Form.Item name="detail" label="Details">
               <Input placeholder="Search by details" />
             </Form.Item>
             
@@ -240,14 +358,25 @@ const MasterBusinessType = () => {
           </div>
         </Form>
         
-        <Table
-          columns={columns}
-          dataSource={data}
-          rowKey="id"
-          loading={loading}
-          pagination={pagination}
-          onChange={handleTableChange}
-        />
+        {viewMode === 'table' ? (
+          <Table
+            columns={columns}
+            dataSource={data}
+            rowKey="id"
+            loading={loading}
+            pagination={pagination}
+            onChange={handleTableChange}
+          />
+        ) : (
+          <Tree
+            treeData={treeData}
+            loading={loading}
+            showLine
+            showIcon={false}
+            defaultExpandAll
+            style={{ marginTop: 16 }}
+          />
+        )}
       </Card>
 
       {/* Add/Edit Modal */}
@@ -258,6 +387,7 @@ const MasterBusinessType = () => {
         onCancel={() => setModalVisible(false)}
         okText={editingRecord ? 'Update' : 'Create'}
         confirmLoading={loading}
+        width={600}
       >
         <Form
           form={editForm}
@@ -279,6 +409,31 @@ const MasterBusinessType = () => {
               rows={4} 
               placeholder="Enter details"
             />
+          </Form.Item>
+
+          <Form.Item
+            name="parent_id"
+            label="Parent Type"
+            help="Leave empty to create a parent type"
+          >
+            <Select
+              placeholder="Select parent type (optional)"
+              allowClear
+              options={parentTypes.map(parent => ({
+                value: parent.id,
+                label: parent.name
+              }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="is_other"
+            label="Is Other Type"
+            valuePropName="checked"
+            initialValue={false}
+            help="Enable this if this type allows custom user input"
+          >
+            <Switch checkedChildren="Yes" unCheckedChildren="No" />
           </Form.Item>
           
           <Form.Item

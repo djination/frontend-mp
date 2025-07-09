@@ -11,12 +11,12 @@ import AccountPICForm from './AccountPICForm';
 import AccountBankForm from './AccountBankForm';
 import AccountServiceForm from './AccountServiceForm';
 import AccountDocumentForm from './AccountDocumentForm';
+import TypeOfBusinessSelector from './TypeOfBusinessSelector';
 
 // API calls
 import { getAccountCategories } from '../../../api/accountCategoryApi';
 import { getAccountTypes } from '../../../api/accountTypeApi';
 import { getIndustries } from '../../../api/industryApi';
-import { getBusinessTypes } from '../../../api/businessTypeApi';
 import { createAccount, updateAccount, generateAccountNo, getParentAccounts } from '../../../api/accountApi';
 import { createAccountPIC, updateAccountPIC, deleteAccountPIC } from '../../../api/accountPICApi';
 import { createAccountAddress, updateAccountAddress, deleteAccountAddress } from '../../../api/accountAddressApi';
@@ -62,7 +62,6 @@ const AccountForm = ({
   const [industries, setIndustries] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
   const [accountCategories, setAccountCategories] = useState([]);
-  const [typeOfBusinesses, setTypeOfBusinesses] = useState([]);
   const [treeParentAccounts, setTreeParentAccounts] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [pics, setPics] = useState([]);
@@ -119,7 +118,8 @@ const AccountForm = ({
       setDataFetched(true);
     }
     if (isEdit && initialValues && initialValues.id) {
-      form.setFieldsValue({
+      // Set form values including parent type of business
+      const formValues = {
         ...initialValues,
         industry_id: initialValues.industry?.id,
         account_type_id: initialValues.account_type?.id,
@@ -127,8 +127,13 @@ const AccountForm = ({
           ? initialValues.account_categories.map(cat => cat.id)
           : [],
         type_of_business_id: initialValues.type_of_business?.id,
+        type_of_business_detail: initialValues.type_of_business_detail,
+        parent_type_of_business: initialValues.type_of_business?.parent_id,
         parent_id: initialValues.parent?.id,
-      });
+      };
+      
+      form.setFieldsValue(formValues);
+      
       if (initialValues.account_address) {
         setAddresses(initialValues.account_address);
         setInitialAddresses(initialValues.account_address);
@@ -165,7 +170,6 @@ const AccountForm = ({
       fetchIndustries(),
       fetchAccountTypes(),
       fetchAccountCategories(),
-      fetchTypeOfBusinesses(),
     ]);
   };
 
@@ -196,20 +200,6 @@ const AccountForm = ({
     } catch (error) {
       message.error('Failed to fetch account types');
       setAccountTypes([]);
-    }
-  };
-
-  const fetchTypeOfBusinesses = async () => {
-    try {
-      const response = await getBusinessTypes();
-      const formattedBusinessTypes = response?.data?.map(type => ({
-        ...type,
-        name: type.detail ? `${type.name} - ${type.detail}` : type.name
-      })) || [];
-      setTypeOfBusinesses(formattedBusinessTypes);
-    } catch (error) {
-      message.error('Failed to fetch type of business');
-      setTypeOfBusinesses([]);
     }
   };
 
@@ -536,17 +526,39 @@ const AccountForm = ({
         accountNo = result.data.account_no;
       }
 
+      // Clean form values to remove any extra fields that shouldn't be sent to backend
+      const formValues = form.getFieldsValue();
+      console.log('All form values:', formValues); // Debug log
+      
       const payload = {
-        ...values,
         account_no: accountNo,
-        account_category_ids: values.account_category_ids,
-        is_active: values.is_active === undefined ? true : values.is_active
+        name: formValues.name,
+        brand_name: formValues.brand_name,
+        industry_id: formValues.industry_id,
+        type_of_business_id: formValues.type_of_business_id,
+        type_of_business_detail: formValues.type_of_business_detail,
+        account_type_id: formValues.account_type_id,
+        account_category_ids: formValues.account_category_ids,
+        parent_id: formValues.parent_id === 'no-parent' ? null : formValues.parent_id,
+        is_active: formValues.is_active === undefined ? true : formValues.is_active
       };
+
+      // Remove undefined/null values except for parent_id and type_of_business_detail which can be explicitly null
+      Object.keys(payload).forEach(key => {
+        if (!['parent_id', 'type_of_business_detail'].includes(key) && 
+            (payload[key] === undefined || payload[key] === '')) {
+          delete payload[key];
+        }
+      });
+
+      console.log('Cleaned account payload:', payload); // Debug log
       let response, accountId;
       if (isEdit) {
+        console.log('Updating account with payload:', payload); // Debug log
         response = await updateAccount(initialValues.id, payload);
         accountId = initialValues.id;
       } else {
+        console.log('Creating account with payload:', payload); // Debug log
         response = await createAccount(payload);
         accountId = response.data?.id || response.id;
       }
@@ -608,7 +620,14 @@ const AccountForm = ({
       message.success(isEdit ? 'Account updated successfully' : 'Account created successfully');
       navigate('/account');
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to save account');
+      console.error('Account save error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Show specific error message if available
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to save account';
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -710,24 +729,31 @@ const AccountForm = ({
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
-              <Form.Item
-                name="type_of_business_id"
-                label="Type of Business"
-              >
-                <Select
-                  placeholder="Select type of business"
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                  options={typeOfBusinesses.map(tob => ({
-                    value: tob.id,
-                    label: tob.name
-                  }))}
-                />
-              </Form.Item>
-            </Col>
           </Row>
+          
+          {/* Type of Business Selector */}
+          <TypeOfBusinessSelector
+            form={form}
+            value={{
+              parent_id: form.getFieldValue('parent_type_of_business'),
+              child_id: form.getFieldValue('type_of_business_id'),
+              type_of_business_detail: form.getFieldValue('type_of_business_detail')
+            }}
+            onChange={(values) => {
+              console.log('Type of business changed:', values);
+              // Update form fields when TypeOfBusinessSelector changes
+              if (values.parent_id !== undefined) {
+                form.setFieldValue('parent_type_of_business', values.parent_id);
+              }
+              if (values.type_of_business_id !== undefined) {
+                form.setFieldValue('type_of_business_id', values.type_of_business_id);
+              }
+              if (values.type_of_business_detail !== undefined) {
+                form.setFieldValue('type_of_business_detail', values.type_of_business_detail);
+              }
+            }}
+          />
+          
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
