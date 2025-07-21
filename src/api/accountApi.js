@@ -94,3 +94,55 @@ export const generateAccountNo = async (params) => {
     throw error;
   }
 };
+
+// ======================= MASS UPLOAD FUNCTIONS =======================
+
+/**
+ * Mass upload accounts from CSV file
+ * @param {FormData} formData - FormData containing the CSV file
+ * @returns {Promise<Object>} Upload result with success/error counts
+ */
+export const massUploadAccounts = async (formData) => {
+  try {
+    const response = await axiosInstance.post('/account/mass-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout for large files
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Mass upload error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Download CSV template for account mass upload
+ * @returns {Promise<Blob>} CSV template file
+ */
+export const downloadAccountTemplate = async () => {
+  try {
+    const response = await axiosInstance.get('/account/template/download', {
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Template download error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get lookup data for CSV reference
+ * @returns {Promise<Object>} Available industries, types, categories, etc.
+ */
+export const getAccountLookupData = async () => {
+  try {
+    const response = await axiosInstance.get('/account/lookup-data');
+    return response.data;
+  } catch (error) {
+    console.error('Lookup data error:', error);
+    throw error;
+  }
+};

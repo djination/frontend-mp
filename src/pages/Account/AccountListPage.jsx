@@ -3,13 +3,16 @@ import {
   Table, Button, Form, Input, Select, Space, Card, 
   message, Tooltip, Popconfirm, Pagination
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 // Import API yang sudah dibuat
 import { getAccounts, deleteAccount } from '../../api/accountApi';
 import { getAccountCategories } from '../../api/accountCategoryApi';
 import { getAccountTypes } from '../../api/accountTypeApi';
+
+// Import Mass Upload Component
+import MassUploadAccount from './components/MassUploadAccount';
 
 // Helper untuk flatten tree account
 const flattenAccounts = (accounts) => {
@@ -31,6 +34,9 @@ const AccountList = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const categorySelectRef = useRef(null);
+
+  // Mass Upload State
+  const [massUploadVisible, setMassUploadVisible] = useState(false);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -196,18 +202,6 @@ const AccountList = () => {
     });
   };
 
-  // const handleTableChange = (pagination, filters, sorter) => {
-  //   setPagination(pagination);
-  //   fetchAccounts({
-  //     ...form.getFieldsValue(),
-  //     page: pagination.current,
-  //     limit: pagination.pageSize,
-  //     sort: sorter.field,
-  //     order: sorter.order,
-  //     ...filters,
-  //   });
-  // };
-
   const handleAdd = () => {
     navigate('/account/add');
   };
@@ -225,6 +219,13 @@ const AccountList = () => {
       message.error('Failed to delete account');
       console.error(error);
     }
+  };
+
+  // Mass Upload Success Handler
+  const handleMassUploadSuccess = () => {
+    // Refresh the account list after successful mass upload
+    fetchAccounts();
+    message.success('Accounts list refreshed');
   };
 
   const columns = [
@@ -369,6 +370,13 @@ const AccountList = () => {
                   Search
                 </Button>
                 <Button 
+                  type="default"
+                  icon={<UploadOutlined />}
+                  onClick={() => setMassUploadVisible(true)}
+                >
+                  Mass Upload
+                </Button>
+                <Button 
                   type="primary" 
                   icon={<PlusOutlined />}
                   onClick={handleAdd}
@@ -389,6 +397,13 @@ const AccountList = () => {
           onChange={handleTableChange}
         />
       </Card>
+
+      {/* Mass Upload Modal */}
+      <MassUploadAccount
+        visible={massUploadVisible}
+        onClose={() => setMassUploadVisible(false)}
+        onSuccess={handleMassUploadSuccess}
+      />
     </div>
   );
 };
