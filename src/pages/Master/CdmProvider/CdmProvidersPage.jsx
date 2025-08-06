@@ -4,14 +4,14 @@ import {
   message, Tooltip, Popconfirm, Modal, Tabs
 } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { getServices, createService, updateService, deleteService } from '../../api/serviceApi';
-import ServiceForm from './components/ServiceForm';
-import ServiceTree from './components/ServiceTree';
+import { getCdmProviders, createCdmProvider, updateCdmProvider, deleteCdmProvider } from '../../../api/cdmProviderApi';
+import CdmProviderForm from './components/CdmProviderForm';
+import CdmProviderTree from './components/CdmProviderTree';
 
-const ServicesPage = () => {
-  const [services, setServices] = useState([]);
+const CdmProvidersPage = () => {
+  const [cdmProviders, setCdmProviders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [editingService, setEditingService] = useState(null);
+  const [editingCdmProvider, setEditingCdmProvider] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form] = Form.useForm();
   const [treeData, setTreeData] = useState([]);
@@ -19,7 +19,7 @@ const ServicesPage = () => {
   // For filter/search
   const [filter, setFilter] = useState({
     name: '',
-    type: '',
+    description: '',
   });
 
   // For pagination
@@ -29,8 +29,8 @@ const ServicesPage = () => {
     total: 0,
   });
 
-  // Fetch all services (flat list)
-  const fetchServices = async (params = {}) => {
+  // Fetch all cdmProviders (flat list)
+  const fetchCdmProviders = async (params = {}) => {
     setLoading(true);
     try {
       const queryParams = {
@@ -38,31 +38,42 @@ const ServicesPage = () => {
         limit: pagination.pageSize,
         ...params,
       };
-      const response = await getServices(queryParams);
+      const response = await getCdmProviders(queryParams);
       if (response && response.data) {
-        setServices(response.data);
+        setCdmProviders(response.data);
         setPagination({
           ...pagination,
           total: response.meta?.total || response.data.length,
         });
       } else {
-        setServices([]);
+        setCdmProviders([]);
         setPagination({
           ...pagination,
           total: 0,
         });
       }
     } catch (error) {
-      message.error('Failed to fetch services');
-      setServices([]);
+      message.error('Failed to fetch cdmProviders');
+      setCdmProviders([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchCdmProviderTree = async () => {
+    try {
+      const response = await getCdmProviderTree();
+      if (response && response.data) {
+        setTreeData(response.data);
+      }
+    } catch (error) {
+      message.error('Failed to fetch CDM provider tree');
+    }
+  };
+
   useEffect(() => {
-    fetchServices();
-    // eslint-disable-next-line
+    fetchCdmProviders();
+    fetchCdmProviderTree();
   }, []);
 
   // Transform flat services array into tree structure for ServiceTree
@@ -82,8 +93,8 @@ const ServicesPage = () => {
       });
       return tree;
     };
-    setTreeData(buildTree(services));
-  }, [services]);
+    setTreeData(buildTree(cdmProviders));
+  }, [cdmProviders]);
 
   const handleSearch = (values) => {
     setPagination({
@@ -91,12 +102,12 @@ const ServicesPage = () => {
       current: 1,
     });
     setFilter(values);
-    fetchServices(values);
+    fetchCdmProviders(values);
   };
 
   const handleTableChange = (pagination, filters, sorter) => {
     setPagination(pagination);
-    fetchServices({
+    fetchCdmProviders({
       ...filter,
       page: pagination.current,
       limit: pagination.pageSize,
@@ -107,22 +118,22 @@ const ServicesPage = () => {
   };
 
   const handleAdd = () => {
-    setEditingService(null);
+    setEditingCdmProvider(null);
     setShowForm(true);
   };
 
-  const handleEdit = (service) => {
-    setEditingService(service);
+  const handleEdit = (cdmProvider) => {
+    setEditingCdmProvider(cdmProvider);
     setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     try {
-      await deleteService(id);
-      message.success('Service deleted successfully');
-      fetchServices(filter);
+      await deleteCdmProvider(id);
+      message.success('CdmProvider deleted successfully');
+      fetchCdmProviders(filter);
     } catch (error) {
-      message.error('Failed to delete service');
+      message.error('Failed to delete cdmProvider');
     }
   };
 
@@ -133,37 +144,37 @@ const ServicesPage = () => {
       delete payload.parentId;
     }
     try {
-      if (editingService) {
-        await updateService(editingService.id, values);
-        message.success('Service updated successfully');
+      if (editingCdmProvider) {
+        await updateCdmProvider(editingCdmProvider.id, values);
+        message.success('CdmProvider updated successfully');
       } else {
-        await createService(values);
-        message.success('Service created successfully');
+        await createCdmProvider(values);
+        message.success('CdmProvider created successfully');
       }
       setShowForm(false);
-      setEditingService(null);
-      fetchServices(filter);
+      setEditingCdmProvider(null);
+      fetchCdmProviders(filter);
     } catch (error) {
-      message.error('Failed to save service');
+      message.error('Failed to save cdmProvider');
     }
   };
 
   const handleCancelForm = () => {
     setShowForm(false);
-    setEditingService(null);
+    setEditingCdmProvider(null);
   };
 
   const columns = [
     {
-      title: 'Service Name',
+      title: 'CdmProvider Name',
       dataIndex: 'name',
       key: 'name',
       sorter: true,
     },
     {
-      title: 'Type',
-      dataIndex: 'type',
-      key: 'type',
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
       sorter: true,
     },
     {
@@ -172,8 +183,8 @@ const ServicesPage = () => {
       key: 'parent',
       render: (_, record) => {
         if (!record.parentId) return '—';
-        const parentService = services.find(service => service.id === record.parentId);
-        return parentService ? parentService.name : '—';
+        const parentCdmProvider = cdmProviders.find(cdmProvider => cdmProvider.id === record.parentId);
+        return parentCdmProvider ? parentCdmProvider.name : '—';
       },
     },
     {
@@ -189,7 +200,7 @@ const ServicesPage = () => {
             />
           </Tooltip>
           <Popconfirm
-            title="Are you sure you want to delete this service?"
+            title="Are you sure you want to delete this cdmProvider?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
@@ -203,7 +214,7 @@ const ServicesPage = () => {
 
   return (
     <div>
-      <Card title="Service Management">
+      <Card title="CdmProvider Management">
         <Tabs defaultActiveKey="list">
           <Tabs.TabPane tab="List View" key="list">
             <Form
@@ -213,11 +224,11 @@ const ServicesPage = () => {
               style={{ marginBottom: 20 }}
             >
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <Form.Item name="name" label="Service Name">
+                <Form.Item name="name" label="CdmProvider Name">
                   <Input placeholder="Search by name" />
                 </Form.Item>
-                <Form.Item name="type" label="Type">
-                  <Input placeholder="Search by type" />
+                <Form.Item name="description" label="Description">
+                  <Input placeholder="Search by description" />
                 </Form.Item>
                 <Form.Item>
                   <Space>
@@ -233,7 +244,7 @@ const ServicesPage = () => {
                       icon={<PlusOutlined />}
                       onClick={handleAdd}
                     >
-                      Add Service
+                      Add CdmProvider
                     </Button>
                   </Space>
                 </Form.Item>
@@ -241,7 +252,7 @@ const ServicesPage = () => {
             </Form>
             <Table
               columns={columns}
-              dataSource={services}
+              dataSource={cdmProviders}
               rowKey="id"
               loading={loading}
               pagination={pagination}
@@ -256,11 +267,11 @@ const ServicesPage = () => {
                 onClick={handleAdd}
                 style={{ marginBottom: 16 }}
               >
-                Add Services
+                Add CDM Provider
               </Button>
               <div className="bg-white p-6 rounded-lg shadow">
-                <ServiceTree
-                  services={treeData}
+                <CdmProviderTree
+                  cdmProviders={treeData}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -272,20 +283,20 @@ const ServicesPage = () => {
 
       <Modal
         open={showForm}
-        title={editingService ? 'Edit Service' : 'Add New Service'}
+        title={editingCdmProvider ? 'Edit CdmProvider' : 'Add New CdmProvider'}
         onCancel={handleCancelForm}
         footer={null}
         destroyOnHidden
       >
-        <ServiceForm
-          service={editingService}
+        <CdmProviderForm
+          cdmProvider={editingCdmProvider}
           onSubmit={handleSubmitForm}
           onCancel={handleCancelForm}
-          allServices={services}
+          allCdmProviders={cdmProviders}
         />
       </Modal>
     </div>
   );
 };
 
-export default ServicesPage;
+export default CdmProvidersPage;

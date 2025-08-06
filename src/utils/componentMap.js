@@ -12,6 +12,7 @@ import MasterAccountTypePage from '../pages/Parameter/MasterAccountType';
 import MasterAccountCategoryPage from '../pages/Parameter/MasterAccountCategory';
 import MasterDocumentTypePage from '../pages/Parameter/MasterDocumentType';
 import ServicesPage from '../pages/Services/ServicesPage';
+import CdmProvidersPage from '../pages/Master/CdmProvider/CdmProvidersPage';
 // Import more page components as needed
 
 // This maps route paths to component functions
@@ -28,6 +29,7 @@ export const componentMap = {
   '/parameter/account-type': MasterAccountTypePage,
   '/parameter/account-category': MasterAccountCategoryPage,
   '/parameter/document-type': MasterDocumentTypePage,
-  '/parameter/services': ServicesPage,
+  '/master/services': ServicesPage,
+  '/master/cdm-providers': CdmProvidersPage,
   // Add more routes as needed
 };

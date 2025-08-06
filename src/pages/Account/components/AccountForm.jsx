@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Form, Input, Select, Button, Card, Row, Col,
-  Switch, Tabs, message, Space, TreeSelect, Divider, Alert, App
+  Switch, Tabs, message, Space, TreeSelect, Divider, Alert, App, Tag
 } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,7 +17,7 @@ import TypeOfBusinessSelector from './TypeOfBusinessSelector';
 import { getAccountCategories } from '../../../api/accountCategoryApi';
 import { getAccountTypes } from '../../../api/accountTypeApi';
 import { getIndustries } from '../../../api/industryApi';
-import { createAccount, updateAccount, generateAccountNo, getParentAccounts } from '../../../api/accountApi';
+import { createAccount, updateAccount, generateAccountNo, getParentAccounts, getAccountOptions } from '../../../api/accountApi';
 import { createAccountPIC, updateAccountPIC, deleteAccountPIC } from '../../../api/accountPICApi';
 import { createAccountAddress, updateAccountAddress, deleteAccountAddress } from '../../../api/accountAddressApi';
 import { createAccountBank, updateAccountBank, deleteAccountBank } from '../../../api/accountBankApi';
@@ -49,6 +49,33 @@ const cleanPayload = (obj, allowedFields) => {
   return result;
 };
 
+// Helper function untuk check apakah kategori tertentu dipilih
+const isReferralCategory = (categoryIds, categories) => {
+  if (!categoryIds || !Array.isArray(categoryIds)) return false;
+  const referralCategory = categories.find(cat => 
+    cat.name.toLowerCase().includes('referral') || cat.name.toLowerCase().includes('referal')
+  );
+  return referralCategory && categoryIds.includes(referralCategory.id);
+};
+
+const isVendorCategory = (categoryIds, categories) => {
+  if (!categoryIds || !Array.isArray(categoryIds)) return false;
+  const vendorCategory = categories.find(cat => 
+    cat.name.toLowerCase().includes('vendor')
+  );
+  return vendorCategory && categoryIds.includes(vendorCategory.id);
+};
+
+const isLocationPartnerCategory = (categoryIds, categories) => {
+  if (!categoryIds || !Array.isArray(categoryIds)) return false;
+  const locationPartnerCategory = categories.find(cat => 
+    cat.name.toLowerCase().includes('location partner') || 
+    cat.name.toLowerCase().includes('location_partner') ||
+    cat.name.toLowerCase().includes('locationpartner')
+  );
+  return locationPartnerCategory && categoryIds.includes(locationPartnerCategory.id);
+};
+
 const AccountForm = ({
   initialValues = {},
   isEdit = false,
@@ -75,6 +102,19 @@ const AccountForm = ({
   const [initialAccountBanks, setInitialAccountBanks] = useState([]);
   const [initialAccountServices, setInitialAccountServices] = useState([]);
   const [initialAccountDocuments, setInitialAccountDocuments] = useState([]);
+  const [selectedAccountCategories, setSelectedAccountCategories] = useState([]);
+  const [availableAccounts, setAvailableAccounts] = useState([]);
+  const [vendorDetails, setVendorDetails] = useState({
+    vendor_type: '',
+    vendor_classification: '',
+    vendor_rating: '',
+    contract_start_date: null,
+    contract_end_date: null,
+    payment_terms: '',
+    delivery_terms: '',
+    certification: '',
+    tax_id: ''
+  });
   
   const fetchAccountDocuments = async (accountId) => {
     if (!accountId) return;
@@ -112,12 +152,27 @@ const AccountForm = ({
     fetchTreeParentAccounts();
   }, []);
 
+  // Monitor perubahan account categories untuk menampilkan field tambahan
+  useEffect(() => {
+    const subscription = form.getFieldValue('account_category_ids');
+    setSelectedAccountCategories(subscription || []);
+  }, [form.getFieldValue('account_category_ids')]);
+
   useEffect(() => {
     if (!dataFetched) {
       fetchDropdowns();
       setDataFetched(true);
     }
-    if (isEdit && initialValues && initialValues.id) {
+  }, [dataFetched]);
+
+  // Separate useEffect untuk set form values setelah data ter-load
+  useEffect(() => {
+    if (isEdit && initialValues && initialValues.id && dataFetched && availableAccounts.length > 0) {
+      // Debug log untuk melihat struktur data referral_accounts
+      console.log('Initial Values:', initialValues);
+      console.log('Referral Accounts:', initialValues.referral_accounts);
+      console.log('Available Accounts:', availableAccounts);
+      
       // Set form values including parent type of business
       const formValues = {
         ...initialValues,
@@ -130,7 +185,21 @@ const AccountForm = ({
         type_of_business_detail: initialValues.type_of_business_detail,
         parent_type_of_business: initialValues.type_of_business?.parent_id,
         parent_id: initialValues.parent?.id,
+        // Map referral account relationships jika ada
+        referral_account_ids: initialValues.referral_accounts
+          ? initialValues.referral_accounts.map(ref => {
+              console.log('Referral item:', ref);
+              return ref.referral_account?.id || ref.referral_account_id;
+            })
+          : [],
       };
+      
+      console.log('Form Values being set:', formValues);
+      
+      // Set selected account categories untuk conditional rendering
+      if (initialValues.account_categories) {
+        setSelectedAccountCategories(initialValues.account_categories.map(cat => cat.id));
+      }
       
       form.setFieldsValue(formValues);
       
@@ -158,7 +227,7 @@ const AccountForm = ({
       }
     }
     // eslint-disable-next-line
-  }, [dataFetched, initialValues?.id, form, isEdit]);
+  }, [dataFetched, initialValues?.id, form, isEdit, availableAccounts.length]);
 
   const getDeletedItems = (initialArr, currentArr) => {
     const currentIds = currentArr.filter(x => x.id).map(x => x.id);
@@ -170,7 +239,25 @@ const AccountForm = ({
       fetchIndustries(),
       fetchAccountTypes(),
       fetchAccountCategories(),
+      fetchAvailableAccounts(),
     ]);
+  };
+
+  const fetchAvailableAccounts = async () => {
+    try {
+      // Gunakan endpoint getAccountOptions yang sudah dioptimasi untuk select
+      const response = await getAccountOptions();
+      if (response?.data) {
+        // Filter out current account jika sedang edit
+        const accounts = response.data.filter(acc => 
+          !isEdit || acc.id !== initialValues.id
+        );
+        setAvailableAccounts(accounts);
+      }
+    } catch (error) {
+      message.error('Failed to fetch available accounts');
+      setAvailableAccounts([]);
+    }
   };
 
   const fetchIndustries = async () => {
@@ -543,6 +630,36 @@ const AccountForm = ({
         is_active: formValues.is_active === undefined ? true : formValues.is_active
       };
 
+      // Tambahkan data referral jika kategori referral dipilih
+      if (isReferralCategory(formValues.account_category_ids, accountCategories)) {
+        payload.referral_account_ids = formValues.referral_account_ids;
+        payload.referral_commission_rate = formValues.referral_commission_rate ? parseFloat(formValues.referral_commission_rate) : null;
+        payload.referral_commission_type = formValues.referral_commission_type;
+        payload.referral_commission_notes = formValues.referral_commission_notes;
+      }
+
+      // Tambahkan data location partner jika kategori location partner dipilih
+      if (isLocationPartnerCategory(formValues.account_category_ids, accountCategories)) {
+        payload.location_partner_commission_rate = formValues.location_partner_commission_rate ? parseFloat(formValues.location_partner_commission_rate) : null;
+        payload.location_partner_commission_type = formValues.location_partner_commission_type;
+        payload.location_partner_territory = formValues.location_partner_territory;
+        payload.location_partner_exclusive = formValues.location_partner_exclusive;
+        payload.location_partner_commission_notes = formValues.location_partner_commission_notes;
+      }
+
+      // Tambahkan data vendor jika kategori vendor dipilih
+      if (isVendorCategory(formValues.account_category_ids, accountCategories)) {
+        payload.vendor_type = formValues.vendor_type;
+        payload.vendor_classification = formValues.vendor_classification;
+        payload.vendor_rating = formValues.vendor_rating;
+        payload.tax_id = formValues.tax_id;
+        payload.contract_start_date = formValues.contract_start_date;
+        payload.contract_end_date = formValues.contract_end_date;
+        payload.payment_terms = formValues.payment_terms;
+        payload.delivery_terms = formValues.delivery_terms;
+        payload.certification = formValues.certification;
+      }
+
       // Remove undefined/null values except for parent_id and type_of_business_detail which can be explicitly null
       Object.keys(payload).forEach(key => {
         if (!['parent_id', 'type_of_business_detail'].includes(key) && 
@@ -788,10 +905,66 @@ const AccountForm = ({
                     value: cat.id,
                     label: cat.name
                   }))}
+                  onChange={(value) => {
+                    setSelectedAccountCategories(value || []);
+                    form.setFieldsValue({ account_category_ids: value });
+                  }}
                 />
               </Form.Item>
             </Col>
           </Row>
+          
+          {/* Referral Information - Show when Referral category is selected */}
+          {isReferralCategory(selectedAccountCategories, accountCategories) && (
+            <>
+              <Divider orientation="left">Referral Information</Divider>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="referral_account_ids"
+                    label="Referral Accounts"
+                    rules={[{ required: true, message: 'Please select at least one referral account' }]}
+                    extra="Select accounts that referred this customer to you"
+                  >
+                    <Select
+                      mode="multiple"
+                      placeholder="Select referral accounts"
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      maxTagCount="responsive"
+                      tagRender={({ label, value, closable, onClose }) => {
+                        console.log('Tag render - value:', value, 'label:', label);
+                        console.log('Available accounts:', availableAccounts);
+                        const account = availableAccounts.find(acc => acc.value === value);
+                        console.log('Found account for value:', value, account);
+                        const displayText = account ? account.label : label;
+                        return (
+                          <Tag
+                            color="blue"
+                            closable={closable}
+                            onClose={onClose}
+                            style={{ marginRight: 3 }}
+                          >
+                            {displayText}
+                          </Tag>
+                        );
+                      }}
+                      options={availableAccounts.map(acc => ({
+                        value: acc.value,
+                        label: acc.label,
+                        title: acc.label // For tooltip
+                      }))}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+          
           <Form.Item
             name="is_active"
             label="Status"
@@ -863,6 +1036,264 @@ const AccountForm = ({
       )
     }
   ];
+
+  // Tambahkan tab Commission Rate jika kategori Referral atau Location Partner dipilih
+  if (isReferralCategory(selectedAccountCategories, accountCategories) || 
+      isLocationPartnerCategory(selectedAccountCategories, accountCategories)) {
+    tabItems.push({
+      key: 'commissionRate',
+      label: 'Commission Rate',
+      children: (
+        <Card title="Commission Rate Management">
+          {isReferralCategory(selectedAccountCategories, accountCategories) && (
+            <>
+              <Divider orientation="left">Referral Commission</Divider>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="referral_commission_rate"
+                    label="Referral Commission Rate (%)"
+                    rules={[{ required: true, message: 'Please enter referral commission rate' }]}
+                  >
+                    <Input 
+                      type="number" 
+                      placeholder="Enter referral commission rate" 
+                      min="0" 
+                      max="100" 
+                      step="0.01"
+                      addonAfter="%" 
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="referral_commission_type"
+                    label="Commission Type"
+                  >
+                    <Select placeholder="Select commission type">
+                      <Select.Option value="percentage">Percentage</Select.Option>
+                      <Select.Option value="fixed_amount">Fixed Amount</Select.Option>
+                      <Select.Option value="tiered">Tiered</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="referral_commission_notes"
+                    label="Commission Notes"
+                  >
+                    <Input.TextArea 
+                      rows={3} 
+                      placeholder="Enter commission calculation notes or special terms" 
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {isLocationPartnerCategory(selectedAccountCategories, accountCategories) && (
+            <>
+              <Divider orientation="left">Location Partner Commission</Divider>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="location_partner_commission_rate"
+                    label="Location Partner Commission Rate (%)"
+                    rules={[{ required: true, message: 'Please enter location partner commission rate' }]}
+                  >
+                    <Input 
+                      type="number" 
+                      placeholder="Enter location partner commission rate" 
+                      min="0" 
+                      max="100" 
+                      step="0.01"
+                      addonAfter="%" 
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="location_partner_commission_type"
+                    label="Commission Type"
+                  >
+                    <Select placeholder="Select commission type">
+                      <Select.Option value="percentage">Percentage</Select.Option>
+                      <Select.Option value="fixed_amount">Fixed Amount</Select.Option>
+                      <Select.Option value="revenue_share">Revenue Share</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="location_partner_territory"
+                    label="Territory/Area"
+                  >
+                    <Input placeholder="Enter territory or area coverage" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="location_partner_exclusive"
+                    label="Exclusive Partnership"
+                    valuePropName="checked"
+                  >
+                    <Switch checkedChildren="Exclusive" unCheckedChildren="Non-Exclusive" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item
+                    name="location_partner_commission_notes"
+                    label="Location Partner Commission Notes"
+                  >
+                    <Input.TextArea 
+                      rows={3} 
+                      placeholder="Enter location partner commission terms and conditions" 
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+        </Card>
+      )
+    });
+  }
+
+  // Tambahkan tab Vendor Details jika kategori Vendor dipilih
+  if (isVendorCategory(selectedAccountCategories, accountCategories)) {
+    tabItems.push({
+      key: 'vendorDetails',
+      label: 'Vendor Details',
+      children: (
+        <Card title="Vendor Information">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="vendor_type"
+                label="Vendor Type"
+                rules={[{ required: true, message: 'Please select vendor type' }]}
+              >
+                <Select placeholder="Select vendor type">
+                  <Select.Option value="supplier">Supplier</Select.Option>
+                  <Select.Option value="contractor">Contractor</Select.Option>
+                  <Select.Option value="consultant">Consultant</Select.Option>
+                  <Select.Option value="service_provider">Service Provider</Select.Option>
+                  <Select.Option value="distributor">Distributor</Select.Option>
+                  <Select.Option value="other">Other</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="vendor_classification"
+                label="Vendor Classification"
+              >
+                <Select placeholder="Select vendor classification">
+                  <Select.Option value="strategic">Strategic</Select.Option>
+                  <Select.Option value="preferred">Preferred</Select.Option>
+                  <Select.Option value="standard">Standard</Select.Option>
+                  <Select.Option value="conditional">Conditional</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="vendor_rating"
+                label="Vendor Rating"
+              >
+                <Select placeholder="Select vendor rating">
+                  <Select.Option value="A">A - Excellent</Select.Option>
+                  <Select.Option value="B">B - Good</Select.Option>
+                  <Select.Option value="C">C - Satisfactory</Select.Option>
+                  <Select.Option value="D">D - Needs Improvement</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="tax_id"
+                label="Tax ID / NPWP"
+              >
+                <Input placeholder="Enter tax identification number" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="contract_start_date"
+                label="Contract Start Date"
+              >
+                <Input type="date" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="contract_end_date"
+                label="Contract End Date"
+              >
+                <Input type="date" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="payment_terms"
+                label="Payment Terms"
+              >
+                <Select placeholder="Select payment terms">
+                  <Select.Option value="net_30">Net 30</Select.Option>
+                  <Select.Option value="net_15">Net 15</Select.Option>
+                  <Select.Option value="net_7">Net 7</Select.Option>
+                  <Select.Option value="cod">COD</Select.Option>
+                  <Select.Option value="advance">Advance Payment</Select.Option>
+                  <Select.Option value="custom">Custom</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="delivery_terms"
+                label="Delivery Terms"
+              >
+                <Select placeholder="Select delivery terms">
+                  <Select.Option value="fob">FOB</Select.Option>
+                  <Select.Option value="cif">CIF</Select.Option>
+                  <Select.Option value="ddu">DDU</Select.Option>
+                  <Select.Option value="ddp">DDP</Select.Option>
+                  <Select.Option value="ex_works">Ex Works</Select.Option>
+                  <Select.Option value="custom">Custom</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item
+                name="certification"
+                label="Certifications"
+              >
+                <Input.TextArea 
+                  rows={3} 
+                  placeholder="Enter vendor certifications (ISO, etc.)" 
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      )
+    });
+  }
 
   return (
     <Card title={isEdit ? 'Edit Account' : 'Add New Account'}>

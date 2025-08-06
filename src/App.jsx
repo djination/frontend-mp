@@ -29,6 +29,7 @@ import MasterAccountType from "./pages/Parameter/MasterAccountType";
 import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
 import MasterDocumentType from "./pages/Parameter/MasterDocumentType";
 import RevenueRule from "./pages/RevenueRule/RevenueRule";
+import CdmProvidersPage from './pages/Master/CdmProvider/CdmProvidersPage';
 
 // Component map for dynamic routing
 import { componentMap } from './utils/componentMap';
@@ -89,11 +90,12 @@ function App() {
       '/parameter/position': MasterPosition,
       '/parameter/account-type': MasterAccountType,
       '/parameter/account-category': MasterAccountCategory,
-      '/parameter/services': ServicesPage,
       '/parameter/document-type': MasterDocumentType,
       '/parameter/revenue-rules': RevenueRule,
       '/users': UserManagementPage,
       '/profile': ProfilePage,
+      '/master/services': ServicesPage,
+      '/master/cdm-providers': CdmProvidersPage,
     };
     
     if (staticRoutes[path]) {
@@ -204,6 +206,12 @@ function App() {
             <Route path="/account" element={<AccountList />} />
             <Route path="/account/add" element={<AddAccount />} />
             <Route path="/account/edit/:id" element={<EditAccount />} />
+
+            {/* Master routes */}
+            <Route path="/master">
+              <Route path="services" element={<ServicesPage />} />
+              <Route path="cdm-providers" element={<CdmProvidersPage />} />
+            </Route>
             
             {/* Parameter routes */}
             <Route path="/parameter">
@@ -214,7 +222,6 @@ function App() {
               <Route path="position" element={<MasterPosition />} />
               <Route path="account-type" element={<MasterAccountType />} />
               <Route path="account-category" element={<MasterAccountCategory />} />
-              <Route path="services" element={<ServicesPage />} />
               <Route path="document-type" element={<MasterDocumentType />} />
               <Route path="revenue-rules" element={<RevenueRule />} />
             </Route>

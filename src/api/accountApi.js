@@ -146,3 +146,85 @@ export const getAccountLookupData = async () => {
     throw error;
   }
 };
+
+/**
+ * Get accounts formatted for select options
+ * @returns {Promise<Array>} Account options for select
+ */
+export const getAccountOptions = async () => {
+  try {
+    const response = await axiosInstance.get('/account/options');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching account options:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get account referrals
+ * @param {string} accountId - Account ID
+ * @returns {Promise<Array>} Account referrals
+ */
+export const getAccountReferrals = async (accountId) => {
+  try {
+    const response = await axiosInstance.get(`/account/${accountId}/referrals`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching referrals for account ${accountId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Create account referrals
+ * @param {string} accountId - Account ID
+ * @param {Array} referralAccountIds - Array of referral account IDs
+ * @returns {Promise<Object>} Created referrals
+ */
+export const createAccountReferrals = async (accountId, referralAccountIds) => {
+  try {
+    const response = await axiosInstance.post(`/account/${accountId}/referrals`, {
+      referral_account_ids: referralAccountIds
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error creating referrals for account ${accountId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Update account referral
+ * @param {string} accountId - Account ID
+ * @param {string} referralId - Referral ID
+ * @param {string} referralAccountId - New referral account ID
+ * @returns {Promise<Object>} Updated referral
+ */
+export const updateAccountReferral = async (accountId, referralId, referralAccountId) => {
+  try {
+    const response = await axiosInstance.put(`/account/${accountId}/referrals/${referralId}`, {
+      referral_account_id: referralAccountId
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating referral ${referralId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Delete account referral
+ * @param {string} accountId - Account ID
+ * @param {string} referralId - Referral ID
+ * @returns {Promise<Object>} Success response
+ */
+export const deleteAccountReferral = async (accountId, referralId) => {
+  try {
+    const response = await axiosInstance.delete(`/account/${accountId}/referrals/${referralId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting referral ${referralId}:`, error);
+    throw error;
+  }
+};
