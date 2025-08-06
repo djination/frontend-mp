@@ -25,6 +25,56 @@ const TypeOfBusinessSelector = ({
   const [childLoading, setChildLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('=== TypeOfBusinessSelector State ===');
+    console.log('selectedParent:', selectedParent);
+    console.log('childTypes count:', childTypes?.length);
+    console.log('childTypes:', childTypes);
+    console.log('selectedChild:', selectedChild);
+    console.log('childLoading:', childLoading);
+  }, [selectedParent, childTypes, selectedChild, childLoading]);
+
+  // Effect to ensure selected child is properly displayed when childTypes are loaded
+  useEffect(() => {
+    if (selectedChild && childTypes.length > 0) {
+      const selectedChildObj = childTypes.find(child => child.id === selectedChild);
+      console.log('Selected child object for display update:', selectedChildObj);
+      
+      if (selectedChildObj) {
+        // Force form field update to ensure proper display
+        form.setFieldValue('type_of_business_id', selectedChild);
+        console.log('Forced form update with selectedChild:', selectedChild);
+        console.log('Should display name:', selectedChildObj.name);
+        
+        // Additional force update to trigger re-render
+        setTimeout(() => {
+          form.setFieldsValue({ type_of_business_id: selectedChild });
+          console.log('Secondary form update completed');
+        }, 200);
+      }
+    }
+  }, [selectedChild, childTypes, form]);
+
+  // Additional effect to fix display issue
+  useEffect(() => {
+    const currentFormValue = form.getFieldValue('type_of_business_id');
+    console.log('Current form value for type_of_business_id:', currentFormValue);
+    console.log('Current selectedChild:', selectedChild);
+    
+    // If form value is UUID and we have child types loaded, fix the display
+    if (currentFormValue && childTypes.length > 0) {
+      const childObj = childTypes.find(child => child.id === currentFormValue);
+      if (childObj && childObj.name) {
+        console.log('Found child object for current form value:', childObj);
+        // Force a re-render with proper value
+        setTimeout(() => {
+          form.setFieldValue('type_of_business_id', currentFormValue);
+        }, 100);
+      }
+    }
+  }, [childTypes, form]);
+
   // Load parent types on component mount
   useEffect(() => {
     fetchParentTypes();
@@ -46,15 +96,28 @@ const TypeOfBusinessSelector = ({
         try {
           // If we have parent_type_of_business from form, use it directly
           if (parentTypeId) {
+            console.log('Setting parent:', parentTypeId);
             setSelectedParent(parentTypeId);
-            await fetchChildTypes(parentTypeId);
-            setSelectedChild(typeOfBusinessId);
+            
+            // Fetch child types first
+            const childResponse = await getChildBusinessTypes(parentTypeId);
+            const childTypesData = childResponse?.data || [];
+            console.log('Fetched child types:', childTypesData);
+            setChildTypes(childTypesData);
+            
+            // Then set selected child after child types are available
+            setTimeout(() => {
+              console.log('Setting selectedChild after childTypes loaded:', typeOfBusinessId);
+              setSelectedChild(typeOfBusinessId);
+            }, 200);
             
             // Get child data
             const response = await getBusinessTypeById(typeOfBusinessId);
             const typeOfBusiness = response?.data;
             if (typeOfBusiness) {
               setSelectedChildData(typeOfBusiness);
+              // Set display value menggunakan nama, bukan ID
+              console.log('Setting child data:', typeOfBusiness);
             }
           } else {
             // Fallback: fetch type of business to get parent
@@ -66,10 +129,17 @@ const TypeOfBusinessSelector = ({
                 setSelectedParent(typeOfBusiness.parent_id);
                 await fetchChildTypes(typeOfBusiness.parent_id);
                 
+                // Wait for childTypes to be set, then set selectedChild
+                setTimeout(() => {
+                  setSelectedChild(typeOfBusiness.id);
+                }, 100);
+                
                 // Update form with parent type
                 form.setFieldValue('parent_type_of_business', typeOfBusiness.parent_id);
+              } else {
+                // Direct child without parent structure
+                setSelectedChild(typeOfBusiness.id);
               }
-              setSelectedChild(typeOfBusiness.id);
               setSelectedChildData(typeOfBusiness);
             }
           }
@@ -112,11 +182,25 @@ const TypeOfBusinessSelector = ({
   };
 
   const fetchChildTypes = async (parentId) => {
+    console.log('=== Fetching child types ===');
+    console.log('Parent ID:', parentId);
+    
     try {
       setChildLoading(true);
       const response = await getChildBusinessTypes(parentId);
-      setChildTypes(response?.data || []);
+      console.log('Child types response:', response);
+      console.log('Child types data:', response?.data);
+      
+      const childTypesData = response?.data || [];
+      setChildTypes(childTypesData);
+      
+      // Force re-render after setting data
+      setTimeout(() => {
+        console.log('Child types set, forcing re-render');
+      }, 50);
+      
     } catch (error) {
+      console.error('Error fetching child business types:', error);
       message.error('Failed to fetch child business types');
       setChildTypes([]);
     } finally {
@@ -125,6 +209,9 @@ const TypeOfBusinessSelector = ({
   };
 
   const handleParentChange = (parentId) => {
+    console.log('=== Parent changed ===');
+    console.log('Parent ID:', parentId);
+    
     setSelectedParent(parentId);
     setSelectedChild(null);
     setSelectedChildData(null);
@@ -134,6 +221,14 @@ const TypeOfBusinessSelector = ({
       type_of_business_id: null,
       type_of_business_detail: null
     });
+
+    // Fetch child types
+    if (parentId) {
+      console.log('Fetching child types for parent:', parentId);
+      fetchChildTypes(parentId);
+    } else {
+      setChildTypes([]);
+    }
 
     // Notify parent component
     if (onChange) {
@@ -192,6 +287,17 @@ const TypeOfBusinessSelector = ({
 
   const isOtherSelected = selectedChildData?.is_other || false;
 
+  // Get display value for selected child
+  const getSelectedChildDisplay = () => {
+    if (selectedChild && childTypes.length > 0) {
+      const childObj = childTypes.find(child => child.id === selectedChild);
+      if (childObj) {
+        return childObj.name;
+      }
+    }
+    return selectedChild; // Fallback to ID if name not found
+  };
+
   return (
     <Row gutter={16}>
       <Col span={12}>
@@ -227,21 +333,48 @@ const TypeOfBusinessSelector = ({
           ]}
         >
           <Select
+            key={`child-select-${selectedParent}-${childTypes.length}-${selectedChild}-${Date.now()}`}
             placeholder={placeholder.child}
             allowClear
             loading={childLoading}
             disabled={disabled || !selectedParent}
-            value={selectedChild}
-            onChange={handleChildChange}
+            value={
+              selectedChild && childTypes.length > 0 
+                ? {
+                    value: selectedChild,
+                    label: childTypes.find(child => child.id === selectedChild)?.name || selectedChild
+                  }
+                : undefined
+            }
+            onChange={(value) => {
+              console.log('Select onChange called with:', value);
+              const childId = value ? (typeof value === 'object' ? value.value : value) : null;
+              handleChildChange(childId);
+            }}
+            labelInValue
             showSearch
             optionFilterProp="label"
+            filterOption={(input, option) => {
+              return (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
+            }}
+            notFoundContent={childLoading ? 'Loading...' : 'No data'}
+            onDropdownVisibleChange={(open) => {
+              if (!open && selectedChild && childTypes.length > 0) {
+                // Force refresh display when dropdown closes
+                const childObj = childTypes.find(child => child.id === selectedChild);
+                console.log('Dropdown closed, ensuring display for:', childObj?.name);
+              }
+            }}
           >
-            {childTypes.map(child => (
-              <Option key={child.id} value={child.id} label={child.name}>
-                {child.name}
-                {child.is_other && <span style={{ color: '#999' }}> (Custom)</span>}
-              </Option>
-            ))}
+            {childTypes.map(child => {
+              console.log('Rendering child option:', child);
+              return (
+                <Option key={child.id} value={child.id} label={child.name}>
+                  {child.name}
+                  {child.is_other && <span style={{ color: '#999' }}> (Custom)</span>}
+                </Option>
+              );
+            })}
           </Select>
         </Form.Item>
       </Col>
