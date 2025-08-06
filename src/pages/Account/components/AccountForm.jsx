@@ -171,6 +171,8 @@ const AccountForm = ({
       console.log('Initial Values:', initialValues);
       console.log('Referral Accounts:', initialValues.referral_accounts);
       console.log('Available Accounts:', availableAccounts);
+
+      console.log('Specific Type of Business:', initialValues.type_of_business ? initialValues.type_of_business : 'Not defined');
       
       // Set form values including parent type of business
       const formValues = {
@@ -827,7 +829,7 @@ const AccountForm = ({
                 label="Account Number"
                 rules={[{ required: false, message: 'Please enter account number' }]}
               >
-                <Input placeholder="Enter account number" disabled />
+                <Input placeholder="Enter account number" disabled autoComplete="off" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -836,7 +838,7 @@ const AccountForm = ({
                 label="Account Name"
                 rules={[{ required: true, message: 'Please enter account name' }]}
               >
-                <Input placeholder="Enter account name" />
+                <Input placeholder="Enter account name" autoComplete="organization" />
               </Form.Item>
             </Col>
           </Row>
@@ -846,7 +848,7 @@ const AccountForm = ({
                 name="brand_name"
                 label="Brand Name"
               >
-                <Input placeholder="Enter brand name" />
+                <Input placeholder="Enter brand name" autoComplete="organization" />
               </Form.Item>
             </Col>
             <Col span={12}>

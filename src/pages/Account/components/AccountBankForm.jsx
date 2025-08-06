@@ -283,7 +283,7 @@ const AccountBankForm = ({
             label="Account Number"
             rules={[{ required: true, message: 'Please enter account number' }]}
           >
-            <Input placeholder="Enter account number" />
+            <Input placeholder="Enter account number" autoComplete="off" />
           </Form.Item>
 
           <Form.Item
@@ -291,7 +291,7 @@ const AccountBankForm = ({
             label="Account Holder Name"
             rules={[{ required: true, message: 'Please enter account holder name' }]}
           >
-            <Input placeholder="Enter account holder name" />
+            <Input placeholder="Enter account holder name" autoComplete="name" />
           </Form.Item>
 
           <Form.Item

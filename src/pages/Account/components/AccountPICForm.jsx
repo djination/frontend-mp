@@ -255,7 +255,7 @@ const AccountPICForm = ({
             label="Name"
             rules={[{ required: true, message: 'Please enter name' }]}
           >
-            <Input placeholder="Enter name" />
+            <Input placeholder="Enter name" autoComplete="name" />
           </Form.Item>
           
           <Form.Item
@@ -277,7 +277,7 @@ const AccountPICForm = ({
             label="Phone"
             rules={[{ required: true, message: 'Please enter phone number' }]}
           >
-            <Input placeholder="Enter phone number" />
+            <Input placeholder="Enter phone number" autoComplete="tel" />
           </Form.Item>
           
           <Form.Item
@@ -288,7 +288,7 @@ const AccountPICForm = ({
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
-            <Input placeholder="Enter email" />
+            <Input placeholder="Enter email" autoComplete="email" />
           </Form.Item>
         </Form>
       </Modal>

@@ -24,149 +24,206 @@ const TypeOfBusinessSelector = ({
   const [loading, setLoading] = useState(false);
   const [childLoading, setChildLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [displayName, setDisplayName] = useState(''); // Add explicit display name state
+  const [formValueOverride, setFormValueOverride] = useState(null); // NUCLEAR OPTION - override form values
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('=== TypeOfBusinessSelector State ===');
-    console.log('selectedParent:', selectedParent);
-    console.log('childTypes count:', childTypes?.length);
-    console.log('childTypes:', childTypes);
-    console.log('selectedChild:', selectedChild);
-    console.log('childLoading:', childLoading);
-  }, [selectedParent, childTypes, selectedChild, childLoading]);
-
-  // Effect to ensure selected child is properly displayed when childTypes are loaded
-  useEffect(() => {
-    if (selectedChild && childTypes.length > 0) {
-      const selectedChildObj = childTypes.find(child => child.id === selectedChild);
-      console.log('Selected child object for display update:', selectedChildObj);
-      
-      if (selectedChildObj) {
-        // Force form field update to ensure proper display
-        form.setFieldValue('type_of_business_id', selectedChild);
-        console.log('Forced form update with selectedChild:', selectedChild);
-        console.log('Should display name:', selectedChildObj.name);
-        
-        // Additional force update to trigger re-render
-        setTimeout(() => {
-          form.setFieldsValue({ type_of_business_id: selectedChild });
-          console.log('Secondary form update completed');
-        }, 200);
-      }
-    }
-  }, [selectedChild, childTypes, form]);
-
-  // Additional effect to fix display issue
-  useEffect(() => {
-    const currentFormValue = form.getFieldValue('type_of_business_id');
-    console.log('Current form value for type_of_business_id:', currentFormValue);
-    console.log('Current selectedChild:', selectedChild);
-    
-    // If form value is UUID and we have child types loaded, fix the display
-    if (currentFormValue && childTypes.length > 0) {
-      const childObj = childTypes.find(child => child.id === currentFormValue);
-      if (childObj && childObj.name) {
-        console.log('Found child object for current form value:', childObj);
-        // Force a re-render with proper value
-        setTimeout(() => {
-          form.setFieldValue('type_of_business_id', currentFormValue);
-        }, 100);
-      }
-    }
-  }, [childTypes, form]);
+  console.log('🚀 COMPONENT RENDER - TypeOfBusinessSelector state:', {
+    selectedChild,
+    displayName,
+    formValueOverride,
+    initialized,
+    parentTypesLength: parentTypes.length,
+    childTypesLength: childTypes.length
+  });
 
   // Load parent types on component mount
   useEffect(() => {
+    console.log('🚀 MOUNT EFFECT - Fetching parent types');
     fetchParentTypes();
   }, []);
 
-  // Initialize values when editing
+  // SUPER AGGRESSIVE INITIALIZATION - ALWAYS RUNS
   useEffect(() => {
-    const initializeValues = async () => {
-      const typeOfBusinessId = form.getFieldValue('type_of_business_id');
-      const parentTypeId = form.getFieldValue('parent_type_of_business');
+    const formValue = form.getFieldValue('type_of_business_id');
+    console.log('🚀 SUPER AGGRESSIVE INIT - Checking:', {
+      formValue,
+      hasFormValueOverride: !!formValueOverride,
+      parentTypesLength: parentTypes.length,
+      initialized
+    });
+    
+    if (formValue && !formValueOverride) {
+      console.log('🚀 SUPER AGGRESSIVE INIT - TRIGGERING IMMEDIATE FIX for:', formValue);
       
-      console.log('TypeOfBusinessSelector - initializing with:', {
-        typeOfBusinessId,
-        parentTypeId,
-        initialized
+      // Immediately set a basic override to prevent UUID display
+      setFormValueOverride({
+        value: formValue,
+        label: 'Loading...'
       });
       
-      if (!initialized && typeOfBusinessId) {
+      // Fetch the actual data
+      const initAsync = async () => {
         try {
-          // If we have parent_type_of_business from form, use it directly
-          if (parentTypeId) {
-            console.log('Setting parent:', parentTypeId);
-            setSelectedParent(parentTypeId);
-            
-            // Fetch child types first
-            const childResponse = await getChildBusinessTypes(parentTypeId);
-            const childTypesData = childResponse?.data || [];
-            console.log('Fetched child types:', childTypesData);
-            setChildTypes(childTypesData);
-            
-            // Then set selected child after child types are available
-            setTimeout(() => {
-              console.log('Setting selectedChild after childTypes loaded:', typeOfBusinessId);
-              setSelectedChild(typeOfBusinessId);
-            }, 200);
-            
-            // Get child data
-            const response = await getBusinessTypeById(typeOfBusinessId);
+          console.log('🚀 SUPER AGGRESSIVE INIT - Fetching data for:', formValue);
+          const response = await getBusinessTypeById(formValue);
+          const typeData = response?.data;
+          console.log('🚀 SUPER AGGRESSIVE INIT - Got data:', typeData);
+          
+          if (typeData) {
+            setDisplayName(typeData.name);
+            setFormValueOverride({
+              value: formValue,
+              label: typeData.name
+            });
+            console.log('🚀 SUPER AGGRESSIVE INIT - SET FINAL OVERRIDE:', typeData.name);
+          }
+        } catch (error) {
+          console.error('🚀 SUPER AGGRESSIVE INIT - Error:', error);
+        }
+      };
+      initAsync();
+    }
+  }); // NO DEPENDENCY ARRAY - RUNS ON EVERY RENDER!
+
+  // BACKUP INITIALIZATION - More complete setup
+  useEffect(() => {
+    const currentTypeOfBusinessId = form.getFieldValue('type_of_business_id');
+    const currentParentTypeId = form.getFieldValue('parent_type_of_business');
+    
+    console.log('🚀 BACKUP INIT - Checking conditions:', {
+      currentTypeOfBusinessId,
+      currentParentTypeId,
+      parentTypesLength: parentTypes.length,
+      initialized,
+      hasFormValueOverride: !!formValueOverride
+    });
+    
+    // Run if we have parent types, a business type ID, and haven't initialized yet
+    if (parentTypes.length > 0 && currentTypeOfBusinessId && !initialized) {
+      console.log('🚀 BACKUP INIT - CONDITIONS MET! Starting full initialization...');
+      
+      const initializeValues = async () => {
+        try {
+          let targetParentId = currentParentTypeId;
+          
+          // Get parent ID if not available
+          if (!targetParentId) {
+            console.log('🚀 BACKUP INIT - Getting parent ID for:', currentTypeOfBusinessId);
+            const response = await getBusinessTypeById(currentTypeOfBusinessId);
             const typeOfBusiness = response?.data;
-            if (typeOfBusiness) {
-              setSelectedChildData(typeOfBusiness);
-              // Set display value menggunakan nama, bukan ID
-              console.log('Setting child data:', typeOfBusiness);
-            }
-          } else {
-            // Fallback: fetch type of business to get parent
-            const response = await getBusinessTypeById(typeOfBusinessId);
-            const typeOfBusiness = response?.data;
-            
-            if (typeOfBusiness) {
-              if (typeOfBusiness.parent_id) {
-                setSelectedParent(typeOfBusiness.parent_id);
-                await fetchChildTypes(typeOfBusiness.parent_id);
-                
-                // Wait for childTypes to be set, then set selectedChild
-                setTimeout(() => {
-                  setSelectedChild(typeOfBusiness.id);
-                }, 100);
-                
-                // Update form with parent type
-                form.setFieldValue('parent_type_of_business', typeOfBusiness.parent_id);
-              } else {
-                // Direct child without parent structure
-                setSelectedChild(typeOfBusiness.id);
-              }
-              setSelectedChildData(typeOfBusiness);
+            if (typeOfBusiness?.parent_id) {
+              targetParentId = typeOfBusiness.parent_id;
+              form.setFieldValue('parent_type_of_business', targetParentId);
+              console.log('🚀 BACKUP INIT - Set parent ID:', targetParentId);
             }
           }
-          setInitialized(true);
+          
+          if (targetParentId) {
+            console.log('🚀 BACKUP INIT - Setting parent and fetching children:', targetParentId);
+            setSelectedParent(targetParentId);
+            
+            // Fetch child types
+            setChildLoading(true);
+            const childResponse = await getChildBusinessTypes(targetParentId);
+            const childTypesData = childResponse?.data || [];
+            console.log('🚀 BACKUP INIT - Got child types:', childTypesData.length);
+            setChildTypes(childTypesData);
+            setChildLoading(false);
+            
+            // Find and set child
+            const childExists = childTypesData.find(child => child.id === currentTypeOfBusinessId);
+            console.log('🚀 BACKUP INIT - Child found:', childExists);
+            
+            if (childExists) {
+              setSelectedChild(currentTypeOfBusinessId);
+              setSelectedChildData(childExists);
+              setDisplayName(childExists.name);
+              
+              // FORCE OVERRIDE
+              setFormValueOverride({
+                value: currentTypeOfBusinessId,
+                label: childExists.name
+              });
+              
+              console.log('🚀 BACKUP INIT - COMPLETE SUCCESS! Name:', childExists.name);
+            }
+          }
+          
         } catch (error) {
-          console.error('Error initializing type of business:', error);
+          console.error('🚀 BACKUP INIT - Error:', error);
         }
-      }
-    };
-    
-    if (parentTypes.length > 0) {
+        
+        setInitialized(true);
+      };
+      
       initializeValues();
     }
-  }, [parentTypes, form, initialized]);
+  }, [parentTypes, initialized]); // Run when parent types load or initialization state changes
 
-  // Load child types when parent changes
+  // Simple child types loading when parent changes
   useEffect(() => {
-    if (selectedParent && initialized) {
+    if (selectedParent) {
       fetchChildTypes(selectedParent);
-    } else if (selectedParent && !initialized) {
-      // This will be handled by the initialization effect
     } else {
       setChildTypes([]);
       setSelectedChild(null);
       setSelectedChildData(null);
     }
-  }, [selectedParent, initialized]);
+  }, [selectedParent]);
+
+  // NUCLEAR UUID MONITORING - Every 25ms!
+  useEffect(() => {
+    if (selectedChild || form.getFieldValue('type_of_business_id')) {
+      const checkValue = selectedChild || form.getFieldValue('type_of_business_id');
+      console.log('🚀 NUCLEAR MONITORING - Starting for:', checkValue);
+      
+      let checkCount = 0;
+      const intervalId = setInterval(() => {
+        const selectElement = document.querySelector(`[id*="type_of_business_id"]`);
+        const displayText = selectElement?.querySelector('.ant-select-selection-item')?.textContent;
+        
+        checkCount++;
+        console.log(`🚀 NUCLEAR MONITORING - Check #${checkCount}:`, displayText);
+        
+        if (displayText && displayText.includes('-') && displayText.length > 20) {
+          console.log('🚀🔥 NUCLEAR MONITORING - UUID DETECTED! ELIMINATING:', displayText);
+          
+          // Find correct child data
+          const correctChild = childTypes.find(c => c.id === checkValue);
+          if (correctChild) {
+            console.log('🚀🔥 NUCLEAR MONITORING - Fixing with:', correctChild.name);
+            setFormValueOverride({
+              value: checkValue,
+              label: correctChild.name
+            });
+            setDisplayName(correctChild.name);
+          } else {
+            // If childTypes not loaded, fetch the data directly
+            console.log('🚀🔥 NUCLEAR MONITORING - Child not in types, fetching directly');
+            getBusinessTypeById(checkValue).then(response => {
+              const typeData = response?.data;
+              if (typeData) {
+                console.log('🚀🔥 NUCLEAR MONITORING - Direct fetch success:', typeData.name);
+                setFormValueOverride({
+                  value: checkValue,
+                  label: typeData.name
+                });
+                setDisplayName(typeData.name);
+              }
+            }).catch(console.error);
+          }
+        }
+      }, 25); // Check every 25ms - NUCLEAR SPEED
+      
+      // Clear after 5 seconds
+      setTimeout(() => {
+        console.log('🚀 NUCLEAR MONITORING - Stopping after 5 seconds');
+        clearInterval(intervalId);
+      }, 5000);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [selectedChild, childTypes, form.getFieldValue('type_of_business_id')]);
 
   const fetchParentTypes = async () => {
     try {
@@ -182,25 +239,11 @@ const TypeOfBusinessSelector = ({
   };
 
   const fetchChildTypes = async (parentId) => {
-    console.log('=== Fetching child types ===');
-    console.log('Parent ID:', parentId);
-    
     try {
       setChildLoading(true);
       const response = await getChildBusinessTypes(parentId);
-      console.log('Child types response:', response);
-      console.log('Child types data:', response?.data);
-      
-      const childTypesData = response?.data || [];
-      setChildTypes(childTypesData);
-      
-      // Force re-render after setting data
-      setTimeout(() => {
-        console.log('Child types set, forcing re-render');
-      }, 50);
-      
+      setChildTypes(response?.data || []);
     } catch (error) {
-      console.error('Error fetching child business types:', error);
       message.error('Failed to fetch child business types');
       setChildTypes([]);
     } finally {
@@ -209,26 +252,21 @@ const TypeOfBusinessSelector = ({
   };
 
   const handleParentChange = (parentId) => {
-    console.log('=== Parent changed ===');
-    console.log('Parent ID:', parentId);
-    
+    console.log('BULLETPROOF - Parent changed to:', parentId);
     setSelectedParent(parentId);
     setSelectedChild(null);
     setSelectedChildData(null);
+    setDisplayName(''); // CLEAR DISPLAY NAME
+    setFormValueOverride(null); // CLEAR FORM OVERRIDE
+    
+    // Update parent form field to sync with internal state
+    form.setFieldValue('parent_type_of_business', parentId);
     
     // Reset child-related form fields
     form.setFieldsValue({
       type_of_business_id: null,
       type_of_business_detail: null
     });
-
-    // Fetch child types
-    if (parentId) {
-      console.log('Fetching child types for parent:', parentId);
-      fetchChildTypes(parentId);
-    } else {
-      setChildTypes([]);
-    }
 
     // Notify parent component
     if (onChange) {
@@ -243,18 +281,31 @@ const TypeOfBusinessSelector = ({
   };
 
   const handleChildChange = (childId) => {
+    console.log('BULLETPROOF - handleChildChange called with:', childId);
     setSelectedChild(childId);
     
     // Find the selected child data
     const childData = childTypes.find(child => child.id === childId);
+    console.log('BULLETPROOF - Found child data:', childData);
     setSelectedChildData(childData);
+    
+    // SET EXPLICIT DISPLAY NAME AND FORM OVERRIDE
+    if (childData) {
+      setDisplayName(childData.name);
+      setFormValueOverride({
+        value: childId,
+        label: childData.name
+      });
+      console.log('BULLETPROOF - Set displayName and formValueOverride:', childData.name);
+    }
 
-    // Set form values
+    // Set form values - store just the ID for the form field (for form submission)
     const formValues = {
       type_of_business_id: childId,
       type_of_business_detail: childData?.is_other ? (form.getFieldValue('type_of_business_detail') || '') : childData?.detail || null
     };
     
+    console.log('BULLETPROOF - Setting form values:', formValues);
     form.setFieldsValue(formValues);
 
     // Notify parent component
@@ -285,18 +336,39 @@ const TypeOfBusinessSelector = ({
     }
   };
 
-  const isOtherSelected = selectedChildData?.is_other || false;
-
-  // Get display value for selected child
+  // Helper function to get display value for selected child
   const getSelectedChildDisplay = () => {
-    if (selectedChild && childTypes.length > 0) {
-      const childObj = childTypes.find(child => child.id === selectedChild);
-      if (childObj) {
-        return childObj.name;
-      }
+    console.log('=== getSelectedChildDisplay called ===');
+    console.log('selectedChild:', selectedChild);
+    console.log('childTypes length:', childTypes.length);
+    
+    if (!selectedChild) {
+      console.log('No selectedChild, returning undefined');
+      return undefined;
     }
-    return selectedChild; // Fallback to ID if name not found
+    
+    if (!childTypes.length) {
+      console.log('No childTypes loaded yet, returning selectedChild as string');
+      return selectedChild;
+    }
+    
+    const childObj = childTypes.find(child => child.id === selectedChild);
+    console.log('getSelectedChildDisplay - found childObj:', childObj);
+    
+    if (childObj) {
+      const displayValue = {
+        value: selectedChild,
+        label: childObj.name
+      };
+      console.log('Returning display value:', displayValue);
+      return displayValue;
+    } else {
+      console.log('Child not found in childTypes, returning selectedChild as fallback');
+      return selectedChild;
+    }
   };
+
+  const isOtherSelected = selectedChildData?.is_other || false;
 
   return (
     <Row gutter={16}>
@@ -310,10 +382,10 @@ const TypeOfBusinessSelector = ({
             allowClear
             loading={loading}
             disabled={disabled}
-            value={selectedParent}
             onChange={handleParentChange}
             showSearch
             optionFilterProp="label"
+            optionLabelProp="label"
           >
             {parentTypes.map(parent => (
               <Option key={parent.id} value={parent.id} label={parent.name}>
@@ -333,45 +405,77 @@ const TypeOfBusinessSelector = ({
           ]}
         >
           <Select
-            key={`child-select-${selectedParent}-${childTypes.length}-${selectedChild}-${Date.now()}`}
+            key={`child-select-${selectedParent}-${childTypes.length}-${selectedChild}-${displayName}`}
             placeholder={placeholder.child}
             allowClear
             loading={childLoading}
             disabled={disabled || !selectedParent}
-            value={
-              selectedChild && childTypes.length > 0 
-                ? {
-                    value: selectedChild,
-                    label: childTypes.find(child => child.id === selectedChild)?.name || selectedChild
-                  }
-                : undefined
-            }
-            onChange={(value) => {
-              console.log('Select onChange called with:', value);
-              const childId = value ? (typeof value === 'object' ? value.value : value) : null;
+            value={(() => {
+              console.log('NUCLEAR VALUE CALC:', {
+                selectedChild,
+                displayName,
+                formValueOverride,
+                childTypesLength: childTypes.length
+              });
+              
+              // NUCLEAR OPTION: Use formValueOverride if available
+              if (formValueOverride) {
+                console.log('NUCLEAR - Using formValueOverride:', formValueOverride);
+                return formValueOverride;
+              }
+              
+              // FALLBACK: Only show if we have both selectedChild and displayName
+              if (selectedChild && displayName) {
+                // Double check - NEVER show UUID-like strings
+                if (displayName.includes('-') && displayName.length > 20) {
+                  console.log('NUCLEAR - displayName looks like UUID, BLOCKING:', displayName);
+                  return undefined;
+                }
+                
+                const result = {
+                  value: selectedChild,
+                  label: displayName + (selectedChildData?.is_other ? ' (Custom)' : '')
+                };
+                console.log('NUCLEAR - Returning fallback value:', result);
+                return result;
+              }
+              
+              console.log('NUCLEAR - No valid value, returning undefined');
+              return undefined;
+            })()}
+            onChange={(selected) => {
+              const childId = selected?.value || selected;
+              console.log('NUCLEAR - Select onChange:', selected, 'childId:', childId);
               handleChildChange(childId);
             }}
-            labelInValue
             showSearch
             optionFilterProp="label"
             filterOption={(input, option) => {
-              return (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
+              const label = option.label || '';
+              return label.toString().toLowerCase().includes(input.toLowerCase());
             }}
             notFoundContent={childLoading ? 'Loading...' : 'No data'}
-            onDropdownVisibleChange={(open) => {
-              if (!open && selectedChild && childTypes.length > 0) {
-                // Force refresh display when dropdown closes
-                const childObj = childTypes.find(child => child.id === selectedChild);
-                console.log('Dropdown closed, ensuring display for:', childObj?.name);
-              }
+            labelInValue={true}
+            dropdownRender={(menu) => {
+              console.log('NUCLEAR Dropdown render:', {
+                selectedChild,
+                displayName,
+                formValueOverride,
+                childTypes: childTypes.map(c => ({ id: c.id, name: c.name }))
+              });
+              return menu;
             }}
           >
             {childTypes.map(child => {
-              console.log('Rendering child option:', child);
+              console.log('Rendering child option:', child.id, child.name);
+              const optionLabel = `${child.name}${child.is_other ? ' (Custom)' : ''}`;
               return (
-                <Option key={child.id} value={child.id} label={child.name}>
-                  {child.name}
-                  {child.is_other && <span style={{ color: '#999' }}> (Custom)</span>}
+                <Option 
+                  key={child.id} 
+                  value={child.id}
+                  label={optionLabel}
+                >
+                  {optionLabel}
                 </Option>
               );
             })}

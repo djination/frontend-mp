@@ -487,7 +487,7 @@ const renderInstructions = () => (
       onCancel={handleClose}
       footer={null}
       width={1000}
-      destroyOnClose
+      destroyOnHidden
       styles={{ body: { maxHeight: '75vh', overflowY: 'auto' } }}
     >
       <Steps current={currentStep} style={{ marginBottom: 24 }}>

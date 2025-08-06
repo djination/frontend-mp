@@ -195,14 +195,14 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="Address Line 1"
             rules={[{ required: true, message: 'Please enter address line 1' }]}
           >
-            <Input placeholder="Enter address line 1" />
+            <Input placeholder="Enter address line 1" autoComplete="address-line1" />
           </Form.Item>
           
           <Form.Item
             name="address2"
             label="Address Line 2"
           >
-            <Input placeholder="Enter address line 2" />
+            <Input placeholder="Enter address line 2" autoComplete="address-line2" />
           </Form.Item>
           
           <Form.Item
@@ -210,7 +210,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="Sub District"
             rules={[{ required: true, message: 'Please enter sub district' }]}
           >
-            <Input placeholder="Enter sub district" />
+            <Input placeholder="Enter sub district" autoComplete="address-level3" />
           </Form.Item>
           
           <Form.Item
@@ -218,7 +218,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="District"
             rules={[{ required: true, message: 'Please enter district' }]}
           >
-            <Input placeholder="Enter district" />
+            <Input placeholder="Enter district" autoComplete="address-level4" />
           </Form.Item>
           
           <Form.Item
@@ -226,7 +226,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="City"
             rules={[{ required: true, message: 'Please enter city' }]}
           >
-            <Input placeholder="Enter city" />
+            <Input placeholder="Enter city" autoComplete="address-level2" />
           </Form.Item>
           
           <Form.Item
@@ -234,7 +234,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="Province"
             rules={[{ required: true, message: 'Please enter province' }]}
           >
-            <Input placeholder="Enter province" />
+            <Input placeholder="Enter province" autoComplete="address-level1" />
           </Form.Item>
           
           <Form.Item
@@ -242,7 +242,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="Country"
             rules={[{ required: true, message: 'Please enter country' }]}
           >
-            <Input placeholder="Enter country" />
+            <Input placeholder="Enter country" autoComplete="country-name" />
           </Form.Item>
           
           <Form.Item
@@ -250,7 +250,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="Postal Code"
             rules={[{ required: true, message: 'Please enter postal code' }]}
           >
-            <Input placeholder="Enter postal code" />
+            <Input placeholder="Enter postal code" autoComplete="postal-code" />
           </Form.Item>
           
           <Form.Item
@@ -258,7 +258,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             label="Phone Number"
             rules={[{ message: 'Please enter phone number' }]}
           >
-            <Input placeholder="Enter phone number" />
+            <Input placeholder="Enter phone number" autoComplete="tel" />
           </Form.Item>
 
           <Form.Item name="latitude" label="Latitude">
