@@ -273,13 +273,21 @@ const AccountPICForm = ({
           </Form.Item>
           
           <Form.Item
+            name="fix_phone_no"
+            label="Fix Line Phone"
+            rules={[{ required: true, message: 'Please enter fix line phone number' }]}
+          >
+            <Input placeholder="Enter fix line phone number" autoComplete="tel" />
+          </Form.Item>
+          
+          <Form.Item
             name="phone_no"
             label="Phone"
             rules={[{ required: true, message: 'Please enter phone number' }]}
           >
             <Input placeholder="Enter phone number" autoComplete="tel" />
           </Form.Item>
-          
+
           <Form.Item
             name="email"
             label="Email"

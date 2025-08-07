@@ -178,6 +178,12 @@ const AccountBankForm = ({
 
   const columns = [
     {
+      title: 'Category',
+      dataIndex: ['bank_category', 'name'],
+      key: 'bank_category',
+      render: (_, record) => getCategoryName(record)
+    },
+    {
       title: 'Bank',
       dataIndex: ['bank', 'name'],
       key: 'bank',
@@ -192,12 +198,6 @@ const AccountBankForm = ({
       title: 'Account Holder',
       dataIndex: 'bank_account_holder_name',
       key: 'bank_account_holder_name',
-    },
-    {
-      title: 'Category',
-      dataIndex: ['bank_category', 'name'],
-      key: 'bank_category',
-      render: (_, record) => getCategoryName(record)
     },
     {
       title: 'Actions',
@@ -265,6 +265,20 @@ const AccountBankForm = ({
       >
         <Form form={form} layout="vertical">
           <Form.Item
+            name="bank_category_id"
+            label="Bank Category"
+          >
+            <Select
+              placeholder="Select bank category"
+              allowClear
+              options={bankCategories.map(cat => ({
+                value: cat.id,
+                label: cat.name || cat.category_name
+              }))}
+            />
+          </Form.Item>
+          
+          <Form.Item
             name="bank_id"
             label="Bank"
             rules={[{ required: true, message: 'Please select bank' }]}
@@ -292,20 +306,6 @@ const AccountBankForm = ({
             rules={[{ required: true, message: 'Please enter account holder name' }]}
           >
             <Input placeholder="Enter account holder name" autoComplete="name" />
-          </Form.Item>
-
-          <Form.Item
-            name="bank_category_id"
-            label="Bank Category"
-          >
-            <Select
-              placeholder="Select bank category"
-              allowClear
-              options={bankCategories.map(cat => ({
-                value: cat.id,
-                label: cat.name || cat.category_name
-              }))}
-            />
           </Form.Item>
         </Form>
       </Modal>
