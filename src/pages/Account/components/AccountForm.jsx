@@ -877,10 +877,10 @@ const AccountForm = ({
             <Col span={12}>
               <Form.Item
                 name="name"
-                label="Account Name"
-                rules={[{ required: true, message: 'Please enter account name' }]}
+                label="Entity Name"
+                rules={[{ required: true, message: 'Please enter entity name' }]}
               >
-                <Input placeholder="Enter account name" autoComplete="organization" />
+                <Input placeholder="Enter entity name" autoComplete="organization" />
               </Form.Item>
             </Col>
           </Row>
