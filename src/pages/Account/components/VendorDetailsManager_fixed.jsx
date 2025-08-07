@@ -8,15 +8,16 @@ import {
   deleteVendorDetails 
 } from '../../../api/accountCommissionApi';
 
-const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCategories, onVendorDetailsChange, initialVendorDetails, form }) => {
+const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCategories, onVendorDetailsChange, initialVendorDetails }) => {
   const [vendorForm] = Form.useForm();
   const [vendorDetails, setVendorDetailsState] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Use parent form if provided, otherwise use local form
-  const activeForm = form || vendorForm;
+  // Notify parent component about vendor details change
+  useEffect(() => {
+    onVendorDetailsChange?.(vendorDetails);
+  }, [vendorDetails, onVendorDetailsChange]);
 
   // Helper function
   const isVendorCategory = useCallback((categoryIds, categories) => {
@@ -27,20 +28,31 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     return vendorCategory && categoryIds.includes(vendorCategory.id);
   }, []);
 
+  useEffect(() => {
+    if (initialVendorDetails && vendorDetails.length === 0) {
+      const detailsArray = Array.isArray(initialVendorDetails) 
+        ? initialVendorDetails 
+        : [initialVendorDetails];
+      setVendorDetailsState(detailsArray);
+      return;
+    }
+    
+    if (accountId && vendorDetails.length === 0) {
+      fetchVendorDetails();
+    }
+  }, [accountId, initialVendorDetails]);
+
   const fetchVendorDetails = useCallback(async () => {
     if (!accountId) return;
     try {
       setLoading(true);
       const response = await getVendorDetails(accountId);
       
-      console.log('Fetch vendor details response:', response); // Debug log
-      
       let vendorData = [];
       if (response && response.data) {
         vendorData = Array.isArray(response.data) ? response.data : [response.data];
       }
       
-      console.log('Processed vendor data:', vendorData); // Debug log
       setVendorDetailsState(vendorData);
     } catch (error) {
       console.error('Error fetching vendor details:', error);
@@ -52,35 +64,6 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     }
   }, [accountId]);
 
-  // Only initialize once when component mounts
-  useEffect(() => {
-    if (!hasInitialized && accountId) {
-      if (initialVendorDetails && initialVendorDetails.length > 0) {
-        const detailsArray = Array.isArray(initialVendorDetails) 
-          ? initialVendorDetails 
-          : [initialVendorDetails];
-        setVendorDetailsState(detailsArray);
-      } else {
-        // Always fetch from backend when accountId is available
-        fetchVendorDetails();
-      }
-      setHasInitialized(true);
-    }
-  }, [accountId, initialVendorDetails, hasInitialized, fetchVendorDetails]);
-
-  // Force refresh when accountId changes (for edit mode)
-  useEffect(() => {
-    if (accountId && hasInitialized) {
-      console.log('AccountId changed, refreshing vendor details...'); // Debug log
-      fetchVendorDetails();
-    }
-  }, [accountId, fetchVendorDetails, hasInitialized]);
-
-  // Notify parent component about vendor details change
-  useEffect(() => {
-    onVendorDetailsChange?.(vendorDetails);
-  }, [vendorDetails]); // Remove onVendorDetailsChange to prevent infinite loop
-
   const forceRefreshFromBackend = async () => {
     setVendorDetailsState([]);
     await fetchVendorDetails();
@@ -91,29 +74,15 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     e?.stopPropagation?.();
     
     try {
-      // Get values from the vendor form fields directly
-      const values = {
-        vendor_type: activeForm.getFieldValue('vendor_vendor_type'),
-        vendor_classification: activeForm.getFieldValue('vendor_vendor_classification'),
-        vendor_rating: activeForm.getFieldValue('vendor_vendor_rating'),
-        tax_id: activeForm.getFieldValue('vendor_tax_id'),
-        contract_start_date: activeForm.getFieldValue('vendor_contract_start_date'),
-        contract_end_date: activeForm.getFieldValue('vendor_contract_end_date'),
-        payment_terms: activeForm.getFieldValue('vendor_payment_terms'),
-        delivery_terms: activeForm.getFieldValue('vendor_delivery_terms'),
-        certification: activeForm.getFieldValue('vendor_certification'),
-      };
-      
-      // Validate required fields manually
-      if (!values.vendor_type) {
-        message.error('Please select vendor type');
-        return;
-      }
-      
+      const values = await vendorForm.validateFields();
       await handleSubmitVendor(values);
     } catch (error) {
       console.error('Error in handleAddVendorClick:', error);
-      message.error('Failed to add vendor details');
+      if (error.errorFields) {
+        message.error('Please fix the form errors');
+      } else {
+        message.error('Failed to add vendor details');
+      }
     }
   };
 
@@ -134,71 +103,20 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
         id: editingVendor?.id || `temp_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
       };
 
-      // If editing existing vendor (not temp), update in backend immediately
-      if (editingVendor && !editingVendor.id.toString().startsWith('temp_')) {
-        const backendData = {
-          vendor_type: vendorData.vendor_type,
-          vendor_classification: vendorData.vendor_classification,
-          vendor_rating: vendorData.vendor_rating,
-          tax_id: vendorData.tax_id,
-          contract_start_date: vendorData.contract_start_date,
-          contract_end_date: vendorData.contract_end_date,
-          payment_terms: vendorData.payment_terms,
-          delivery_terms: vendorData.delivery_terms,
-          certification: vendorData.certification
-        };
-        await createOrUpdateVendorDetails(accountId, backendData);
+      let newVendorDetails;
+      if (editingVendor) {
+        newVendorDetails = vendorDetails.map(details => 
+          details.id === editingVendor.id ? { ...details, ...vendorData } : details
+        );
         message.success('Vendor details updated successfully');
-        // Refresh data from backend after update
-        if (accountId) {
-          const response = await getVendorDetails(accountId);
-          let refreshedVendorData = [];
-          if (response && response.data) {
-            refreshedVendorData = Array.isArray(response.data) ? response.data : [response.data];
-          }
-          console.log('Refreshed vendor data after update:', refreshedVendorData); // Debug log
-          setVendorDetailsState(refreshedVendorData);
-        }
-        // Clear vendor form fields after successful backend update
-        activeForm.setFieldsValue({
-          vendor_vendor_type: undefined,
-          vendor_vendor_classification: undefined,
-          vendor_vendor_rating: undefined,
-          vendor_tax_id: undefined,
-          vendor_contract_start_date: undefined,
-          vendor_contract_end_date: undefined,
-          vendor_payment_terms: undefined,
-          vendor_delivery_terms: undefined,
-          vendor_certification: undefined,
-        });
-        setEditingVendor(null);
       } else {
-        // For new entries or temp entries, just update local state
-        let newVendorDetails;
-        if (editingVendor) {
-          newVendorDetails = vendorDetails.map(details => 
-            details.id === editingVendor.id ? { ...details, ...vendorData } : details
-          );
-          message.success('Vendor details updated successfully');
-        } else {
-          newVendorDetails = [...vendorDetails, vendorData];
-          message.success('Vendor details added successfully');
-        }
-        setVendorDetailsState(newVendorDetails);
-        // Clear vendor form fields after successful local update
-        activeForm.setFieldsValue({
-          vendor_vendor_type: undefined,
-          vendor_vendor_classification: undefined,
-          vendor_vendor_rating: undefined,
-          vendor_tax_id: undefined,
-          vendor_contract_start_date: undefined,
-          vendor_contract_end_date: undefined,
-          vendor_payment_terms: undefined,
-          vendor_delivery_terms: undefined,
-          vendor_certification: undefined,
-        });
-        setEditingVendor(null);
+        newVendorDetails = [...vendorDetails, vendorData];
+        message.success('Vendor details added successfully');
       }
+      
+      setVendorDetailsState(newVendorDetails);
+      vendorForm.resetFields();
+      setEditingVendor(null);
       
       return true;
       
@@ -212,58 +130,31 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
   };
 
   const handleEditVendor = useCallback((vendor) => {
-    console.log('Editing vendor:', vendor);
     setEditingVendor(vendor);
-    activeForm.setFieldsValue({
-      vendor_vendor_type: vendor.vendor_type,
-      vendor_vendor_classification: vendor.vendor_classification,
-      vendor_vendor_rating: vendor.vendor_rating,
-      vendor_tax_id: vendor.tax_id,
-      vendor_contract_start_date: vendor.contract_start_date ? moment(vendor.contract_start_date) : null,
-      vendor_contract_end_date: vendor.contract_end_date ? moment(vendor.contract_end_date) : null,
-      vendor_payment_terms: vendor.payment_terms,
-      vendor_delivery_terms: vendor.delivery_terms,
-      vendor_certification: vendor.certification,
+    vendorForm.setFieldsValue({
+      vendor_type: vendor.vendor_type,
+      vendor_classification: vendor.vendor_classification,
+      vendor_rating: vendor.vendor_rating,
+      tax_id: vendor.tax_id,
+      contract_start_date: vendor.contract_start_date ? moment(vendor.contract_start_date) : null,
+      contract_end_date: vendor.contract_end_date ? moment(vendor.contract_end_date) : null,
+      payment_terms: vendor.payment_terms,
+      delivery_terms: vendor.delivery_terms,
+      certification: vendor.certification,
     });
-  }, [activeForm]);
+  }, [vendorForm]);
 
   const handleDeleteVendor = useCallback(async (vendorId) => {
     try {
       setLoading(true);
       
-      // If it's not a temporary ID, delete from backend first
-      if (!vendorId.toString().startsWith('temp_')) {
-        await deleteVendorDetails(accountId);
-        // Refresh data from backend after delete
-        if (accountId) {
-          const response = await getVendorDetails(accountId);
-          let vendorData = [];
-          if (response && response.data) {
-            vendorData = Array.isArray(response.data) ? response.data : [response.data];
-          }
-          setVendorDetailsState(vendorData);
-        }
-        return; // Don't update local state if we're refreshing from backend
-      }
-      
-      // For temporary IDs, just remove from local state
       const newVendorDetails = vendorDetails.filter(details => details.id !== vendorId);
       setVendorDetailsState(newVendorDetails);
       
       message.success('Vendor details deleted successfully');
       
       if (editingVendor && editingVendor.id === vendorId) {
-        activeForm.setFieldsValue({
-          vendor_vendor_type: undefined,
-          vendor_vendor_classification: undefined,
-          vendor_vendor_rating: undefined,
-          vendor_tax_id: undefined,
-          vendor_contract_start_date: undefined,
-          vendor_contract_end_date: undefined,
-          vendor_payment_terms: undefined,
-          vendor_delivery_terms: undefined,
-          vendor_certification: undefined,
-        });
+        vendorForm.resetFields();
         setEditingVendor(null);
       }
     } catch (error) {
@@ -272,20 +163,10 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     } finally {
       setLoading(false);
     }
-  }, [vendorDetails, editingVendor, activeForm, accountId]); // Remove fetchVendorDetails from dependencies
+  }, [vendorDetails, editingVendor, vendorForm]);
 
   const handleCancelEdit = () => {
-    activeForm.setFieldsValue({
-      vendor_vendor_type: undefined,
-      vendor_vendor_classification: undefined,
-      vendor_vendor_rating: undefined,
-      vendor_tax_id: undefined,
-      vendor_contract_start_date: undefined,
-      vendor_contract_end_date: undefined,
-      vendor_payment_terms: undefined,
-      vendor_delivery_terms: undefined,
-      vendor_certification: undefined,
-    });
+    vendorForm.resetFields();
     setEditingVendor(null);
   };
 
@@ -443,20 +324,28 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
         </Space>
       }
     >
-      {/* Add/Edit Form - Remove Form wrapper to avoid nested forms */}
-      <div>
+      {/* Add/Edit Form */}
+      <Form
+        form={vendorForm}
+        layout="vertical"
+        onFinish={(e) => {
+          e.preventDefault?.();
+          return false;
+        }}
+      >
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="vendor_vendor_type"
+              name="vendor_type"
               label="Vendor Type"
+              rules={[{ required: true, message: 'Please select vendor type' }]}
             >
               <Select placeholder="Select vendor type" options={vendorTypeOptions} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
-              name="vendor_vendor_classification"
+              name="vendor_classification"
               label="Vendor Classification"
             >
               <Select placeholder="Select vendor classification" options={vendorClassificationOptions} />
@@ -467,7 +356,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="vendor_vendor_rating"
+              name="vendor_rating"
               label="Vendor Rating"
             >
               <Select placeholder="Select vendor rating" options={vendorRatingOptions} />
@@ -475,7 +364,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           </Col>
           <Col span={12}>
             <Form.Item
-              name="vendor_tax_id"
+              name="tax_id"
               label="Tax ID / NPWP"
             >
               <Input placeholder="Enter tax identification number" />
@@ -486,7 +375,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="vendor_contract_start_date"
+              name="contract_start_date"
               label="Contract Start Date"
             >
               <DatePicker 
@@ -497,7 +386,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           </Col>
           <Col span={12}>
             <Form.Item
-              name="vendor_contract_end_date"
+              name="contract_end_date"
               label="Contract End Date"
             >
               <DatePicker 
@@ -511,7 +400,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="vendor_payment_terms"
+              name="payment_terms"
               label="Payment Terms"
             >
               <Select placeholder="Select payment terms" options={paymentTermsOptions} />
@@ -519,7 +408,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           </Col>
           <Col span={12}>
             <Form.Item
-              name="vendor_delivery_terms"
+              name="delivery_terms"
               label="Delivery Terms"
             >
               <Select placeholder="Select delivery terms" options={deliveryTermsOptions} />
@@ -530,7 +419,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
-              name="vendor_certification"
+              name="certification"
               label="Certifications"
             >
               <Input.TextArea 
@@ -560,7 +449,7 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
             </Space>
           </Col>
         </Row>
-      </div>
+      </Form>
 
       <Divider />
 

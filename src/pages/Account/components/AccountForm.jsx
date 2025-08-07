@@ -113,7 +113,8 @@ const AccountForm = ({
   const [selectedAccountCategories, setSelectedAccountCategories] = useState([]);
   const [availableAccounts, setAvailableAccounts] = useState([]);
   const [commissionRates, setCommissionRates] = useState([]);
-  const [vendorDetails, setVendorDetails] = useState(null);
+  const [vendorDetails, setVendorDetails] = useState([]);
+  const [isInitializing, setIsInitializing] = useState(false);
   
   const fetchAccountDocuments = async (accountId) => {
     if (!accountId) return;
@@ -167,6 +168,8 @@ const AccountForm = ({
   // Separate useEffect untuk set form values setelah data ter-load
   useEffect(() => {
     if (isEdit && initialValues && initialValues.id && dataFetched && availableAccounts.length > 0) {
+      setIsInitializing(true); // Set flag to prevent onChange conflicts
+      
       // Debug log untuk melihat struktur data referral_accounts
       console.log('Initial Values:', initialValues);
       console.log('Referral Accounts:', initialValues.referral_accounts);
@@ -230,6 +233,12 @@ const AccountForm = ({
       if (initialValues.child && initialValues.child.length > 0) {
         setHierarchyWarning(`This account has ${initialValues.child.length} child account(s). Changing its parent may impact your account hierarchy.`);
       }
+      
+      // Clear initialization flag after a longer delay to ensure everything is settled
+      setTimeout(() => {
+        console.log('Clearing initialization flag - TypeOfBusinessSelector will now appear');
+        setIsInitializing(false);
+      }, 500);
     }
     // eslint-disable-next-line
   }, [dataFetched, initialValues?.id, form, isEdit, availableAccounts.length]);
@@ -643,16 +652,49 @@ const AccountForm = ({
   };
 
   // Helper untuk menyimpan vendor details
-  const saveVendorDetails = async (vendorDetailsData, accountId) => {
-    if (!accountId || !vendorDetailsData) {
+  const saveVendorDetails = async (vendorDetailsItems, accountId) => {
+    if (!accountId || !Array.isArray(vendorDetailsItems) || vendorDetailsItems.length === 0) {
       return;
     }
     
-    try {
-      await createOrUpdateVendorDetails(accountId, vendorDetailsData);
-    } catch (error) {
-      console.error('Error saving vendor details:', error);
-      throw error;
+    for (const vendor of vendorDetailsItems) {
+      try {
+        // Skip items with temporary IDs (new items that aren't saved yet)
+        if (vendor.id && vendor.id.toString().startsWith('temp_')) {
+          const vendorData = {
+            vendor_type: vendor.vendor_type,
+            vendor_classification: vendor.vendor_classification,
+            vendor_rating: vendor.vendor_rating,
+            tax_id: vendor.tax_id,
+            contract_start_date: vendor.contract_start_date,
+            contract_end_date: vendor.contract_end_date,
+            payment_terms: vendor.payment_terms,
+            delivery_terms: vendor.delivery_terms,
+            certification: vendor.certification
+          };
+          
+          await createOrUpdateVendorDetails(accountId, vendorData);
+        }
+        // Handle existing vendor details (update if needed)
+        else if (vendor.id && !vendor.id.toString().startsWith('temp_')) {
+          const vendorData = {
+            vendor_type: vendor.vendor_type,
+            vendor_classification: vendor.vendor_classification,
+            vendor_rating: vendor.vendor_rating,
+            tax_id: vendor.tax_id,
+            contract_start_date: vendor.contract_start_date,
+            contract_end_date: vendor.contract_end_date,
+            payment_terms: vendor.payment_terms,
+            delivery_terms: vendor.delivery_terms,
+            certification: vendor.certification
+          };
+          
+          await createOrUpdateVendorDetails(accountId, vendorData);
+        }
+      } catch (error) {
+        console.error('Error saving vendor details:', error);
+        throw error;
+      }
     }
   };
 
@@ -778,7 +820,7 @@ const AccountForm = ({
         
         // Save vendor details
         try {
-          if (vendorDetails) {
+          if (vendorDetails && vendorDetails.length > 0) {
             await saveVendorDetails(vendorDetails, accountId);
           }
         } catch (error) {
@@ -900,27 +942,36 @@ const AccountForm = ({
           </Row>
           
           {/* Type of Business Selector */}
-          <TypeOfBusinessSelector
-            form={form}
-            value={{
-              parent_id: form.getFieldValue('parent_type_of_business'),
-              child_id: form.getFieldValue('type_of_business_id'),
-              type_of_business_detail: form.getFieldValue('type_of_business_detail')
-            }}
-            onChange={(values) => {
-              console.log('Type of business changed:', values);
-              // Update form fields when TypeOfBusinessSelector changes
-              if (values.parent_id !== undefined) {
-                form.setFieldValue('parent_type_of_business', values.parent_id);
-              }
-              if (values.type_of_business_id !== undefined) {
-                form.setFieldValue('type_of_business_id', values.type_of_business_id);
-              }
-              if (values.type_of_business_detail !== undefined) {
-                form.setFieldValue('type_of_business_detail', values.type_of_business_detail);
-              }
-            }}
-          />
+          {!isInitializing && (
+            <TypeOfBusinessSelector
+              form={form}
+              value={{
+                parent_id: form.getFieldValue('parent_type_of_business'),
+                child_id: form.getFieldValue('type_of_business_id'),
+                type_of_business_detail: form.getFieldValue('type_of_business_detail')
+              }}
+              onChange={(values) => {
+                console.log('Type of business changed:', values);
+                // Update form fields when TypeOfBusinessSelector changes
+                if (values.parent_id !== undefined) {
+                  form.setFieldValue('parent_type_of_business', values.parent_id);
+                }
+                if (values.type_of_business_id !== undefined) {
+                  form.setFieldValue('type_of_business_id', values.type_of_business_id);
+                }
+                if (values.type_of_business_detail !== undefined) {
+                  form.setFieldValue('type_of_business_detail', values.type_of_business_detail);
+                }
+              }}
+            />
+          )}
+          
+          {/* Show loading placeholder during initialization */}
+          {isInitializing && (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              Loading Type of Business...
+            </div>
+          )}
           
           <Row gutter={16}>
             <Col span={12}>
@@ -1141,6 +1192,8 @@ const AccountForm = ({
           accountCategories={accountCategories}
           selectedAccountCategories={selectedAccountCategories}
           onVendorDetailsChange={setVendorDetails}
+          initialVendorDetails={isEdit ? (initialValues?.vendor_details ? [initialValues.vendor_details] : []) : []}
+          form={form}
         />
       )
     });
