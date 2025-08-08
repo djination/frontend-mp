@@ -14,8 +14,6 @@ axiosInstance.interceptors.request.use(
     } else {
       console.log('No token found, skipping Authorization header');
     }
-    
-    console.log('Final request headers:', config.headers);
     return config
   },
   error => {
