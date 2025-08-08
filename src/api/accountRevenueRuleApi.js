@@ -96,9 +96,6 @@ export const createAccountRevenueRules = async (data) => {
         rule_value: String(rule.rule_value !== undefined ? rule.rule_value : '')
       }))
     };
-    
-    console.log('Sending to /account-revenue-rules:', sanitizedData);
-    
     const response = await axios.post('/account-revenue-rules', sanitizedData, {
       timeout: 30000, // 30 second timeout
       headers: {
@@ -148,8 +145,6 @@ export const logRuleStructure = (rules) => {
   
   // Log each category separately
   Object.entries(rulesByCategory).forEach(([category, categoryRules]) => {
-    console.log(`${category} rules (${categoryRules.length}):`);
-    
     // Group by common parent paths
     const parentPaths = {};
     categoryRules.forEach(rule => {
@@ -166,7 +161,6 @@ export const logRuleStructure = (rules) => {
     
     // Log structured representation
     Object.entries(parentPaths).forEach(([parentPath, values]) => {
-      console.log(`  ${parentPath}: {`);
       values.forEach(({key, value}) => {
         console.log(`    ${key}: ${value}`);
       });

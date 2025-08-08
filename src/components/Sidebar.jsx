@@ -12,14 +12,6 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
   const [openKeys, setOpenKeys] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   
-  // Debug: Log userMenus when it changes
-  // useEffect(() => {
-  //   console.log('Sidebar - userMenus changed:', userMenus);
-  //   if (userMenus && Array.isArray(userMenus)) {
-  //     console.log('Menu structure:', JSON.stringify(userMenus, null, 2));
-  //   }
-  // }, [userMenus]);
-  
   // Effect for theme
   useEffect(() => {
     const theme = isDarkMode ? 'dark' : 'light';

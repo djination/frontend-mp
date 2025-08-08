@@ -37,13 +37,6 @@ const TypeOfBusinessSelector = ({
       const typeOfBusinessId = form.getFieldValue('type_of_business_id');
       const parentTypeId = form.getFieldValue('parent_type_of_business');
       
-      console.log('TypeOfBusinessSelector - initializing with:', {
-        typeOfBusinessId,
-        parentTypeId,
-        initialized,
-        parentTypesLoaded: parentTypes.length > 0
-      });
-      
       if (!initialized && typeOfBusinessId) {
         try {
           // If we have parent_type_of_business from form, use it directly
@@ -94,14 +87,6 @@ const TypeOfBusinessSelector = ({
     const formTypeOfBusinessId = form.getFieldValue('type_of_business_id');
     const formParentTypeOfBusiness = form.getFieldValue('parent_type_of_business');
     
-    console.log('FORM MONITORING - TypeOfBusinessSelector form dependency changed:', {
-      form_type_of_business_id: formTypeOfBusinessId,
-      form_parent_type_of_business: formParentTypeOfBusiness,
-      selectedChild,
-      selectedParent,
-      childTypesLength: childTypes.length
-    });
-    
     // CRITICAL: Jika form value berbeda dengan state, dan kita sudah initialized, 
     // artinya ada external change yang harus kita sync
     if (initialized) {
@@ -147,12 +132,10 @@ const TypeOfBusinessSelector = ({
     if (childTypes.length > 0 && selectedChild) {
       const childData = childTypes.find(c => c.id === selectedChild);
       if (!childData) {
-        console.log('BRUTAL VALIDATION: selectedChild invalid, clearing');
         setSelectedChild(null);
         setSelectedChildData(null);
         setStableValue(null);
       } else {
-        console.log('BRUTAL VALIDATION: selection valid, updating data');
         setSelectedChildData(childData);
         setStableValue(childData.id);
       }
@@ -183,12 +166,10 @@ const TypeOfBusinessSelector = ({
       if (selectedChild && newChildTypes.length > 0) {
         const childExists = newChildTypes.find(child => child.id === selectedChild);
         if (!childExists) {
-          console.log('BRUTAL RESET: selectedChild not found in new childTypes');
           setSelectedChild(null);
           setSelectedChildData(null);
           setStableValue(null);
         } else {
-          console.log('Child exists in new types, keeping selection');
           // Force update selectedChildData dari new data
           setSelectedChildData(childExists);
         }

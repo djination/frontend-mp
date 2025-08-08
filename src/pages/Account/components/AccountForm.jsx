@@ -169,14 +169,6 @@ const AccountForm = ({
   useEffect(() => {
     if (isEdit && initialValues && initialValues.id && dataFetched && availableAccounts.length > 0) {
       setIsInitializing(true); // Set flag to prevent onChange conflicts
-      
-      // Debug log untuk melihat struktur data referral_accounts
-      console.log('Initial Values:', initialValues);
-      console.log('Referral Accounts:', initialValues.referral_accounts);
-      console.log('Available Accounts:', availableAccounts);
-
-      console.log('Specific Type of Business:', initialValues.type_of_business ? initialValues.type_of_business : 'Not defined');
-      
       // Set form values including parent type of business
       const formValues = {
         ...initialValues,
@@ -192,18 +184,13 @@ const AccountForm = ({
         // Map referral account relationships jika ada
         referral_account_ids: initialValues.referral_accounts
           ? initialValues.referral_accounts.map(ref => {
-              console.log('Referral item:', ref);
               // Return the ID of the referral account
               const referralAccountId = ref.referral_account?.id || ref.referral_account_id;
-              console.log('Mapped referral ID:', referralAccountId);
               return referralAccountId;
             }).filter(id => id) // Filter out any null/undefined values
           : [],
       };
-      
-      console.log('Form Values being set:', formValues);
-      console.log('Referral Account IDs being set:', formValues.referral_account_ids);
-      
+
       // Set selected account categories untuk conditional rendering
       if (initialValues.account_categories) {
         setSelectedAccountCategories(initialValues.account_categories.map(cat => cat.id));
@@ -236,7 +223,6 @@ const AccountForm = ({
       
       // Clear initialization flag after a longer delay to ensure everything is settled
       setTimeout(() => {
-        console.log('Clearing initialization flag - TypeOfBusinessSelector will now appear');
         setIsInitializing(false);
       }, 500);
     }
@@ -382,7 +368,7 @@ const AccountForm = ({
   const saveAccountBanks = async (bankItems, accountId) => {
     for (const bank of bankItems) {
       const allowedFields = [
-        'bank_id', 'bank_account_no', 'bank_account_holder_name', 'bank_category_id', 'is_active', 'account_id'
+        'bank_id', 'bank_account_no', 'bank_account_holder_firstname', 'bank_account_holder_lastname', 'bank_category_id', 'is_active', 'account_id'
       ];
       const cleanBank = cleanPayload(
         {
@@ -717,7 +703,6 @@ const AccountForm = ({
 
       // Clean form values to remove any extra fields that shouldn't be sent to backend
       const formValues = form.getFieldsValue();
-      console.log('All form values:', formValues); // Debug log
       
       const payload = {
         account_no: accountNo,
@@ -745,14 +730,11 @@ const AccountForm = ({
         }
       });
 
-      console.log('Cleaned account payload:', payload); // Debug log
       let response, accountId;
       if (isEdit) {
-        console.log('Updating account with payload:', payload); // Debug log
         response = await updateAccount(initialValues.id, payload);
         accountId = initialValues.id;
       } else {
-        console.log('Creating account with payload:', payload); // Debug log
         response = await createAccount(payload);
         accountId = response.data?.id || response.id;
       }
@@ -951,7 +933,6 @@ const AccountForm = ({
                 type_of_business_detail: form.getFieldValue('type_of_business_detail')
               }}
               onChange={(values) => {
-                console.log('Type of business changed:', values);
                 // Update form fields when TypeOfBusinessSelector changes
                 if (values.parent_id !== undefined) {
                   form.setFieldValue('parent_type_of_business', values.parent_id);
@@ -1039,9 +1020,6 @@ const AccountForm = ({
                       }
                       maxTagCount="responsive"
                       tagRender={({ label, value, closable, onClose }) => {
-                        console.log('Tag render - value:', value, 'label:', label);
-                        console.log('Available accounts length:', availableAccounts?.length);
-                        
                         // If availableAccounts is not loaded yet, show a temporary display
                         if (!availableAccounts || availableAccounts.length === 0) {
                           return (
@@ -1058,8 +1036,6 @@ const AccountForm = ({
                         
                         // Find the account data
                         const account = availableAccounts.find(acc => acc.value === value || acc.id === value);
-                        console.log('Found account for value:', value, account);
-                        
                         // Determine display text with fallback
                         let displayText = label;
                         if (account) {

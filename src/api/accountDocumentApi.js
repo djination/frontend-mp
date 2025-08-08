@@ -8,13 +8,7 @@ export const getAccountDocuments = async (accountId) => {
 
 // Upload document
 export const uploadAccountDocument = async (formData) => {
-  try {
-    // Debug formData
-    console.log('FormData entries:');
-    for (let pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
-    
+  try {    
     return await axiosInstance.post('/account-document', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',

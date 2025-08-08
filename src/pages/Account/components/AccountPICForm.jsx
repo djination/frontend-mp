@@ -275,7 +275,17 @@ const AccountPICForm = ({
           <Form.Item
             name="fix_phone_no"
             label="Fix Line Phone"
-            rules={[{ required: true, message: 'Please enter fix line phone number' }]}
+            rules={[
+              { required: true, message: 'Please enter fix line phone number' },
+              {
+                validator: (_, value) => {
+                  if (!value || value.startsWith('62')) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Nomor harus diawali dengan 62'));
+                }
+              }
+            ]}
           >
             <Input placeholder="Enter fix line phone number" autoComplete="tel" />
           </Form.Item>
@@ -283,7 +293,17 @@ const AccountPICForm = ({
           <Form.Item
             name="phone_no"
             label="Phone"
-            rules={[{ required: true, message: 'Please enter phone number' }]}
+            rules={[
+              { required: true, message: 'Please enter phone number' },
+              {
+                validator: (_, value) => {
+                  if (!value || value.startsWith('62')) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Nomor harus diawali dengan 62'));
+                }
+              }
+            ]}
           >
             <Input placeholder="Enter phone number" autoComplete="tel" />
           </Form.Item>

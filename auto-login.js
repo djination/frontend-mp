@@ -16,8 +16,6 @@ const autoLogin = async () => {
     const result = await response.json();
     if (result.success) {
       localStorage.setItem('token', result.data.token);
-      console.log('Auto-login successful! Token saved to localStorage');
-      console.log('Refresh page to apply token');
       return result.data.token;
     } else {
       console.error('Login failed:', result);

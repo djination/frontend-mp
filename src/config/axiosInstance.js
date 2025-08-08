@@ -7,14 +7,7 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   config => {
-    console.log('=== Axios Request Interceptor ===');
-    console.log('Request URL:', config.baseURL + config.url);
-    console.log('Request Method:', config.method);
-    console.log('Request Data:', config.data);
-    
     const accessToken = localStorage.getItem('token')
-    console.log('Token from localStorage:', accessToken ? 'Present' : 'Not found');
-    
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
       console.log('Authorization header set');
@@ -34,9 +27,6 @@ axiosInstance.interceptors.request.use(
 // Add response interceptor for debugging
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log('=== Axios Response Interceptor (Success) ===');
-    console.log('Response status:', response.status);
-    console.log('Response data:', response.data);
     return response;
   },
   async (error) => {
@@ -46,7 +36,6 @@ axiosInstance.interceptors.response.use(
     console.error('Error config:', error.config);
     
     if (error.response?.status === 401) {
-      console.log('401 detected, removing token...');
       localStorage.removeItem('token');
     }
     return Promise.reject(error);
@@ -64,7 +53,6 @@ const autoLoginForTesting = async () => {
       
       if (response.data.success) {
         localStorage.setItem('token', response.data.data.token);
-        console.log('Auto-login successful for testing');
       }
     }
   } catch (error) {

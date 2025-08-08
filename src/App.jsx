@@ -28,6 +28,7 @@ import MasterPosition from "./pages/Parameter/MasterPosition";
 import MasterAccountType from "./pages/Parameter/MasterAccountType";
 import MasterAccountCategory from "./pages/Parameter/MasterAccountCategory";
 import MasterDocumentType from "./pages/Parameter/MasterDocumentType";
+import PostalCodeMaster from "./pages/Master/PostalCodeMaster";
 import RevenueRule from "./pages/RevenueRule/RevenueRule";
 import CdmProvidersPage from './pages/Master/CdmProvider/CdmProvidersPage';
 
@@ -210,6 +211,7 @@ function App() {
             {/* Master routes */}
             <Route path="/master">
               <Route path="services" element={<ServicesPage />} />
+              <Route path="postal-code" element={<PostalCodeMaster />} />
               <Route path="cdm-providers" element={<CdmProvidersPage />} />
             </Route>
             

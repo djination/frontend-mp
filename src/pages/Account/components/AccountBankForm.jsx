@@ -41,7 +41,8 @@ const AccountBankForm = ({
         ? response.data
         : response?.data?.data || [];
       setBankList(banksData);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching banks:', error);
       message.error('Failed to fetch banks');
       setBankList([]);
     }
@@ -54,7 +55,8 @@ const AccountBankForm = ({
         ? response.data
         : response?.data?.data || [];
       setBankCategories(categoriesData);
-    } catch {
+    } catch (error) {
+      console.error('Error fetching bank categories:', error);
       message.error('Failed to fetch bank categories');
       setBankCategories([]);
     }
@@ -65,9 +67,11 @@ const AccountBankForm = ({
     form.resetFields();
     if (accountBank) {
       form.setFieldsValue({
-        ...accountBank,
         bank_id: accountBank.bank?.id || accountBank.bank_id,
-        bank_category_id: accountBank.bank_category?.id || accountBank.bank_category_id
+        bank_category_id: accountBank.bank_category?.id || accountBank.bank_category_id,
+        bank_account_no: accountBank.bank_account_no || '',
+        bank_account_holder_firstname: accountBank.bank_account_holder_firstname || '',
+        bank_account_holder_lastname: accountBank.bank_account_holder_lastname || '',
       });
     }
     setVisible(true);
@@ -75,6 +79,7 @@ const AccountBankForm = ({
 
   const handleCancel = () => {
     setVisible(false);
+    setEditingAccountBank(null);
     form.resetFields();
   };
 
@@ -83,17 +88,33 @@ const AccountBankForm = ({
       const values = await form.validateFields();
       setLoading(true);
 
+      // Validate that we have necessary data
+      if (!values.bank_id) {
+        throw new Error('Bank is required');
+      }
+      if (!values.bank_category_id) {
+        throw new Error('Bank category is required');
+      }
+
       const selectedBank = bankList.find(b => b.id === values.bank_id);
       const selectedCategory = bankCategories.find(c => c.id === values.bank_category_id);
+
+      if (!selectedBank) {
+        throw new Error('Selected bank not found');
+      }
+      if (!selectedCategory) {
+        throw new Error('Selected bank category not found');
+      }
 
       const accountBankData = {
         account_id: accountId,
         bank_id: values.bank_id,
-        bank: selectedBank || null,
+        bank: selectedBank,
         bank_account_no: values.bank_account_no,
         bank_category_id: values.bank_category_id,
-        bank_category: selectedCategory || null,
-        bank_account_holder_name: values.bank_account_holder_name,
+        bank_category: selectedCategory,
+        bank_account_holder_firstname: values.bank_account_holder_firstname,
+        bank_account_holder_lastname: values.bank_account_holder_lastname,
       };
 
       let updatedAccountBanks;
@@ -114,9 +135,16 @@ const AccountBankForm = ({
       setLocalAccountBanks(updatedAccountBanks);
       onChange(updatedAccountBanks);
       setVisible(false);
+      setEditingAccountBank(null);
       form.resetFields();
-    } catch {
-      message.error('Failed to save bank account');
+      message.success(editingAccountBank ? 'Bank account updated successfully' : 'Bank account added successfully');
+    } catch (error) {
+      if (error.name === 'ValidationError') {
+        message.error('Validation error: ' + error.message);
+      } else {
+        console.error('Error saving bank account:', error);
+      }
+      message.error('Failed to save bank account: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -195,9 +223,14 @@ const AccountBankForm = ({
       key: 'bank_account_no',
     },
     {
-      title: 'Account Holder',
-      dataIndex: 'bank_account_holder_name',
-      key: 'bank_account_holder_name',
+      title: 'Account Holder First Name',
+      dataIndex: 'bank_account_holder_firstname',
+      key: 'bank_account_holder_firstname',
+    },
+    {
+      title: 'Account Holder Last Name',
+      dataIndex: 'bank_account_holder_lastname',
+      key: 'bank_account_holder_lastname',
     },
     {
       title: 'Actions',
@@ -267,6 +300,7 @@ const AccountBankForm = ({
           <Form.Item
             name="bank_category_id"
             label="Bank Category"
+            rules={[{ required: true, message: 'Please select bank category' }]}
           >
             <Select
               placeholder="Select bank category"
@@ -277,7 +311,7 @@ const AccountBankForm = ({
               }))}
             />
           </Form.Item>
-          
+
           <Form.Item
             name="bank_id"
             label="Bank"
@@ -301,11 +335,19 @@ const AccountBankForm = ({
           </Form.Item>
 
           <Form.Item
-            name="bank_account_holder_name"
-            label="Account Holder Name"
-            rules={[{ required: true, message: 'Please enter account holder name' }]}
+            name="bank_account_holder_firstname"
+            label="Account Holder First Name"
+            rules={[{ required: true, message: 'Please enter account holder first name' }]}
           >
-            <Input placeholder="Enter account holder name" autoComplete="name" />
+            <Input placeholder="Enter account holder first name" autoComplete="name" />
+          </Form.Item>
+
+          <Form.Item
+            name="bank_account_holder_lastname"
+            label="Account Holder Last Name"
+            rules={[{ required: true, message: 'Please enter account holder last name' }]}
+          >
+            <Input placeholder="Enter account holder last name" autoComplete="name" />
           </Form.Item>
         </Form>
       </Modal>

@@ -33,14 +33,11 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
       setLoading(true);
       const response = await getVendorDetails(accountId);
       
-      console.log('Fetch vendor details response:', response); // Debug log
-      
       let vendorData = [];
       if (response && response.data) {
         vendorData = Array.isArray(response.data) ? response.data : [response.data];
       }
       
-      console.log('Processed vendor data:', vendorData); // Debug log
       setVendorDetailsState(vendorData);
     } catch (error) {
       console.error('Error fetching vendor details:', error);
@@ -71,7 +68,6 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
   // Force refresh when accountId changes (for edit mode)
   useEffect(() => {
     if (accountId && hasInitialized) {
-      console.log('AccountId changed, refreshing vendor details...'); // Debug log
       fetchVendorDetails();
     }
   }, [accountId, fetchVendorDetails, hasInitialized]);
@@ -212,7 +208,6 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
   };
 
   const handleEditVendor = useCallback((vendor) => {
-    console.log('Editing vendor:', vendor);
     setEditingVendor(vendor);
     activeForm.setFieldsValue({
       vendor_vendor_type: vendor.vendor_type,

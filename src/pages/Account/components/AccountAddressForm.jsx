@@ -7,6 +7,7 @@ import {
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { getAccountAddresses, getAccountAddressById } from '../../../api/accountAddressApi';
+import AddressHierarchySelector from '../../../components/AddressHierarchySelector';
 
 const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => {
   const [form] = Form.useForm();
@@ -14,6 +15,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
   const [editingAddress, setEditingAddress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [localAddresses, setLocalAddresses] = useState(addresses || []);
+  const [addressHierarchy, setAddressHierarchy] = useState({});
 
   useEffect(() => {
     // Initialize local addresses from props
@@ -24,15 +26,46 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
   const showModal = (address) => {
     setEditingAddress(address || null);
     form.resetFields();
+    
     if (address) {
-      
       form.setFieldsValue(address);
+      
+      // Set hierarchy data for existing address
+      setAddressHierarchy({
+        country: address.country || '',
+        province: address.province || '',
+        city: address.city || '',
+        district: address.district || '',
+        sub_district: address.sub_district || '',
+        postal_code: address.postalcode || address.postal_code || ''
+      });
+    } else {
+      // Reset hierarchy for new address
+      setAddressHierarchy({});
     }
+    
     setVisible(true);
+  };
+
+  const handleAddressHierarchyChange = (hierarchyData) => {
+    setAddressHierarchy(hierarchyData);
+    
+    // Update form fields with hierarchy data
+    form.setFieldsValue({
+      country: hierarchyData.country || '',
+      province: hierarchyData.province || '',
+      city: hierarchyData.city || '',
+      district: hierarchyData.district || '',
+      sub_district: hierarchyData.sub_district || '',
+      postalcode: hierarchyData.postal_code || ''
+    });
   };
 
   const handleCancel = () => {
     setVisible(false);
+    setAddressHierarchy({});
+    setEditingAddress(null);
+    form.resetFields();
   };
 
   const handleSave = async () => {
@@ -59,7 +92,12 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
         setLocalAddresses(updatedAddresses);
         onChange(updatedAddresses);
       }
+      
+      // Close modal and reset states
       setVisible(false);
+      setAddressHierarchy({});
+      setEditingAddress(null);
+      message.success(editingAddress ? 'Address updated successfully' : 'Address added successfully');
     } catch (error) {
       message.error('Failed to save address');
     } finally {
@@ -177,7 +215,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       
       <Table
         columns={columns}
-        dataSource={addresses}
+        dataSource={localAddresses}
         rowKey={record => record.id || record.tempId}
         pagination={false}
       />
@@ -205,52 +243,33 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             <Input placeholder="Enter address line 2" autoComplete="address-line2" />
           </Form.Item>
           
-          <Form.Item
-            name="sub_district"
-            label="Sub District"
-            rules={[{ required: true, message: 'Please enter sub district' }]}
-          >
-            <Input placeholder="Enter sub district" autoComplete="address-level3" />
-          </Form.Item>
+          {/* Address Hierarchy Selector */}
+          <div style={{ marginBottom: 24 }}>
+            <AddressHierarchySelector
+              value={addressHierarchy}
+              onChange={handleAddressHierarchyChange}
+              required={true}
+            />
+          </div>
           
-          <Form.Item
-            name="district"
-            label="District"
-            rules={[{ required: true, message: 'Please enter district' }]}
-          >
-            <Input placeholder="Enter district" autoComplete="address-level4" />
+          {/* Hidden fields for form validation */}
+          <Form.Item name="country" hidden rules={[{ required: true, message: 'Please select country' }]}>
+            <Input />
           </Form.Item>
-          
-          <Form.Item
-            name="city"
-            label="City"
-            rules={[{ required: true, message: 'Please enter city' }]}
-          >
-            <Input placeholder="Enter city" autoComplete="address-level2" />
+          <Form.Item name="province" hidden rules={[{ required: true, message: 'Please select province' }]}>
+            <Input />
           </Form.Item>
-          
-          <Form.Item
-            name="province"
-            label="Province"
-            rules={[{ required: true, message: 'Please enter province' }]}
-          >
-            <Input placeholder="Enter province" autoComplete="address-level1" />
+          <Form.Item name="city" hidden rules={[{ required: true, message: 'Please select city' }]}>
+            <Input />
           </Form.Item>
-          
-          <Form.Item
-            name="country"
-            label="Country"
-            rules={[{ required: true, message: 'Please enter country' }]}
-          >
-            <Input placeholder="Enter country" autoComplete="country-name" />
+          <Form.Item name="district" hidden rules={[{ required: true, message: 'Please select district' }]}>
+            <Input />
           </Form.Item>
-          
-          <Form.Item
-            name="postalcode"
-            label="Postal Code"
-            rules={[{ required: true, message: 'Please enter postal code' }]}
-          >
-            <Input placeholder="Enter postal code" autoComplete="postal-code" />
+          <Form.Item name="sub_district" hidden rules={[{ required: true, message: 'Please select sub district' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="postalcode" hidden rules={[{ required: true, message: 'Please select postal code' }]}>
+            <Input />
           </Form.Item>
           
           <Form.Item

@@ -16,7 +16,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
 
   // Debug log untuk melihat perubahan state
   useEffect(() => {
-    console.log('Commission rates state updated:', commissionRates);
     // Notify parent component about commission rates change
     if (onCommissionRatesChange) {
       onCommissionRatesChange(commissionRates);
@@ -43,13 +42,8 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
   };
 
   useEffect(() => {
-    console.log('useEffect - accountId:', accountId); // Debug log
-    console.log('useEffect - current commissionRates length:', commissionRates.length); // Debug log
-    console.log('useEffect - initialCommissionRates:', initialCommissionRates); // Debug log
-    
     // If we have initial commission rates from parent, use those first
     if (initialCommissionRates && initialCommissionRates.length > 0 && commissionRates.length === 0) {
-      console.log('Setting initial commission rates from parent');
       setCommissionRates(initialCommissionRates);
       return;
     }
@@ -57,10 +51,8 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
     // Only fetch commission rates if we don't have any in local state
     // This prevents overriding local changes when navigating between tabs
     if (accountId && commissionRates.length === 0) {
-      console.log('Fetching commission rates from backend...');
       fetchCommissionRates();
     } else if (accountId && commissionRates.length > 0) {
-      console.log('Skipping fetch - commission rates already exist in local state');
     }
   }, [accountId, initialCommissionRates]); // Add initialCommissionRates to dependencies
 
@@ -69,7 +61,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
     try {
       setLoading(true);
       const response = await getCommissionRates(accountId);
-      console.log('Commission rates response:', response); // Debug log
       
       // Handle different response structures
       let commissionData = [];
@@ -80,8 +71,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       } else if (response && response.success && Array.isArray(response.data)) {
         commissionData = response.data;
       }
-      
-      console.log('Setting commission rates:', commissionData); // Debug log
       setCommissionRates(commissionData);
     } catch (error) {
       console.error('Error fetching commission rates:', error);
@@ -92,17 +81,14 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
   };
 
   const forceRefreshFromBackend = async () => {
-    console.log('Force refreshing commission rates from backend...');
     setCommissionRates([]); // Clear local state first
     await fetchCommissionRates();
   };
 
   const handleAddCommissionClick = async () => {
-    console.log('=== START handleAddCommissionClick ===');
     try {
       // Validate form first
       const values = await commissionForm.validateFields();
-      console.log('Form validation passed, values:', values);
       
       // Call the submit handler
       await handleSubmitCommission(values);
@@ -110,7 +96,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       console.error('Error in handleAddCommissionClick:', error);
       if (error.errorFields) {
         // Form validation errors
-        console.log('Form validation errors:', error.errorFields);
         message.error('Please fix the form errors');
       } else {
         message.error('Failed to add commission rate');
@@ -119,10 +104,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
   };
 
   const handleSubmitCommission = async (values) => {
-    console.log('=== START handleSubmitCommission ===');
-    console.log('Form values received:', values);
-    console.log('EditingCommission:', editingCommission);
-    
     try {
       setLoading(true);
       
@@ -135,19 +116,15 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
         notes: values.notes || '',
         id: editingCommission?.id || `temp_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`, // More unique ID
       };
-      console.log('Processed commission data:', commissionData);
-      console.log('Commission data ID type:', typeof commissionData.id);
 
       // Update local state first
       let newCommissionRates;
       if (editingCommission) {
-        console.log('Updating existing commission rate in local state');
         newCommissionRates = commissionRates.map(rate => 
           rate.id === editingCommission.id ? { ...rate, ...commissionData } : rate
         );
         message.success('Commission rate updated successfully');
       } else {
-        console.log('Adding new commission rate to local state');
         newCommissionRates = [...commissionRates, commissionData];
         message.success('Commission rate added successfully');
       }
@@ -156,11 +133,8 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       setCommissionRates(newCommissionRates);
       
       // Reset form and editing state
-      console.log('Resetting form and state...');
       commissionForm.resetFields();
       setEditingCommission(null);
-      
-      console.log('=== END handleSubmitCommission (SUCCESS) ===');
       
     } catch (error) {
       console.error('=== ERROR in handleSubmitCommission ===');
@@ -170,12 +144,10 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       message.error(errorMessage);
     } finally {
       setLoading(false);
-      console.log('Loading set to false');
     }
   };
 
   const handleEditCommission = (record) => {
-    console.log('Editing commission record:', record);
     setEditingCommission(record);
     
     // Set form values using setFieldValue method to ensure UI updates
@@ -200,11 +172,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
   };
 
   const handleDeleteCommission = async (id) => {
-    console.log('=== START DELETE COMMISSION ===');
-    console.log('Deleting commission with ID:', id);
-    console.log('Current commission rates:', commissionRates);
-    console.log('Commission rates IDs:', commissionRates.map(r => ({ id: r.id, type: typeof r.id })));
-    
     try {
       setLoading(true);
       
@@ -213,7 +180,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       
       if (!isTemp) {
         // Delete from backend first if it's not a temporary record
-        console.log('Deleting from backend, ID:', id);
         await deleteCommissionRate(id);
         console.log('Successfully deleted from backend');
       } else {
@@ -224,16 +190,10 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       const originalLength = commissionRates.length;
       const newCommissionRates = commissionRates.filter(rate => {
         const shouldKeep = rate.id !== id && rate.id != id; // Use both strict and loose comparison
-        console.log(`Rate ID: ${rate.id} (${typeof rate.id}), Delete ID: ${id} (${typeof id}), Keep: ${shouldKeep}`);
         return shouldKeep;
       });
       
-      console.log('Original length:', originalLength);
-      console.log('New length:', newCommissionRates.length);
-      console.log('Commission rates after deletion:', newCommissionRates);
-      
       if (newCommissionRates.length === originalLength) {
-        console.log('WARNING: No commission rate was deleted - ID not found!');
         message.warning('Commission rate not found');
         return;
       }
@@ -246,7 +206,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       }
       
       message.success('Commission rate deleted successfully');
-      console.log('=== DELETE COMMISSION SUCCESS ===');
     } catch (error) {
       console.error('=== ERROR DELETING COMMISSION ===');
       console.error('Error deleting commission rate:', error);
@@ -461,7 +420,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
         columns={commissionColumns}
         dataSource={commissionRates}
         rowKey={(record) => {
-          console.log('Table rowKey for record:', record.id, typeof record.id);
           return record.id;
         }}
         loading={loading}
