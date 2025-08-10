@@ -7,6 +7,13 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    // Allow specific hosts
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'customer.merahputih-id.com',
+      '.merahputih-id.com', // wildcard untuk subdomain
+    ],
     hmr: {
       port: 5173,
       // Handle both localhost dan custom domain
