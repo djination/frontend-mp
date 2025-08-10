@@ -5,10 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "vite --mode local",
+    "dev:server": "vite --mode server", 
     "build": "vite build",
+    "build:prod": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "serve -s dist -l 3000"
+    "preview:prod": "vite preview --mode production",
+    "start": "serve -s dist -l 3000",
+    "switch:local": "copy .env.local .env.active",
+    "switch:server": "copy .env.server .env.active",
+    "switch:prod": "copy .env.production .env.active"
   },
   "dependencies": {
     "@ant-design/icons": "^6.0.0",

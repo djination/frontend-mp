@@ -44,7 +44,7 @@ axiosInstance.interceptors.response.use(
 const autoLoginForTesting = async () => {
   try {
     if (!localStorage.getItem('token')) {
-      const response = await axios.post('http://localhost:5000/auth/login', {
+      const response = await axios.post(`${baseURL}/auth/login`, {
         username: 'superadmin',
         password: '@Dm1n123!!'
       });
