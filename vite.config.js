@@ -63,6 +63,22 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: !isProduction,
+    minify: isProduction ? 'terser' : false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          antd: ['antd', '@ant-design/icons'],
+          utils: ['axios', 'moment', 'jwt-decode']
+        }
+      }
+    },
+    terserOptions: isProduction ? {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    } : undefined
   },
   // Define globals untuk environment
   define: {
