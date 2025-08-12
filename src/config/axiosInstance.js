@@ -39,25 +39,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-// Temporary auto-login for testing
-const autoLoginForTesting = async () => {
-  try {
-    if (!localStorage.getItem('token')) {
-      const response = await axios.post(`${baseURL}/auth/login`, {
-        username: 'superadmin',
-        password: '@Dm1n123!!'
-      });
-      
-      if (response.data.success) {
-        localStorage.setItem('token', response.data.data.token);
-      }
-    }
-  } catch (error) {
-    console.error('Auto-login failed:', error);
-  }
-};
-
-// Execute auto-login immediately
-autoLoginForTesting();
-
 export default axiosInstance

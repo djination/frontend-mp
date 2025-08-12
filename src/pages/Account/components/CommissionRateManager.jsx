@@ -9,12 +9,47 @@ import {
 } from '../../../api/accountCommissionApi';
 
 const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCategories, onCommissionRatesChange, initialCommissionRates }) => {
-  const [commissionForm] = Form.useForm();
+  const [formValues, setFormValues] = useState({
+    commission_type: '',
+    commission_rate: '',
+    rate_type: 'percentage',
+    territory: '',
+    exclusive: false,
+    notes: ''
+  });
   const [commissionRates, setCommissionRates] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingCommission, setEditingCommission] = useState(null);
 
-  // Debug log untuk melihat perubahan state
+  // Helper functions for form management
+  const getFieldValue = (fieldName) => {
+    return formValues[fieldName];
+  };
+
+  const setFieldValue = (fieldName, value) => {
+    setFormValues(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  const resetFields = () => {
+    setFormValues({
+      commission_type: '',
+      commission_rate: '',
+      rate_type: 'percentage',
+      territory: '',
+      exclusive: false,
+      notes: ''
+    });
+  };
+
+  const setFieldsValue = (values) => {
+    setFormValues(prev => ({
+      ...prev,
+      ...values
+    }));
+  };
   useEffect(() => {
     // Notify parent component about commission rates change
     if (onCommissionRatesChange) {
@@ -87,19 +122,34 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
 
   const handleAddCommissionClick = async () => {
     try {
-      // Validate form first
-      const values = await commissionForm.validateFields();
+      // Manual validation since we're not using Form validation
+      const commissionType = getFieldValue('commission_type');
+      const commissionRate = getFieldValue('commission_rate');
+      
+      if (!commissionType) {
+        message.error('Please select commission type');
+        return;
+      }
+      
+      if (!commissionRate || commissionRate === '') {
+        message.error('Please enter commission rate');
+        return;
+      }
+      
+      const values = {
+        commission_type: commissionType,
+        commission_rate: commissionRate,
+        rate_type: getFieldValue('rate_type'),
+        territory: getFieldValue('territory'),
+        exclusive: getFieldValue('exclusive'),
+        notes: getFieldValue('notes'),
+      };
       
       // Call the submit handler
       await handleSubmitCommission(values);
     } catch (error) {
       console.error('Error in handleAddCommissionClick:', error);
-      if (error.errorFields) {
-        // Form validation errors
-        message.error('Please fix the form errors');
-      } else {
-        message.error('Failed to add commission rate');
-      }
+      message.error('Failed to add commission rate');
     }
   };
 
@@ -133,7 +183,7 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       setCommissionRates(newCommissionRates);
       
       // Reset form and editing state
-      commissionForm.resetFields();
+      resetFields();
       setEditingCommission(null);
       
     } catch (error) {
@@ -150,25 +200,15 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
   const handleEditCommission = (record) => {
     setEditingCommission(record);
     
-    // Set form values using setFieldValue method to ensure UI updates
-    commissionForm.setFieldValue('commission_type', record.commission_type);
-    commissionForm.setFieldValue('commission_rate', record.commission_rate);
-    commissionForm.setFieldValue('rate_type', record.rate_type || 'percentage');
-    commissionForm.setFieldValue('notes', record.notes || '');
-    commissionForm.setFieldValue('territory', record.territory || '');
-    commissionForm.setFieldValue('exclusive', record.exclusive || false);
-    
-    // Force re-render by updating form fields
-    setTimeout(() => {
-      commissionForm.setFieldsValue({
-        commission_type: record.commission_type,
-        commission_rate: record.commission_rate,
-        rate_type: record.rate_type || 'percentage',
-        notes: record.notes || '',
-        territory: record.territory || '',
-        exclusive: record.exclusive || false,
-      });
-    }, 100);
+    // Set form values using our custom helper functions
+    setFieldsValue({
+      commission_type: record.commission_type,
+      commission_rate: record.commission_rate,
+      rate_type: record.rate_type || 'percentage',
+      notes: record.notes || '',
+      territory: record.territory || '',
+      exclusive: record.exclusive || false,
+    });
   };
 
   const handleDeleteCommission = async (id) => {
@@ -287,19 +327,21 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
 
   return (
     <Card title="Commission Rate Management">
-      <Form form={commissionForm} layout="vertical">
+      <div>
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item
-              name="commission_type"
-              label="Commission Type"
-              rules={[{ required: true, message: 'Please select commission type' }]}
-            >
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Commission Type <span style={{ color: '#ff4d4f' }}>*</span>
+              </label>
               <Select 
                 placeholder="Select commission type"
+                value={getFieldValue('commission_type')}
                 onChange={(value) => {
+                  setFieldValue('commission_type', value);
                   console.log('Commission type changed:', value);
                 }}
+                style={{ width: '100%' }}
               >
                 {isReferralCategory(selectedAccountCategories, accountCategories) && (
                   <Select.Option value="referral">Referral</Select.Option>
@@ -308,14 +350,13 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
                   <Select.Option value="location_partner">Location Partner</Select.Option>
                 )}
               </Select>
-            </Form.Item>
+            </div>
           </Col>
           <Col span={8}>
-            <Form.Item
-              name="commission_rate"
-              label="Commission Rate (%)"
-              rules={[{ required: true, message: 'Please enter commission rate' }]}
-            >
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Commission Rate (%) <span style={{ color: '#ff4d4f' }}>*</span>
+              </label>
               <Input 
                 type="number" 
                 placeholder="Enter commission rate" 
@@ -323,69 +364,89 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
                 max="100" 
                 step="0.01"
                 addonAfter="%" 
+                value={getFieldValue('commission_rate')}
+                onChange={(e) => {
+                  setFieldValue('commission_rate', e.target.value);
+                }}
               />
-            </Form.Item>
+            </div>
           </Col>
           <Col span={8}>
-            <Form.Item
-              name="rate_type"
-              label="Rate Type"
-            >
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Rate Type
+              </label>
               <Select 
                 placeholder="Select rate type"
-                defaultValue="percentage"
+                value={getFieldValue('rate_type') || 'percentage'}
+                onChange={(value) => {
+                  setFieldValue('rate_type', value);
+                }}
+                style={{ width: '100%' }}
               >
                 <Select.Option value="percentage">Percentage</Select.Option>
                 <Select.Option value="fixed_amount">Fixed Amount</Select.Option>
                 <Select.Option value="tiered">Tiered</Select.Option>
                 <Select.Option value="revenue_share">Revenue Share</Select.Option>
               </Select>
-            </Form.Item>
+            </div>
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        <Row gutter={16} style={{ marginTop: '16px' }}>
           <Col span={12}>
-            <Form.Item
-              name="territory"
-              label="Territory/Area"
-            >
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Territory/Area
+              </label>
               <Input 
                 placeholder="Enter territory or area coverage"
+                value={getFieldValue('territory')}
+                onChange={(e) => {
+                  setFieldValue('territory', e.target.value);
+                }}
               />
-            </Form.Item>
+            </div>
           </Col>
           <Col span={12}>
-            <Form.Item
-              name="exclusive"
-              label="Exclusive"
-            >
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Exclusive
+              </label>
               <Select 
                 placeholder="Select exclusivity"
-                defaultValue={false}
+                value={getFieldValue('exclusive') !== undefined ? getFieldValue('exclusive') : false}
+                onChange={(value) => {
+                  setFieldValue('exclusive', value);
+                }}
+                style={{ width: '100%' }}
               >
                 <Select.Option value={true}>Exclusive</Select.Option>
                 <Select.Option value={false}>Non-Exclusive</Select.Option>
               </Select>
-            </Form.Item>
+            </div>
           </Col>
         </Row>
 
-        <Row gutter={16}>
+        <Row gutter={16} style={{ marginTop: '16px' }}>
           <Col span={24}>
-            <Form.Item
-              name="notes"
-              label="Notes"
-            >
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Notes
+              </label>
               <Input.TextArea 
                 rows={3} 
                 placeholder="Enter commission calculation notes or special terms"
+                value={getFieldValue('notes')}
+                onChange={(e) => {
+                  setFieldValue('notes', e.target.value);
+                }}
               />
-            </Form.Item>
+            </div>
           </Col>
         </Row>
 
-        <div>
+        <div style={{ marginTop: '16px' }}>
           <Space>
             <Button 
               type="primary" 
@@ -398,7 +459,7 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
             {editingCommission && (
               <Button onClick={() => {
                 setEditingCommission(null);
-                commissionForm.resetFields();
+                resetFields();
               }}>
                 Cancel
               </Button>
@@ -412,7 +473,7 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
             </Button>
           </Space>
         </div>
-      </Form>
+      </div>
 
       <Divider />
 
