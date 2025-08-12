@@ -14,8 +14,15 @@ const config = {
       '.merahputih-id.com', // wildcard untuk subdomain
       'all' // allow all hosts untuk development
     ],
-    // Disable HMR untuk menghindari WebSocket issues
-    hmr: false,
+    // Disable HMR completely untuk menghindari WebSocket issues
+    hmr: {
+      overlay: false,
+      port: false,
+    },
+    watch: {
+      usePolling: true,
+      interval: 100,
+    },
     // Tambahkan cors
     cors: true,
     // Tambahkan strictPort
