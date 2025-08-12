@@ -20,8 +20,8 @@ const config = {
     ],
     // HMR WebSocket config untuk nginx dengan subdomain
     hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : {
-      // Server HMR bind ke localhost saja, client akan connect via nginx proxy
-      port: parseInt(process.env.VITE_HMR_PORT) || 5174,
+      // Server HMR menggunakan port yang sama dengan main server
+      port: parseInt(process.env.VITE_HMR_PORT) || 5173,
       host: '127.0.0.1', // Bind ke localhost saja
       // Client akan connect melalui nginx proxy
       clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 443,
