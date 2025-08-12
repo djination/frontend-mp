@@ -1,8 +1,9 @@
 // Smart vite config that reads from .env files
 // Automatically adapts to environment configuration
 
-// Detect if we're accessing via custom domain
-const isCustomDomain = process.env.VITE_HMR_HOST && process.env.VITE_HMR_HOST !== 'localhost';
+// NOTE: Ada 2 jenis WebSocket:
+// 1. Vite HMR WebSocket (untuk development hot reload) - ini yang kita config di sini
+// 2. Application WebSocket (untuk komunikasi dengan backend) - ini di VITE_WS_URL
 
 const config = {
   plugins: [],
@@ -17,23 +18,28 @@ const config = {
       '.merahputih-id.com', // wildcard untuk subdomain
       'all' // allow all hosts untuk development
     ],
-    // Smart HMR configuration dari .env
-    hmr: {
-      // Use environment variables or fallback to defaults
-      port: parseInt(process.env.VITE_HMR_PORT) || 5173,
-      // For custom domain, use localhost to avoid SSL issues
-      host: process.env.VITE_HMR_HOST || 'localhost',
-      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 5173,
-      // Force HTTP protocol for development
+    // HMR WebSocket config untuk nginx dengan subdomain
+    hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : {
+      // Untuk nginx dengan subdomain, gunakan subdomain tanpa port
+      port: parseInt(process.env.VITE_HMR_PORT) || 80,
+      host: process.env.VITE_HMR_HOST || 'customer.merahputih-id.com',
+      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 80,
+      // Nginx biasanya handle SSL, jadi gunakan ws atau wss sesuai setup
       protocol: 'ws',
     },
-    // Proxy configuration untuk API sesuai .env
+    // Proxy configuration untuk API calls ke backend
     proxy: {
       '/api': {
         target: process.env.VITE_API_BASE_URL || 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      // Proxy untuk application WebSocket ke backend
+      '/ws': {
+        target: process.env.VITE_WS_URL || 'ws://localhost:5000',
+        ws: true,
+        changeOrigin: true,
       }
     },
     // Tambahkan cors
@@ -41,6 +47,10 @@ const config = {
     // Tambahkan strictPort
     strictPort: false,
   },
+  // Tambahkan cors
+  cors: true,
+  // Tambahkan strictPort
+  strictPort: false,
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
@@ -63,7 +73,7 @@ const config = {
     'process.env.VITE_ENV': JSON.stringify(process.env.VITE_ENV || 'development'),
     'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:5000'),
     'process.env.VITE_DEBUG': JSON.stringify(process.env.VITE_DEBUG || 'true'),
-  },
+  }
 }
 
 export default config
