@@ -20,12 +20,12 @@ const config = {
     ],
     // HMR WebSocket config untuk nginx dengan subdomain
     hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : {
-      // Untuk nginx dengan subdomain, gunakan subdomain tanpa port
-      port: parseInt(process.env.VITE_HMR_PORT) || 80,
+      // Untuk nginx dengan subdomain HTTPS, gunakan WSS
+      port: parseInt(process.env.VITE_HMR_PORT) || 443,
       host: process.env.VITE_HMR_HOST || 'customer.merahputih-id.com',
-      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 80,
-      // Nginx biasanya handle SSL, jadi gunakan ws atau wss sesuai setup
-      protocol: 'ws',
+      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 443,
+      // Gunakan WSS untuk HTTPS sites
+      protocol: 'wss',
     },
     // Proxy configuration untuk API calls ke backend
     proxy: {
@@ -47,10 +47,6 @@ const config = {
     // Tambahkan strictPort
     strictPort: false,
   },
-  // Tambahkan cors
-  cors: true,
-  // Tambahkan strictPort
-  strictPort: false,
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
