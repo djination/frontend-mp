@@ -22,9 +22,10 @@ const config = {
     hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : {
       // Server HMR menggunakan port yang sama dengan main server
       port: parseInt(process.env.VITE_HMR_PORT) || 5173,
-      host: '127.0.0.1', // Bind ke localhost saja
+      host: 'localhost', // Bind ke localhost saja
       // Client akan connect melalui nginx proxy
       clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 443,
+      overlay: true, // Enable overlay untuk error HMR
       // Gunakan WSS untuk HTTPS sites (client-side)
       protocol: 'wss',
     },
@@ -43,9 +44,7 @@ const config = {
         changeOrigin: true,
       }
     },
-    // Tambahkan cors
     cors: true,
-    // Tambahkan strictPort
     strictPort: false,
   },
   build: {
