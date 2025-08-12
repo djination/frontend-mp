@@ -10,7 +10,6 @@ axiosInstance.interceptors.request.use(
     const accessToken = localStorage.getItem('token')
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
-      console.log('Authorization header set');
     } else {
       console.log('No token found, skipping Authorization header');
     }
