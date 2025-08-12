@@ -1,6 +1,9 @@
 // Smart vite config that reads from .env files
 // Automatically adapts to environment configuration
 
+// Detect if we're accessing via custom domain
+const isCustomDomain = process.env.VITE_HMR_HOST && process.env.VITE_HMR_HOST !== 'localhost';
+
 const config = {
   plugins: [],
   server: {
@@ -18,8 +21,11 @@ const config = {
     hmr: {
       // Use environment variables or fallback to defaults
       port: parseInt(process.env.VITE_HMR_PORT) || 5173,
-      host: process.env.VITE_HMR_HOST || 'customer.merahputih-id.com',
+      // For custom domain, use localhost to avoid SSL issues
+      host: process.env.VITE_HMR_HOST || 'localhost',
       clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 5173,
+      // Force HTTP protocol for development
+      protocol: 'ws',
     },
     // Proxy configuration untuk API sesuai .env
     proxy: {
