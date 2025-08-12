@@ -1,9 +1,9 @@
 // Smart vite config that reads from .env files
 // Automatically adapts to environment configuration
 
-import { defineConfig } from 'vite';
+const isDevelopment = process.env.VITE_ENV === 'development';
 
-export default defineConfig({
+const config = {
   plugins: [],
   server: {
     host: '0.0.0.0',
@@ -17,15 +17,11 @@ export default defineConfig({
     ],
     // HMR Configuration untuk development dengan nginx proxy
     hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : (
-      process.env.VITE_ENV === 'development' ? {
+      isDevelopment ? {
         // Development dengan nginx SSL proxy
-        port: parseInt(process.env.VITE_HMR_PORT) || 5173,
-        clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 443,
-        host: process.env.VITE_HMR_HOST || 'customer.merahputih-id.com',
-        // Force client to use correct WebSocket URL from env
-        client: {
-          webSocketURL: process.env.VITE_HMR_WS_URL || 'wss://customer.merahputih-id.com'
-        }
+        port: 5173,
+        clientPort: 443,
+        host: 'customer.merahputih-id.com'
       } : {
         // Local development tanpa nginx
         port: 5173,
@@ -70,4 +66,6 @@ export default defineConfig({
     'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:5000'),
     'process.env.VITE_DEBUG': JSON.stringify(process.env.VITE_DEBUG || 'true'),
   }
-});
+}
+
+export default config
