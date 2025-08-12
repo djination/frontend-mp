@@ -1,9 +1,9 @@
 // Smart vite config that reads from .env files
 // Automatically adapts to environment configuration
 
-const { defineConfig } = require('vite');
+import { defineConfig } from 'vite';
 
-module.exports = defineConfig({
+export default defineConfig({
   plugins: [],
   server: {
     host: '0.0.0.0',
@@ -62,12 +62,12 @@ module.exports = defineConfig({
       }
     }
   },
-    define: {
-      __DEV__: process.env.NODE_ENV === 'development',
-      __PROD__: process.env.NODE_ENV === 'production',
-      __LOCAL__: process.env.VITE_ENV === 'local',
-      'process.env.VITE_ENV': JSON.stringify(process.env.VITE_ENV || 'development'),
-      'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:5000'),
-      'process.env.VITE_DEBUG': JSON.stringify(process.env.VITE_DEBUG || 'true'),
-    }
+  define: {
+    __DEV__: process.env.NODE_ENV === 'development',
+    __PROD__: process.env.NODE_ENV === 'production',
+    __LOCAL__: process.env.VITE_ENV === 'local',
+    'process.env.VITE_ENV': JSON.stringify(process.env.VITE_ENV || 'development'),
+    'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:5000'),
+    'process.env.VITE_DEBUG': JSON.stringify(process.env.VITE_DEBUG || 'true'),
+  }
 });
