@@ -1,5 +1,5 @@
-// Temporary vite config that works without local vite installation
-// This is a fallback configuration for deployment
+// Smart vite config that reads from .env files
+// Automatically adapts to environment configuration
 
 const config = {
   plugins: [],
@@ -14,14 +14,21 @@ const config = {
       '.merahputih-id.com', // wildcard untuk subdomain
       'all' // allow all hosts untuk development
     ],
-    // Disable HMR completely untuk menghindari WebSocket issues
+    // Smart HMR configuration dari .env
     hmr: {
-      overlay: false,
-      port: false,
+      // Use environment variables or fallback to defaults
+      port: parseInt(process.env.VITE_HMR_PORT) || 5173,
+      host: process.env.VITE_HMR_HOST || 'customer.merahputih-id.com',
+      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 5173,
     },
-    watch: {
-      usePolling: true,
-      interval: 100,
+    // Proxy configuration untuk API sesuai .env
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      }
     },
     // Tambahkan cors
     cors: true,
@@ -31,7 +38,7 @@ const config = {
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: false,
+    sourcemap: process.env.VITE_DEBUG === 'true',
     minify: 'esbuild',
     rollupOptions: {
       output: {
@@ -43,9 +50,13 @@ const config = {
     }
   },
   define: {
-    __DEV__: true, // Change to true for development
-    __PROD__: false, // Change to false for development
-    __LOCAL__: false,
+    __DEV__: process.env.NODE_ENV === 'development',
+    __PROD__: process.env.NODE_ENV === 'production',
+    __LOCAL__: process.env.VITE_ENV === 'local',
+    // Pass environment variables to client
+    'process.env.VITE_ENV': JSON.stringify(process.env.VITE_ENV || 'development'),
+    'process.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:5000'),
+    'process.env.VITE_DEBUG': JSON.stringify(process.env.VITE_DEBUG || 'true'),
   },
 }
 
