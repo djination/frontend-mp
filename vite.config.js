@@ -20,11 +20,12 @@ const config = {
     ],
     // HMR WebSocket config untuk nginx dengan subdomain
     hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : {
-      // Untuk nginx dengan subdomain HTTPS, gunakan WSS
-      port: parseInt(process.env.VITE_HMR_PORT) || 443,
-      host: process.env.VITE_HMR_HOST || 'customer.merahputih-id.com',
+      // Server HMR bind ke localhost saja, client akan connect via nginx proxy
+      port: parseInt(process.env.VITE_HMR_PORT) || 5174,
+      host: '127.0.0.1', // Bind ke localhost saja
+      // Client akan connect melalui nginx proxy
       clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 443,
-      // Gunakan WSS untuk HTTPS sites
+      // Gunakan WSS untuk HTTPS sites (client-side)
       protocol: 'wss',
     },
     // Proxy configuration untuk API calls ke backend

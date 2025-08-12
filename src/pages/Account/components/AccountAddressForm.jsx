@@ -1,5 +1,5 @@
 // filepath: d:\Dok Pribadi\merahputih\code\frontend\src\pages\Account\components\AccountAddressForm.jsx
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Form, Input, Button, Table, Space, Modal, InputNumber,
   Popconfirm, message 
@@ -292,12 +292,5 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
     </div>
   );
 };
-
-// AccountAddressForm.defaultProps = {
-//   addresses: PropTypes.array,
-//   onChange: PropTypes.func.isRequired,
-//   accountId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-//   isEdit: PropTypes.bool.isRequired,
-// };
 
 export default AccountAddressForm;

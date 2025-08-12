@@ -1,5 +1,5 @@
+import React, { useEffect } from 'react';
 import { Form, Input, Select, Button, Space, Checkbox } from 'antd';
-import { React, useEffect } from 'react';
 
 const CdmProviderForm = ({ cdmProvider, onSubmit, onCancel, allCdmProviders }) => {
   const [form] = Form.useForm();
