@@ -6,6 +6,24 @@ const config = {
   server: {
     host: '0.0.0.0',
     port: 5173,
+    // Tambahkan allowedHosts
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'customer.merahputih-id.com',
+      '.merahputih-id.com', // wildcard untuk subdomain
+      'all' // allow all hosts untuk development
+    ],
+    // Fix HMR untuk custom domain
+    hmr: {
+      host: 'customer.merahputih-id.com',
+      port: 5173,
+      clientPort: 5173,
+    },
+    // Tambahkan cors
+    cors: true,
+    // Tambahkan strictPort
+    strictPort: false,
   },
   build: {
     outDir: 'dist',
@@ -22,8 +40,8 @@ const config = {
     }
   },
   define: {
-    __DEV__: false,
-    __PROD__: true,
+    __DEV__: true, // Change to true for development
+    __PROD__: false, // Change to false for development
     __LOCAL__: false,
   },
 }
