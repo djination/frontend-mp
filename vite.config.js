@@ -1,8 +1,6 @@
 // Smart vite config that reads from .env files
 // Automatically adapts to environment configuration
 
-const isDevelopment = process.env.VITE_ENV === 'development';
-
 const config = {
   plugins: [],
   server: {
@@ -15,19 +13,19 @@ const config = {
       '.merahputih-id.com',
       'all'
     ],
-    // HMR Configuration untuk development dengan nginx proxy
-    hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : (
-      isDevelopment ? {
-        // Development dengan nginx SSL proxy
-        port: 5173,
+    // HMR Configuration yang smart berdasarkan environment
+    hmr: process.env.VITE_DISABLE_HMR === 'true' ? false : {
+      port: parseInt(process.env.VITE_HMR_PORT) || 5173,
+      host: process.env.VITE_HMR_HOST || 'localhost',
+      clientPort: parseInt(process.env.VITE_HMR_CLIENT_PORT) || 5173,
+      // Auto-detect protocol berdasarkan environment
+      ...(process.env.VITE_ENV === 'development' && {
+        // Untuk server development dengan nginx + SSL
+        host: 'customer.merahputih-id.com',
         clientPort: 443,
-        host: 'customer.merahputih-id.com'
-      } : {
-        // Local development tanpa nginx
-        port: 5173,
-        host: 'localhost'
-      }
-    ),
+      }),
+      overlay: true,
+    },
     proxy: {
       '/api': {
         target: process.env.VITE_API_BASE_URL || 'http://localhost:5000',
