@@ -4,18 +4,21 @@ import axios from 'axios'
 const getBaseURL = () => {
   // Priority: env var > production default > localhost
   const envURL = import.meta.env.VITE_API_BASE_URL;
-  const prodURL = 'http://localhost:3000/api';  // Backend NestJS di be-nest-mp
-  const devURL = 'http://localhost:3000/api';
+  const prodURL = 'https://bc.merahputih-id.com/api';  // Backend production
+  const devURL = 'http://localhost:5000/api';
   
   if (envURL) {
+    console.log('🔍 Using env URL:', envURL);
     return envURL;
   }
   
   // Check if we're in production
   if (import.meta.env.PROD) {
+    console.log('🔍 Using production URL:', prodURL);
     return prodURL;
   }
   
+  console.log('🔍 Using development URL:', devURL);
   return devURL;
 };
 

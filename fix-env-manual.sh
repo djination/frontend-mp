@@ -1,6 +1,5 @@
 #!/bin/bash
-# Simple ESBuild script untuk server production
-# Bypass Qt/OpenGL issues sepenuhnya
+# Manual fix untuk environment variables yang tidak terbaca
 
 set -e
 
@@ -10,24 +9,19 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${YELLOW}🔨 Building with ESBuild (Qt/OpenGL free)...${NC}"
+echo -e "${YELLOW}🔧 Manual Fix: Force Environment Variables...${NC}"
 
-# Set environment
-export NODE_ENV=production
-export CI=true
-
-# Clean and create dist
+# Clean build
 rm -rf dist/
 mkdir -p dist
 
 # Copy public files
 if [ -d "public" ]; then
-    echo -e "${YELLOW}Copying public files...${NC}"
     cp -r public/* dist/ 2>/dev/null || true
 fi
 
-# Build with esbuild
-echo -e "${YELLOW}Building JavaScript bundle...${NC}"
+# Build with explicitly defined environment variables
+echo -e "${YELLOW}Building with forced environment variables...${NC}"
 npx esbuild src/main.jsx \
     --bundle \
     --outfile=dist/main.js \
@@ -41,20 +35,15 @@ npx esbuild src/main.jsx \
     --loader:.png=file \
     --loader:.jpg=file \
     --loader:.svg=file \
-    --loader:.gif=file \
-    --loader:.webp=file \
     --define:process.env.NODE_ENV='"production"' \
     --define:import.meta.env.VITE_API_BASE_URL='"https://bc.merahputih-id.com/api"' \
     --define:import.meta.env.VITE_BASE_URL='"https://bc.merahputih-id.com"' \
     --define:import.meta.env.VITE_ENV='"production"' \
     --define:import.meta.env.MODE='"production"' \
     --define:import.meta.env.PROD='true' \
-    --define:global=globalThis \
-    --jsx-factory=React.createElement \
-    --jsx-fragment=React.Fragment
+    --define:global=globalThis
 
 # Create index.html
-echo -e "${YELLOW}Creating index.html...${NC}"
 cat > dist/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
@@ -88,22 +77,21 @@ cat > dist/index.html << 'EOF'
 </html>
 EOF
 
+# Verify URLs in build
+echo -e "${YELLOW}Verifying build contains correct URLs...${NC}"
+if grep -q "bc.merahputih-id.com" dist/main.js; then
+    echo -e "${GREEN}✅ Build contains bc.merahputih-id.com${NC}"
+else
+    echo -e "${RED}❌ Build missing bc.merahputih-id.com${NC}"
+    echo "URLs found:"
+    grep -o '"[^"]*merahputih[^"]*"' dist/main.js | head -5
+fi
+
 # Set permissions
 chmod -R 755 dist/
 
-# Verify build
-if [ -f "dist/main.js" ] && [ -f "dist/index.html" ]; then
-    echo -e "${GREEN}✅ ESBuild completed successfully!${NC}"
-    
-    # Show build info
-    echo -e "${YELLOW}Build summary:${NC}"
-    ls -lah dist/
-    echo ""
-    echo -e "${YELLOW}Build size:${NC}"
-    du -sh dist/
-    
-    echo -e "${GREEN}🎉 Build ready for deployment!${NC}"
-else
-    echo -e "${RED}❌ Build verification failed${NC}"
-    exit 1
-fi
+# Reload nginx
+sudo systemctl reload nginx
+
+echo -e "${GREEN}🎉 Manual fix completed!${NC}"
+echo -e "${YELLOW}Test: https://customer.merahputih-id.com${NC}"
