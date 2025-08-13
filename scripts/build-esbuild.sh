@@ -56,13 +56,33 @@ npx esbuild src/main.jsx \
 # Create a comprehensive CSS file with Ant Design styles
 echo -e "${YELLOW}Creating CSS file with Ant Design styles...${NC}"
 cat > dist/main.css << 'EOF'
-/* Ant Design Base Styles */
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f2f5;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Ant Design Layout Styles */
 .ant-layout {
   display: flex;
   flex: auto;
   flex-direction: column;
-  min-height: 0;
+  min-height: 100vh;
   background: #f0f2f5;
+}
+
+.ant-layout-has-sider {
+  flex-direction: row;
 }
 
 .ant-layout-sider {
@@ -70,8 +90,39 @@ cat > dist/main.css << 'EOF'
   min-width: 0;
   background: #001529;
   transition: all 0.2s;
+  flex: 0 0 200px;
+  max-width: 200px;
+  min-width: 200px;
+  width: 200px;
 }
 
+.ant-layout-sider-collapsed {
+  flex: 0 0 80px;
+  max-width: 80px;
+  min-width: 80px;
+  width: 80px;
+}
+
+.ant-layout-header {
+  position: relative;
+  padding: 0 50px;
+  color: rgba(0, 0, 0, 0.85);
+  line-height: 64px;
+  height: 64px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+}
+
+.ant-layout-content {
+  flex: auto;
+  min-height: 0;
+  background: #fff;
+  padding: 24px;
+  margin: 24px;
+  border-radius: 6px;
+}
+
+/* Ant Design Menu Styles */
 .ant-menu {
   box-sizing: border-box;
   margin: 0;
@@ -81,7 +132,7 @@ cat > dist/main.css << 'EOF'
   list-style: none;
   background: #001529;
   outline: none;
-  border-right: 1px solid #f0f0f0;
+  border-right: none;
   transition: background 0.3s, width 0.3s cubic-bezier(0.2, 0, 0, 1) 0s;
 }
 
@@ -90,36 +141,62 @@ cat > dist/main.css << 'EOF'
   background: #001529;
 }
 
+.ant-menu-dark .ant-menu-item,
+.ant-menu-dark .ant-menu-submenu-title {
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .ant-menu-item {
   position: relative;
   display: block;
   margin: 0;
-  padding: 0 20px;
+  padding: 0 24px;
   white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s, padding 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  border-bottom: none;
+  line-height: 40px;
+  height: 40px;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.ant-menu-item-selected {
+  color: #1890ff !important;
+  background-color: #e6f7ff;
+  border-right: 3px solid #1890ff;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: #1890ff;
+  color: #fff !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background-color: transparent;
+  color: #1890ff;
+}
+
+.ant-menu-submenu-title {
+  position: relative;
+  display: block;
+  padding: 0 24px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 40px;
+  height: 40px;
   cursor: pointer;
   transition: border-color 0.3s, background 0.3s, padding 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 
-.ant-menu-item-selected {
-  color: #1890ff;
-  background-color: #e6f7ff;
+.ant-menu-submenu-arrow {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  font-size: 12px;
 }
 
-.ant-layout-header {
-  position: relative;
-  padding: 0 50px;
-  color: rgba(0, 0, 0, 0.85);
-  line-height: 64px;
-  background: #fff;
-}
-
-.ant-layout-content {
-  flex: auto;
-  min-height: 0;
-  background: #fff;
-  padding: 24px;
-}
-
+/* Form Styles */
 .ant-form {
   box-sizing: border-box;
   margin: 0;
@@ -142,6 +219,8 @@ cat > dist/main.css << 'EOF'
   white-space: nowrap;
   text-align: right;
   vertical-align: middle;
+  padding: 0 0 0 12px;
+  line-height: 32px;
 }
 
 .ant-input {
@@ -156,8 +235,18 @@ cat > dist/main.css << 'EOF'
   border: 1px solid #d9d9d9;
   border-radius: 6px;
   transition: all 0.3s;
+  width: 100%;
+  min-height: 32px;
 }
 
+.ant-input:focus {
+  border-color: #40a9ff;
+  border-right-width: 1px;
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Button Styles */
 .ant-btn {
   line-height: 1.5715;
   position: relative;
@@ -181,6 +270,11 @@ cat > dist/main.css << 'EOF'
   border-color: #d9d9d9;
 }
 
+.ant-btn:hover {
+  color: #40a9ff;
+  border-color: #40a9ff;
+}
+
 .ant-btn-primary {
   color: #fff;
   background: #1890ff;
@@ -189,6 +283,13 @@ cat > dist/main.css << 'EOF'
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
 }
 
+.ant-btn-primary:hover {
+  color: #fff;
+  background: #40a9ff;
+  border-color: #40a9ff;
+}
+
+/* Table Styles */
 .ant-table {
   box-sizing: border-box;
   margin: 0;
@@ -198,6 +299,8 @@ cat > dist/main.css << 'EOF'
   line-height: 1.5715;
   list-style: none;
   position: relative;
+  border-radius: 6px;
+  background: #fff;
 }
 
 .ant-table-thead > tr > th {
@@ -218,6 +321,11 @@ cat > dist/main.css << 'EOF'
   transition: background 0.3s;
 }
 
+.ant-table-tbody > tr:hover > td {
+  background: #fafafa;
+}
+
+/* Select Styles */
 .ant-select {
   box-sizing: border-box;
   margin: 0;
@@ -229,6 +337,7 @@ cat > dist/main.css << 'EOF'
   position: relative;
   display: inline-block;
   cursor: pointer;
+  width: 100%;
 }
 
 .ant-select-selector {
@@ -238,17 +347,65 @@ cat > dist/main.css << 'EOF'
   border-radius: 6px;
   transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
   padding: 4px 11px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
 }
 
-/* Fix for dark menu */
-.ant-menu-dark .ant-menu-item:hover {
-  background-color: transparent;
-  color: #1890ff;
+.ant-select:hover .ant-select-selector {
+  border-color: #40a9ff;
 }
 
-.ant-menu-dark .ant-menu-item-selected {
-  background-color: #1890ff;
-  color: #fff;
+/* Login page specific styles */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-form {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-form h1 {
+  text-align: center;
+  margin-bottom: 24px;
+  color: #262626;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+  
+  .ant-layout-sider.ant-layout-sider-collapsed {
+    transform: translateX(0);
+  }
+  
+  .ant-layout-header {
+    padding: 0 16px;
+  }
+  
+  .ant-layout-content {
+    margin: 16px;
+    padding: 16px;
+  }
 }
 EOF
 
