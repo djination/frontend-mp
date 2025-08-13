@@ -36,7 +36,7 @@ npx esbuild src/main.jsx \
     --loader:.jpg=file \
     --loader:.svg=file \
     --define:process.env.NODE_ENV='"production"' \
-    --define:import.meta.env.VITE_API_BASE_URL='"https://bc.merahputih-id.com/api"' \
+    --define:import.meta.env.VITE_API_BASE_URL='"https://bc.merahputih-id.com"' \
     --define:import.meta.env.VITE_BASE_URL='"https://bc.merahputih-id.com"' \
     --define:import.meta.env.VITE_ENV='"production"' \
     --define:import.meta.env.MODE='"production"' \

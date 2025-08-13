@@ -16,7 +16,7 @@ echo -e "${YELLOW}Step 1: Cleaning previous build...${NC}"
 rm -rf dist/
 
 # Step 2: Rebuild with fixed env vars
-echo -e "${YELLOW}Step 2: Rebuilding with backend: https://bc.merahputih-id.com/api${NC}"
+echo -e "${YELLOW}Step 2: Rebuilding with backend: https://bc.merahputih-id.com${NC}"
 ./build-esbuild.sh
 
 # Step 3: Test if build contains correct URLs
@@ -40,6 +40,6 @@ sudo systemctl reload nginx
 echo -e "${GREEN}🎉 Quick fix completed!${NC}"
 echo -e "${YELLOW}Test URLs:${NC}"
 echo "- Frontend: https://customer.merahputih-id.com"
-echo "- Backend API: https://bc.merahputih-id.com/api"
+echo "- Backend API: https://bc.merahputih-id.com"
 echo ""
 echo -e "${YELLOW}Check browser console for any remaining errors${NC}"

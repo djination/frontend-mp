@@ -25,7 +25,7 @@ if [ "$1" = "remote" ]; then
     sed -i 's|localhost:5000|bc.merahputih-id.com|g' esbuild.config.js
     
     echo -e "${GREEN}✅ Switched to REMOTE backend${NC}"
-    echo -e "${YELLOW}Backend: https://bc.merahputih-id.com/api${NC}"
+    echo -e "${YELLOW}Backend: https://bc.merahputih-id.com${NC}"
     
 elif [ "$1" = "local" ]; then
     echo -e "${YELLOW}🔄 Switching to LOCAL backend (localhost:5000)...${NC}"

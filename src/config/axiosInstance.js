@@ -4,8 +4,8 @@ import axios from 'axios'
 const getBaseURL = () => {
   // Priority: env var > production default > localhost
   const envURL = import.meta.env.VITE_API_BASE_URL;
-  const prodURL = 'https://bc.merahputih-id.com/api';  // Backend production
-  const devURL = 'http://localhost:5000/api';
+  const prodURL = 'https://bc.merahputih-id.com';  // Backend production
+  const devURL = 'http://localhost:5000';
   
   if (envURL) {
     console.log('🔍 Using env URL:', envURL);
