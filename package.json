@@ -18,6 +18,7 @@
     "deploy:server": "./deploy-server.sh",
     "fix": "./quick-fix.sh",
     "fix:manual": "./fix-env-manual.sh",
+    "fix:nginx": "./nginx-fix.sh",
     "start:dev": "./start-dev.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

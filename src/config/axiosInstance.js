@@ -24,14 +24,14 @@ const getBaseURL = () => {
 
 const baseURL = getBaseURL();
 
-console.log('🔍 [DEBUG] Axios baseURL resolved:', baseURL);
-console.log('🔍 [DEBUG] Environment info:', {
-  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-  VITE_BASE_URL: import.meta.env.VITE_BASE_URL,
-  VITE_ENV: import.meta.env.VITE_ENV,
-  MODE: import.meta.env.MODE,
-  PROD: import.meta.env.PROD
-});
+// console.log('🔍 [DEBUG] Axios baseURL resolved:', baseURL);
+// console.log('🔍 [DEBUG] Environment info:', {
+//   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+//   VITE_BASE_URL: import.meta.env.VITE_BASE_URL,
+//   VITE_ENV: import.meta.env.VITE_ENV,
+//   MODE: import.meta.env.MODE,
+//   PROD: import.meta.env.PROD
+// });
 
 const axiosInstance = axios.create({
   baseURL: baseURL,
@@ -39,16 +39,11 @@ const axiosInstance = axios.create({
 })
 
 axiosInstance.interceptors.request.use(
-  config => {
-    console.log('🔍 [DEBUG] Making request to:', config.url);
-    console.log('🔍 [DEBUG] Full URL will be:', config.baseURL + config.url);
-    
+  config => {    
     const accessToken = localStorage.getItem('token')
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
-    } else {
-      console.log('No token found, skipping Authorization header');
-    }
+    } 
     return config
   },
   error => {
