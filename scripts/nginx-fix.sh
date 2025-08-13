@@ -13,7 +13,7 @@ echo -e "${YELLOW}🔧 Fixing Nginx Configuration untuk CSS/Static Assets...${NC
 
 # Step 1: Update nginx config
 echo -e "${YELLOW}Step 1: Applying nginx configuration...${NC}"
-sudo cp nginx-static-production.conf /etc/nginx/sites-available/frontend.conf
+sudo cp nginx-frontend.conf /etc/nginx/sites-available/frontend.conf
 
 # Step 2: Test nginx config
 echo -e "${YELLOW}Step 2: Testing nginx configuration...${NC}"
