@@ -122,35 +122,41 @@ body {
   border-radius: 6px;
 }
 
-/* Ant Design Menu Styles */
-.ant-menu {
+/* Ant Design Menu Styles - Updated untuk CSS-in-JS */
+.ant-menu,
+ul[class*="ant-menu"] {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-size: 14px;
   line-height: 0;
   list-style: none;
-  background: #001529;
+  background: rgb(30, 58, 138) !important; /* Match dengan background yang dipakai */
   outline: none;
   border-right: none;
   transition: background 0.3s, width 0.3s cubic-bezier(0.2, 0, 0, 1) 0s;
 }
 
-.ant-menu-dark {
+.ant-menu-dark,
+ul[class*="ant-menu-dark"] {
   color: rgba(255, 255, 255, 0.65);
-  background: #001529;
+  background: rgb(30, 58, 138) !important;
 }
 
 .ant-menu-dark .ant-menu-item,
-.ant-menu-dark .ant-menu-submenu-title {
-  color: rgba(255, 255, 255, 0.65);
+.ant-menu-dark .ant-menu-submenu-title,
+ul[class*="ant-menu-dark"] li[class*="ant-menu-item"],
+ul[class*="ant-menu-dark"] div[class*="ant-menu-submenu-title"] {
+  color: rgba(255, 255, 255, 0.65) !important;
+  background: rgb(30, 58, 138) !important;
 }
 
-.ant-menu-item {
+.ant-menu-item,
+li[class*="ant-menu-item"] {
   position: relative;
   display: block;
   margin: 0;
-  padding: 0 24px;
+  padding: 0 24px !important;
   white-space: nowrap;
   cursor: pointer;
   transition: border-color 0.3s, background 0.3s, padding 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
@@ -159,33 +165,39 @@ body {
   height: 40px;
   font-size: 14px;
   overflow: hidden;
+  background: rgb(30, 58, 138) !important;
 }
 
-.ant-menu-item-selected {
+.ant-menu-item-selected,
+li[class*="ant-menu-item-selected"] {
   color: #1890ff !important;
-  background-color: #e6f7ff;
+  background-color: #e6f7ff !important;
   border-right: 3px solid #1890ff;
 }
 
-.ant-menu-dark .ant-menu-item-selected {
-  background-color: #1890ff;
+.ant-menu-dark .ant-menu-item-selected,
+ul[class*="ant-menu-dark"] li[class*="ant-menu-item-selected"] {
+  background-color: #1890ff !important;
   color: #fff !important;
 }
 
-.ant-menu-dark .ant-menu-item:hover {
-  background-color: transparent;
-  color: #1890ff;
+.ant-menu-dark .ant-menu-item:hover,
+ul[class*="ant-menu-dark"] li[class*="ant-menu-item"]:hover {
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  color: #1890ff !important;
 }
 
-.ant-menu-submenu-title {
+.ant-menu-submenu-title,
+div[class*="ant-menu-submenu-title"] {
   position: relative;
   display: block;
-  padding: 0 24px;
-  color: rgba(255, 255, 255, 0.65);
+  padding: 0 24px !important;
+  color: rgba(255, 255, 255, 0.65) !important;
   line-height: 40px;
   height: 40px;
   cursor: pointer;
   transition: border-color 0.3s, background 0.3s, padding 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
+  background: rgb(30, 58, 138) !important;
 }
 
 .ant-menu-submenu-arrow {
