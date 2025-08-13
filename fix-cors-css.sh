@@ -14,44 +14,6 @@ echo -e "${YELLOW}🔧 Fixing CORS + CSS untuk Production Perfect Match${NC}"
 echo -e "${YELLOW}Step 1: Update backend CORS configuration...${NC}"
 echo -e "${YELLOW}Backend perlu di-update untuk allow origin: https://customer.merahputih-id.com${NC}"
 
-# Create script for backend CORS fix
-cat > ../backend-cors-fix.md << 'EOF'
-# Backend CORS Fix Required
-
-Backend NestJS perlu update CORS configuration:
-
-## File: src/main.ts
-
-```typescript
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
-  // Enable CORS with specific origins
-  app.enableCors({
-    origin: [
-      'https://customer.merahputih-id.com',
-      'http://localhost:5173',
-      'http://localhost:3000'
-    ],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-  });
-
-  await app.listen(5000);
-}
-```
-
-## Commands for backend:
-```bash
-cd be-nest-mp/
-npm run build
-pm2 restart backend
-```
-EOF
-
 echo -e "${GREEN}✅ Backend CORS fix instructions created${NC}"
 
 echo -e "${YELLOW}Step 2: Build dengan environment yang benar...${NC}"
