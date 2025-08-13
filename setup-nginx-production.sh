@@ -33,9 +33,17 @@ echo -e "${YELLOW}Setting up main site configuration...${NC}"
 cp nginx-simple.conf /etc/nginx/sites-available/frontend.conf
 
 # Enable site if not already enabled
-if [ ! -L "/etc/nginx/sites-enabled/customer.merahputih-id.com" ]; then
+if [ ! -L "/etc/nginx/sites-enabled/frontend.conf" ]; then
     echo -e "${YELLOW}Enabling site...${NC}"
-    ln -s /etc/nginx/sites-available/frontend.conf /etc/nginx/sites-enabled/
+    ln -s /etc/nginx/sites-available/frontend.conf /etc/nginx/sites-enabled/frontend.conf
+else
+    echo -e "${GREEN}✅ Site already enabled${NC}"
+fi
+
+# Remove old symbolic link if exists with different name
+if [ -L "/etc/nginx/sites-enabled/frontend.conf" ]; then
+    echo -e "${YELLOW}Removing old symbolic link...${NC}"
+    rm -f /etc/nginx/sites-enabled/frontend.conf
 fi
 
 # Test nginx configuration

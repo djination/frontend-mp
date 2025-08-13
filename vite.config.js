@@ -1,13 +1,14 @@
 // Smart vite config that reads from .env files
 // Automatically adapts to environment configuration
-import { loadEnv } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
+import react from '@vitejs/plugin-react'
 
-export default ({ mode }) => {
+export default defineConfig(({ mode }) => {
   // Load environment variables based on mode
   const env = loadEnv(mode, process.cwd(), '')
   
   const config = {
-    plugins: [],
+    plugins: [react()],
     server: {
       host: '0.0.0.0',
       port: 5173,
@@ -72,4 +73,4 @@ export default ({ mode }) => {
   }
 
   return config
-}
+})
