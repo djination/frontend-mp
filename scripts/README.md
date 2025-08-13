@@ -2,9 +2,27 @@
 
 Folder ini berisi script-script untuk development dan deployment.
 
+
 ## 🚀 Production Scripts (Yang Aktif Dipakai)
 
-### `server-deploy.sh` 
+### `deploy-frontend-pm2.sh`
+**Script deployment otomatis dengan PM2**
+- Jalankan di server setelah `git pull`
+- Handle: nvm use, install dependencies, build, start/restart PM2
+- Logging dan error handling
+- Command: `./deploy-frontend-pm2.sh`
+
+### `quick-deploy.sh`
+**Script deployment cepat**
+- Jalankan build dan restart PM2 secara singkat
+- Command: `./quick-deploy.sh`
+
+### `ecosystem.config.js`
+**Konfigurasi PM2 ecosystem**
+- Untuk manajemen proses production
+- Command: `pm2 start ecosystem.config.js`
+
+### `server-deploy.sh`
 **Auto deploy script untuk server**
 - Jalankan di server setelah `git pull`
 - Handle: install dependencies, build, deploy ke nginx, backup
@@ -21,6 +39,7 @@ Folder ini berisi script-script untuk development dan deployment.
 - Menampilkan step-by-step deployment
 - Untuk referensi jika perlu deploy manual
 - Command: `./scripts/git-deploy-workflow.sh`
+
 
 ## 🛠️ Development Scripts
 
