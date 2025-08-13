@@ -35,7 +35,7 @@ log "Dependencies installed"
 
 # Step 3: Build production
 log "Building production files..."
-npm run build
+npm run build:server
 if [ ! -d "dist" ]; then
     log "ERROR: Build failed - dist directory not found"
     exit 1
