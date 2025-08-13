@@ -292,7 +292,7 @@ EOF
 chmod -R 755 dist/
 
 # Verify build
-if [ -f "dist/main.jsx" ] && [ -f "dist/index.html" ] && [ -f "dist/main.css" ]; then
+if [ -f "dist/main.js" ] && [ -f "dist/index.html" ] && [ -f "dist/main.css" ]; then
     echo -e "${GREEN}✅ ESBuild completed successfully!${NC}"
     
     # Show build info
