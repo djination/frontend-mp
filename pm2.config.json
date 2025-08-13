@@ -1,0 +1,62 @@
+{
+  "apps": [
+    {
+      "name": "merahputih-frontend",
+      "script": "serve",
+      "args": "dist -s -l 3000",
+      "cwd": "/var/www/customerdb/frontend-mp",
+      "instances": 1,
+      "exec_mode": "fork",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+        "VITE_API_BASE_URL": "https://bc.merahputih-id.com",
+        "VITE_BASE_URL": "https://bc.merahputih-id.com"
+      },
+      "log_type": "json",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "error_file": "/var/log/pm2/merahputih-frontend-error.log",
+      "out_file": "/var/log/pm2/merahputih-frontend-out.log",
+      "log_file": "/var/log/pm2/merahputih-frontend-combined.log",
+      "time": true,
+      "autorestart": true,
+      "max_restarts": 10,
+      "min_uptime": "10s",
+      "restart_delay": 2000,
+      "watch": false,
+      "max_memory_restart": "512M",
+      "kill_timeout": 3000,
+      "listen_timeout": 5000
+    },
+    {
+      "name": "merahputih-backend",
+      "script": "main.js",
+      "cwd": "/var/www/bc.merahputih-id.com",
+      "instances": 1,
+      "exec_mode": "cluster",
+      "env_file": "/var/www/customerdb/backend/.env",
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "log_type": "json",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "error_file": "/var/log/pm2/merahputih-backend-error.log",
+      "out_file": "/var/log/pm2/merahputih-backend-out.log",
+      "log_file": "/var/log/pm2/merahputih-backend-combined.log",
+      "time": true,
+      "autorestart": true,
+      "max_restarts": 10,
+      "min_uptime": "10s",
+      "restart_delay": 4000,
+      "watch": false,
+      "ignore_watch": [
+        "node_modules",
+        "uploads",
+        "logs"
+      ],
+      "max_memory_restart": "1G",
+      "kill_timeout": 5000,
+      "listen_timeout": 8000
+    }
+  ]
+}
