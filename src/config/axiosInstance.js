@@ -8,30 +8,17 @@ const getBaseURL = () => {
   const devURL = 'http://localhost:5000';
   
   if (envURL) {
-    console.log('🔍 Using env URL:', envURL);
     return envURL;
   }
   
   // Check if we're in production
   if (import.meta.env.PROD) {
-    console.log('🔍 Using production URL:', prodURL);
     return prodURL;
   }
-  
-  console.log('🔍 Using development URL:', devURL);
   return devURL;
 };
 
 const baseURL = getBaseURL();
-
-// console.log('🔍 [DEBUG] Axios baseURL resolved:', baseURL);
-// console.log('🔍 [DEBUG] Environment info:', {
-//   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-//   VITE_BASE_URL: import.meta.env.VITE_BASE_URL,
-//   VITE_ENV: import.meta.env.VITE_ENV,
-//   MODE: import.meta.env.MODE,
-//   PROD: import.meta.env.PROD
-// });
 
 const axiosInstance = axios.create({
   baseURL: baseURL,

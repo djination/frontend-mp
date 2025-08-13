@@ -71,11 +71,9 @@ const TypeOfBusinessSelector = ({
             }
           }
           setInitialized(true);
-          console.log('🔍 [DEBUG] Component initialized successfully');
         } catch (error) {
           console.error('Error initializing type of business:', error);
           setInitialized(true); // Still set initialized to true even on error
-          console.log('🔍 [DEBUG] Component initialized with error, but marked as initialized');
         }
       }
     };
@@ -119,16 +117,10 @@ const TypeOfBusinessSelector = ({
 
   // Load child types when parent changes
   useEffect(() => {
-    console.log('🔍 [DEBUG] useEffect triggered - selectedParent:', selectedParent, 'initialized:', initialized);
-    
     if (selectedParent && initialized) {
-      console.log('🔍 [DEBUG] Calling fetchChildTypes because parent is selected and initialized');
       fetchChildTypes(selectedParent);
-    } else if (selectedParent && !initialized) {
-      console.log('🔍 [DEBUG] Parent selected but not initialized yet, will be handled by initialization effect');
-      // This will be handled by the initialization effect
     } else {
-      console.log('🔍 [DEBUG] Clearing child types - no parent selected or not initialized');
+      // Clear child types if no parent is selected or not initialized
       setChildTypes([]);
       setSelectedChild(null);
       setSelectedChildData(null);
@@ -166,14 +158,8 @@ const TypeOfBusinessSelector = ({
   const fetchChildTypes = async (parentId) => {
     try {
       setChildLoading(true);
-      console.log('🔍 [DEBUG] Fetching child types for parent:', parentId);
-      
       const response = await getChildBusinessTypes(parentId);
       const newChildTypes = response?.data || [];
-      
-      console.log('🔍 [DEBUG] API Response:', response);
-      console.log('🔍 [DEBUG] Child types received:', newChildTypes);
-      console.log('🔍 [DEBUG] Number of child types:', newChildTypes.length);
       
       setChildTypes(newChildTypes);
       
@@ -181,12 +167,10 @@ const TypeOfBusinessSelector = ({
       if (selectedChild && newChildTypes.length > 0) {
         const childExists = newChildTypes.find(child => child.id === selectedChild);
         if (!childExists) {
-          console.log('🔍 [DEBUG] Selected child not found in new types, resetting');
           setSelectedChild(null);
           setSelectedChildData(null);
           setStableValue(null);
         } else {
-          console.log('🔍 [DEBUG] Selected child found, updating data');
           // Force update selectedChildData dari new data
           setSelectedChildData(childExists);
         }
@@ -201,8 +185,6 @@ const TypeOfBusinessSelector = ({
   };
 
   const handleParentChange = (parentId) => {
-    console.log('🔍 [DEBUG] Parent selected:', parentId);
-    
     setSelectedParent(parentId);
     setSelectedChild(null);
     setSelectedChildData(null);
@@ -216,7 +198,6 @@ const TypeOfBusinessSelector = ({
 
     // FORCE fetch child types immediately, regardless of initialized state
     if (parentId) {
-      console.log('🔍 [DEBUG] Force fetching child types immediately');
       fetchChildTypes(parentId);
     }
 
@@ -322,7 +303,7 @@ const TypeOfBusinessSelector = ({
             onChange={handleChildChange}
             showSearch
             optionFilterProp="label"
-            onDropdownVisibleChange={(open) => {
+            onOpenChange={(open) => {
               if (open) {
                 console.log('🔍 [DEBUG] Child dropdown opened');
                 console.log('🔍 [DEBUG] Current childTypes:', childTypes);
