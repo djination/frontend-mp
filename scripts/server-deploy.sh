@@ -35,7 +35,7 @@ log "Dependencies installed"
 
 # Step 3: Build production
 log "Building production files..."
-npm run build:server
+npm run build:esbuild
 if [ ! -d "dist" ]; then
     log "ERROR: Build failed - dist directory not found"
     exit 1
@@ -70,10 +70,16 @@ else
     log "✗ index.html not found"
 fi
 
-if [ -d "$NGINX_WEB_ROOT/assets" ]; then
-    log "✓ assets directory found"
+if [ -f "$NGINX_WEB_ROOT/main.js" ]; then
+    log "✓ main.js found"
 else
-    log "✗ assets directory not found"
+    log "✗ main.js not found"
+fi
+
+if [ -f "$NGINX_WEB_ROOT/main.css" ]; then
+    log "✓ main.css found"
+else
+    log "✗ main.css not found"
 fi
 
 if [ -f "$NGINX_WEB_ROOT/vite.svg" ]; then
