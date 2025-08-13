@@ -1,5 +1,5 @@
 #!/bin/bash
-# Comprehensive CSS fix dengan full Ant Design styles
+# Comprehensive CSS fix untuk Ant Design styling
 
 set -e
 
@@ -9,9 +9,10 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${YELLOW}🎨 Creating comprehensive CSS with full Ant Design styles...${NC}"
+echo -e "${YELLOW}🎨 Comprehensive CSS Fix untuk Ant Design...${NC}"
 
-# Create comprehensive CSS file
+# Create a complete Ant Design CSS file
+echo -e "${YELLOW}Creating comprehensive Ant Design CSS...${NC}"
 cat > dist/main.css << 'EOF'
 /* Reset and Base Styles */
 * {
@@ -21,29 +22,19 @@ cat > dist/main.css << 'EOF'
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
   font-size: 14px;
   line-height: 1.5715;
   color: rgba(0, 0, 0, 0.85);
   background-color: #fff;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
+  width: 100%;
 }
 
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  font-size: 18px;
-  color: #666;
-}
-
-/* Ant Design Layout */
+/* Ant Design Layout Components */
 .ant-layout {
   display: flex;
   flex: auto;
@@ -52,8 +43,9 @@ body {
   background: #f0f2f5;
 }
 
-.ant-layout-has-sider {
-  flex-direction: row;
+.ant-layout-has-sider > .ant-layout,
+.ant-layout-has-sider > .ant-layout-content {
+  overflow-x: hidden;
 }
 
 .ant-layout-sider {
@@ -61,30 +53,17 @@ body {
   min-width: 0;
   background: #001529;
   transition: all 0.2s;
-  width: 200px;
-  min-height: 100vh;
   flex: 0 0 200px;
+  max-width: 200px;
+  min-width: 200px;
+  width: 200px;
 }
 
 .ant-layout-sider-children {
   height: 100%;
   margin-top: -0.1px;
   padding-top: 0.1px;
-  overflow: hidden;
-}
-
-.ant-layout-sider-trigger {
-  position: fixed;
-  bottom: 0;
-  z-index: 1;
-  height: 48px;
-  color: #fff;
-  line-height: 48px;
-  text-align: center;
-  background: #002140;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 200px;
+  overflow-y: auto;
 }
 
 .ant-layout-header {
@@ -94,7 +73,7 @@ body {
   line-height: 64px;
   height: 64px;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .ant-layout-content {
@@ -103,8 +82,9 @@ body {
   background: #fff;
   padding: 24px;
   margin: 24px;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  margin-left: 224px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Menu Styles */
@@ -117,8 +97,9 @@ body {
   list-style: none;
   background: #001529;
   outline: none;
+  border-right: 1px solid #f0f0f0;
   transition: background 0.3s, width 0.3s cubic-bezier(0.2, 0, 0, 1) 0s;
-  border-right: none;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .ant-menu-dark {
@@ -126,30 +107,28 @@ body {
   background: #001529;
 }
 
-.ant-menu-dark .ant-menu-sub {
+.ant-menu-dark .ant-menu-item,
+.ant-menu-dark .ant-menu-item-group-title,
+.ant-menu-dark .ant-menu-submenu-title {
   color: rgba(255, 255, 255, 0.65);
-  background: #000c17;
 }
 
-.ant-menu-item {
+.ant-menu-item,
+.ant-menu-submenu-title {
   position: relative;
   display: block;
   margin: 0;
-  padding: 0 24px;
+  padding: 0 20px;
   white-space: nowrap;
   cursor: pointer;
   transition: border-color 0.3s, background 0.3s, padding 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-  border-right: 3px solid transparent;
-  height: 40px;
   line-height: 40px;
-  margin-top: 4px;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  height: 40px;
 }
 
-.ant-menu-item:hover {
+.ant-menu-item-selected {
   color: #1890ff;
+  background-color: #e6f7ff;
 }
 
 .ant-menu-dark .ant-menu-item:hover {
@@ -157,27 +136,20 @@ body {
   color: #1890ff;
 }
 
-.ant-menu-item-selected {
-  color: #1890ff;
-  background-color: #e6f7ff;
-  border-right-color: #1890ff;
-}
-
 .ant-menu-dark .ant-menu-item-selected {
   background-color: #1890ff;
   color: #fff;
-  border-right-color: #1890ff;
 }
 
-.ant-menu-item-icon {
-  width: 14px;
-  height: 14px;
+.ant-menu-item .anticon,
+.ant-menu-submenu-title .anticon {
+  min-width: 14px;
   margin-right: 10px;
   font-size: 14px;
   transition: font-size 0.15s cubic-bezier(0.215, 0.61, 0.355, 1), margin 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 
-/* Form Styles */
+/* Form Components */
 .ant-form {
   box-sizing: border-box;
   margin: 0;
@@ -201,8 +173,6 @@ body {
   text-align: right;
   vertical-align: middle;
   line-height: 32px;
-  font-size: 14px;
-  color: rgba(0, 0, 0, 0.85);
 }
 
 .ant-form-item-label > label {
@@ -221,7 +191,14 @@ body {
   flex-grow: 1;
 }
 
-/* Input Styles */
+.ant-form-item-control-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+/* Input Components */
 .ant-input {
   box-sizing: border-box;
   margin: 0;
@@ -236,23 +213,19 @@ body {
   transition: all 0.3s;
   width: 100%;
   height: 32px;
-  display: inline-block;
   position: relative;
+  display: inline-block;
 }
 
-.ant-input:focus {
+.ant-input:focus,
+.ant-input-focused {
   border-color: #40a9ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
   border-right-width: 1px;
   outline: 0;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.ant-input:hover {
-  border-color: #40a9ff;
-  border-right-width: 1px;
-}
-
-/* Button Styles */
+/* Button Components */
 .ant-btn {
   line-height: 1.5715;
   position: relative;
@@ -276,12 +249,6 @@ body {
   border-color: #d9d9d9;
 }
 
-.ant-btn:hover {
-  color: #40a9ff;
-  background: #fff;
-  border-color: #40a9ff;
-}
-
 .ant-btn-primary {
   color: #fff;
   background: #1890ff;
@@ -296,7 +263,7 @@ body {
   border-color: #40a9ff;
 }
 
-/* Table Styles */
+/* Table Components */
 .ant-table {
   box-sizing: border-box;
   margin: 0;
@@ -306,23 +273,16 @@ body {
   line-height: 1.5715;
   list-style: none;
   position: relative;
-  border-radius: 6px;
   background: #fff;
-}
-
-.ant-table-wrapper {
   border-radius: 6px;
 }
 
 .ant-table-container {
   position: relative;
-  border-radius: 6px 6px 0 0;
 }
 
-.ant-table-header {
-  overflow: hidden;
-  background: #fafafa;
-  border-radius: 6px 6px 0 0;
+.ant-table-content {
+  position: relative;
 }
 
 .ant-table-thead > tr > th {
@@ -334,7 +294,6 @@ body {
   border-bottom: 1px solid #f0f0f0;
   transition: background 0.3s ease;
   padding: 16px;
-  overflow-wrap: break-word;
 }
 
 .ant-table-tbody > tr > td {
@@ -348,7 +307,7 @@ body {
   background: #fafafa;
 }
 
-/* Select Styles */
+/* Select Components */
 .ant-select {
   box-sizing: border-box;
   margin: 0;
@@ -375,30 +334,50 @@ body {
   align-items: center;
 }
 
-.ant-select-selector:hover {
-  border-color: #40a9ff;
-}
-
-.ant-select-focused .ant-select-selector {
-  border-color: #40a9ff;
-  border-right-width: 1px;
-  outline: 0;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
-.ant-select-selection-search {
-  position: relative;
-  max-width: 100%;
-  margin-inline-start: 0;
+.ant-select-selection-search-input {
+  height: 100%;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
 }
 
 .ant-select-selection-placeholder {
-  flex: 1;
-  color: #bfbfbf;
   pointer-events: none;
+  color: #bfbfbf;
 }
 
-/* Card Styles */
+/* Avatar and Profile */
+.ant-avatar {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+  line-height: 1.5715;
+  list-style: none;
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  color: #fff;
+  white-space: nowrap;
+  text-align: center;
+  vertical-align: middle;
+  background: #ccc;
+  width: 32px;
+  height: 32px;
+  line-height: 30px;
+  border-radius: 50%;
+}
+
+.ant-avatar-lg {
+  width: 40px;
+  height: 40px;
+  line-height: 38px;
+  font-size: 18px;
+}
+
+/* Card Components */
 .ant-card {
   box-sizing: border-box;
   margin: 0;
@@ -409,85 +388,104 @@ body {
   list-style: none;
   position: relative;
   background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
-}
-
-.ant-card-head {
-  min-height: 56px;
-  margin-bottom: -1px;
-  padding: 0 24px;
-  color: rgba(0, 0, 0, 0.85);
-  font-weight: 500;
-  font-size: 16px;
-  background: transparent;
-  border-bottom: 1px solid #f0f0f0;
-  border-radius: 6px 6px 0 0;
-  display: flex;
-  align-items: center;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
 }
 
 .ant-card-body {
   padding: 24px;
 }
 
-/* Space between elements */
-.ant-space {
-  display: inline-flex;
-}
-
-.ant-space-item {
-  margin-right: 8px;
-}
-
-.ant-space-item:last-child {
-  margin-right: 0;
-}
-
-/* Typography */
-.ant-typography {
+/* Tabs */
+.ant-tabs {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
   color: rgba(0, 0, 0, 0.85);
   font-size: 14px;
   line-height: 1.5715;
-  margin: 0;
-}
-
-.ant-typography h1,
-.ant-typography h2,
-.ant-typography h3,
-.ant-typography h4,
-.ant-typography h5 {
-  margin-bottom: 0.5em;
-  color: rgba(0, 0, 0, 0.85);
-  font-weight: 600;
-}
-
-/* Page Header */
-.ant-page-header {
+  list-style: none;
   position: relative;
-  padding: 16px 24px;
-  background-color: #fff;
-  border-bottom: 1px solid #f0f0f0;
+  overflow: hidden;
 }
 
-.ant-page-header-heading {
-  display: flex;
+.ant-tabs-tab {
+  position: relative;
+  display: inline-flex;
   align-items: center;
+  padding: 12px 0;
+  font-size: 14px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.65);
+  margin: 0 32px 0 0;
 }
 
-.ant-page-header-heading-title {
-  margin-right: 12px;
-  margin-bottom: 0;
-  color: rgba(0, 0, 0, 0.85);
-  font-weight: 600;
-  font-size: 20px;
-  line-height: 32px;
+.ant-tabs-tab-active {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+/* Loading States */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 18px;
+  color: #666;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+  }
+  
+  .ant-layout-content {
+    margin-left: 0;
+    margin: 16px;
+    padding: 16px;
+  }
+}
+
+/* Custom fixes for better appearance */
+.ant-layout-sider-children {
+  background: #001529;
+}
+
+.ant-menu-dark .ant-menu-item {
+  border-radius: 0;
+}
+
+.ant-layout {
+  background: #f0f2f5;
+}
+
+/* Fix form layout */
+.ant-form-horizontal .ant-form-item-label {
+  text-align: left;
+}
+
+.ant-form-item-label {
+  flex: 0 0 auto;
+  padding-right: 8px;
+}
+
+.ant-form-item-control {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 EOF
 
 echo -e "${GREEN}✅ Comprehensive CSS created!${NC}"
 
-# Update HTML to include proper meta tags
+# Update HTML to ensure CSS loads properly
+echo -e "${YELLOW}Updating HTML with proper CSS link...${NC}"
 cat > dist/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
@@ -497,29 +495,6 @@ cat > dist/index.html << 'EOF'
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MerahPutih Business Center</title>
     <link rel="stylesheet" href="/main.css" />
-    <style>
-      /* Critical above-the-fold styles */
-      body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-        font-size: 14px;
-        line-height: 1.5715;
-        color: rgba(0, 0, 0, 0.85);
-        background-color: #f0f2f5;
-      }
-      #root { 
-        min-height: 100vh; 
-      }
-      .loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        font-size: 18px;
-        color: #666;
-        background: #f0f2f5;
-      }
-    </style>
   </head>
   <body>
     <div id="root">
@@ -530,13 +505,11 @@ cat > dist/index.html << 'EOF'
 </html>
 EOF
 
-echo -e "${GREEN}✅ HTML updated with better structure!${NC}"
+echo -e "${GREEN}✅ HTML updated!${NC}"
 
-# Set permissions
+# Set proper permissions
 chmod 644 dist/main.css dist/index.html
 
-echo -e "${YELLOW}Files created:${NC}"
-ls -la dist/main.css dist/index.html
-
-echo -e "${YELLOW}CSS file size: $(du -sh dist/main.css | cut -f1)${NC}"
 echo -e "${GREEN}🎉 Comprehensive CSS fix completed!${NC}"
+echo -e "${YELLOW}CSS file size: $(du -sh dist/main.css | cut -f1)${NC}"
+echo -e "${YELLOW}Ready for deployment to server!${NC}"
