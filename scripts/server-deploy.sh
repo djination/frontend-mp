@@ -6,7 +6,7 @@
 set -e  # Exit jika ada error
 
 PROJECT_NAME="Frontend MerahPutih"
-NGINX_WEB_ROOT="/var/www/customerdb/frontend-mp/dist"
+NGINX_WEB_ROOT="/var/www/frontend"
 BACKUP_DIR="/var/backups/frontend"
 
 echo "=== $PROJECT_NAME - Auto Deploy Script ==="
