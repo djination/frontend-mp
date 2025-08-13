@@ -1,11 +1,33 @@
 import axios from 'axios'
-const baseURL = import.meta.env.VITE_API_BASE_URL;
 
-console.log('🔍 [DEBUG] Axios baseURL from env:', baseURL);
-console.log('🔍 [DEBUG] All VITE env vars:', {
+// Fallback untuk production build
+const getBaseURL = () => {
+  // Priority: env var > production default > localhost
+  const envURL = import.meta.env.VITE_API_BASE_URL;
+  const prodURL = 'http://localhost:3000/api';  // Backend NestJS di be-nest-mp
+  const devURL = 'http://localhost:3000/api';
+  
+  if (envURL) {
+    return envURL;
+  }
+  
+  // Check if we're in production
+  if (import.meta.env.PROD) {
+    return prodURL;
+  }
+  
+  return devURL;
+};
+
+const baseURL = getBaseURL();
+
+console.log('🔍 [DEBUG] Axios baseURL resolved:', baseURL);
+console.log('🔍 [DEBUG] Environment info:', {
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
   VITE_BASE_URL: import.meta.env.VITE_BASE_URL,
-  VITE_ENV: import.meta.env.VITE_ENV
+  VITE_ENV: import.meta.env.VITE_ENV,
+  MODE: import.meta.env.MODE,
+  PROD: import.meta.env.PROD
 });
 
 const axiosInstance = axios.create({

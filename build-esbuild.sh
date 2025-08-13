@@ -44,6 +44,11 @@ npx esbuild src/main.jsx \
     --loader:.gif=file \
     --loader:.webp=file \
     --define:process.env.NODE_ENV='"production"' \
+    --define:import.meta.env.VITE_API_BASE_URL='"http://localhost:5000/api"' \
+    --define:import.meta.env.VITE_BASE_URL='"http://localhost:5000"' \
+    --define:import.meta.env.VITE_ENV='"production"' \
+    --define:import.meta.env.MODE='"production"' \
+    --define:import.meta.env.PROD='true' \
     --define:global=globalThis \
     --jsx-factory=React.createElement \
     --jsx-fragment=React.Fragment

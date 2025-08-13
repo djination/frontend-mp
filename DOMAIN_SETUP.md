@@ -9,10 +9,10 @@
 - **Location**: `/var/www/customerdb/frontend-mp/dist/`
 
 ### Backend (API Server)
-- **Domain**: `bc.merahputih-id.com`
-- **Purpose**: API server untuk semua services
+- **Domain**: `localhost:3000` (Development)
+- **Purpose**: NestJS API server (be-nest-mp)
 - **Files**: NestJS application
-- **Location**: `/var/www/customerdb/backend/`
+- **Location**: `../be-nest-mp/`
 
 ## URL Structure
 
@@ -26,20 +26,21 @@ https://customer.merahputih-id.com/account    # Account management
 
 ### Backend APIs
 ```
-https://bc.merahputih-id.com/api/auth/login   # Authentication
-https://bc.merahputih-id.com/api/account      # Account APIs
-https://bc.merahputih-id.com/api/user         # User APIs
-https://bc.merahputih-id.com/api/health       # Health check
+http://localhost:3000/api/auth/login   # Authentication
+http://localhost:3000/api/account      # Account APIs
+http://localhost:3000/api/user         # User APIs
+http://localhost:3000/api/health       # Health check
+http://localhost:3000/api             # Swagger Documentation
 ```
 
 ## Environment Configuration
 
 ### Frontend (.env.production)
 ```bash
-# API calls ke backend
-VITE_BASE_URL=https://bc.merahputih-id.com
-VITE_API_BASE_URL=https://bc.merahputih-id.com/api
-VITE_WS_URL=wss://bc.merahputih-id.com
+# API calls ke backend lokal
+VITE_BASE_URL=http://localhost:3000
+VITE_API_BASE_URL=http://localhost:3000/api
+VITE_WS_URL=ws://localhost:3000
 ```
 
 ### Nginx Configuration
@@ -48,10 +49,10 @@ VITE_WS_URL=wss://bc.merahputih-id.com
 server_name customer.merahputih-id.com;
 root /var/www/customerdb/frontend-mp/dist;
 
-# API proxy
+# API proxy ke backend lokal
 location /api/ {
-    proxy_pass https://bc.merahputih-id.com/;
-    proxy_set_header Host bc.merahputih-id.com;
+    proxy_pass http://localhost:3000/;
+    proxy_set_header Host $host;
 }
 ```
 
@@ -64,7 +65,8 @@ curl -I https://customer.merahputih-id.com
 
 ### Test Backend API
 ```bash
-curl -I https://bc.merahputih-id.com/api/health
+curl -I http://localhost:3000/api
+curl http://localhost:3000/api # Swagger docs
 ```
 
 ### Full Test Flow
@@ -77,17 +79,30 @@ curl https://customer.merahputih-id.com/api/account
 # (This proxies to bc.merahputih-id.com/api/account)
 
 # 3. Direct API call
-curl https://bc.merahputih-id.com/api/health
+curl http://localhost:3000/api
 ```
+
+## Development Workflow
+
+### Start Both Services
+```bash
+# From frontend directory
+./start-dev.sh
+```
+
+This will:
+1. Start NestJS backend (be-nest-mp) at http://localhost:3000
+2. Build frontend with correct API URLs
+3. Deploy frontend to nginx
+4. Setup proxy from frontend to backend
 
 ## SSL Certificates Needed
 
-1. **customer.merahputih-id.com** - Frontend SSL
-2. **bc.merahputih-id.com** - Backend SSL
+1. **customer.merahputih-id.com** - Frontend SSL only
 
 ## Summary
 - ✅ **Frontend**: `customer.merahputih-id.com` (serves React app)
-- ✅ **Backend**: `bc.merahputih-id.com` (serves API)
-- ✅ **API Calls**: Frontend calls `/api/*` → proxied to backend
-- ✅ **Environment**: Production config updated
-- ✅ **Nginx**: Configured for correct domains
+- ✅ **Backend**: `localhost:3000` (serves NestJS API from be-nest-mp)
+- ✅ **API Calls**: Frontend calls `/api/*` → proxied to localhost:3000
+- ✅ **Environment**: Production config updated for local backend
+- ✅ **Nginx**: Configured for localhost backend proxy

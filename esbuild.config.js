@@ -15,6 +15,11 @@ const buildConfig = {
   platform: 'browser',
   define: {
     'process.env.NODE_ENV': '"production"',
+    'import.meta.env.VITE_API_BASE_URL': '"http://localhost:5000/api"',
+    'import.meta.env.VITE_BASE_URL': '"http://localhost:5000"',
+    'import.meta.env.VITE_ENV': '"production"',
+    'import.meta.env.MODE': '"production"',
+    'import.meta.env.PROD': 'true',
     'global': 'globalThis'
   },
   loader: {
