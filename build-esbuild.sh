@@ -26,8 +26,8 @@ if [ -d "public" ]; then
     cp -r public/* dist/ 2>/dev/null || true
 fi
 
-# Build with esbuild
-echo -e "${YELLOW}Building JavaScript bundle...${NC}"
+# Build with esbuild - extract CSS
+echo -e "${YELLOW}Building JavaScript bundle with CSS extraction...${NC}"
 npx esbuild src/main.jsx \
     --bundle \
     --outfile=dist/main.js \
@@ -51,10 +51,36 @@ npx esbuild src/main.jsx \
     --define:import.meta.env.PROD='true' \
     --define:global=globalThis \
     --jsx-factory=React.createElement \
-    --jsx-fragment=React.Fragment
+    --jsx-fragment=React.Fragment \
+    --outdir=dist \
+    --splitting \
+    --format=esm
 
-# Create index.html
-echo -e "${YELLOW}Creating index.html...${NC}"
+# Extract CSS separately for proper styling
+echo -e "${YELLOW}Extracting CSS...${NC}"
+npx esbuild src/main.jsx \
+    --bundle \
+    --outfile=dist/main.css \
+    --write=false \
+    --loader:.jsx=jsx \
+    --loader:.js=jsx \
+    --loader:.css=css \
+    --loader:.png=file \
+    --loader:.jpg=file \
+    --loader:.svg=file \
+    --loader:.gif=file \
+    --loader:.webp=file \
+    | grep -o '@import\|\.css\|color:\|background:\|font-\|margin:\|padding:\|display:\|position:\|width:\|height:' > dist/main.css || true
+
+# Alternative: Use separate CSS build
+npx esbuild src/styles.css \
+    --bundle \
+    --outfile=dist/main.css \
+    --minify \
+    2>/dev/null || echo -e "${YELLOW}No separate styles.css found, using inline styles${NC}"
+
+# Create index.html with CSS link
+echo -e "${YELLOW}Creating index.html with CSS link...${NC}"
 cat > dist/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
@@ -63,6 +89,7 @@ cat > dist/index.html << 'EOF'
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MerahPutih Business Center</title>
+    <link rel="stylesheet" href="/main.css" />
     <style>
       body {
         margin: 0;
