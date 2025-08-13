@@ -86,19 +86,114 @@ if ! $BUILD_SUCCESS; then
     echo -e "${RED}❌ All build methods failed${NC}"
     echo -e "${YELLOW}Attempting fallback build with esbuild...${NC}"
     
-    # Fallback: Manual build dengan esbuild
-    npx esbuild src/main.jsx --bundle --outdir=dist --format=esm --target=es2020 --external:react --external:react-dom
-    cp public/* dist/ 2>/dev/null || true
+    # Try with esbuild config first
+    if [ -f "esbuild.config.js" ]; then
+        if node esbuild.config.js 2>/dev/null; then
+            BUILD_SUCCESS=true
+            echo -e "${GREEN}✅ ESBuild config build successful${NC}"
+        fi
+    fi
     
-    if [ -f "dist/main.js" ]; then
-        echo -e "${GREEN}✅ Fallback build successful${NC}"
-        BUILD_SUCCESS=true
+    # Fallback to direct esbuild command
+    if ! $BUILD_SUCCESS; then
+        # Create dist directory
+        mkdir -p dist
+        
+        # Copy public files first
+        if [ -d "public" ]; then
+            cp -r public/* dist/ 2>/dev/null || true
+        fi
+        
+        # Create index.html if not exists
+        if [ ! -f "dist/index.html" ]; then
+            if [ -f "index.template.html" ]; then
+                cp index.template.html dist/index.html
+            else
+                cat > dist/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MerahPutih Business Center</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      }
+      #root { min-height: 100vh; }
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-size: 18px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading">Loading MerahPutih Business Center...</div>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
+EOF
+            fi
+        fi
+        
+        # Fallback: Manual build dengan esbuild
+        npx esbuild src/main.jsx \
+            --bundle \
+            --outfile=dist/main.js \
+            --format=esm \
+            --target=es2020 \
+            --minify \
+            --sourcemap \
+            --loader:.jsx=jsx \
+            --loader:.js=jsx \
+            --loader:.css=css \
+            --loader:.png=file \
+            --loader:.jpg=file \
+            --loader:.svg=file \
+            --define:process.env.NODE_ENV='"production"' \
+            --define:global=globalThis
+        
+        if [ -f "dist/main.js" ] && [ -f "dist/index.html" ]; then
+            echo -e "${GREEN}✅ Fallback build successful${NC}"
+            BUILD_SUCCESS=true
+        fi
     fi
 fi
 
 if $BUILD_SUCCESS; then
-    # Verify build output
-    if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+    # Verify build output - check for main.js first, then ensure index.html exists
+    if [ -d "dist" ] && [ -f "dist/main.js" ]; then
+        
+        # Ensure index.html exists
+        if [ ! -f "dist/index.html" ]; then
+            if [ -f "index.template.html" ]; then
+                cp index.template.html dist/index.html
+            else
+                cat > dist/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MerahPutih Business Center</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
+EOF
+            fi
+        fi
+        
         echo -e "${GREEN}✅ Build completed successfully${NC}"
         
         # Set proper permissions
@@ -119,7 +214,9 @@ if $BUILD_SUCCESS; then
         fi
         
     else
-        echo -e "${RED}❌ Build verification failed${NC}"
+        echo -e "${RED}❌ Build verification failed - missing dist/main.js${NC}"
+        echo -e "${YELLOW}Checking dist contents:${NC}"
+        ls -la dist/ 2>/dev/null || echo "No dist directory found"
         exit 1
     fi
 else
