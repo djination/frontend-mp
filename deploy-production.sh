@@ -12,8 +12,8 @@ NC='\033[0m'
 
 # Server configuration
 SERVER_USER="root"
-SERVER_HOST="bc.merahputih-id.com"
-SERVER_PATH="/var/www/html/frontend"
+SERVER_HOST="customer.merahputih-id.com"
+SERVER_PATH="/var/www/customerdb/frontend-mp"
 
 echo -e "${YELLOW}🚀 Deploying frontend ke production server...${NC}"
 
@@ -69,7 +69,7 @@ fi
 
 # Verify deployment
 echo -e "${YELLOW}Verifying deployment...${NC}"
-RESPONSE=\$(curl -s -o /dev/null -w "%{http_code}" https://bc.merahputih-id.com)
+RESPONSE=\$(curl -s -o /dev/null -w "%{http_code}" https://customer.merahputih-id.com)
 if [ "\$RESPONSE" = "200" ]; then
     echo -e "${GREEN}✅ Deployment successful! Site is accessible${NC}"
 else
@@ -77,4 +77,4 @@ else
 fi
 
 echo -e "${GREEN}🎉 Frontend deployment completed!${NC}"
-echo -e "${YELLOW}URL: https://bc.merahputih-id.com${NC}"
+echo -e "${YELLOW}URL: https://customer.merahputih-id.com${NC}"
