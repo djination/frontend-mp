@@ -46,7 +46,7 @@ log "Build completed successfully"
 log "Deploying to nginx web root..."
 sudo mkdir -p "$NGINX_WEB_ROOT"
 sudo rm -rf "$NGINX_WEB_ROOT"/*
-sudo cp -r dist/* "$NGINX_WEB_ROOT/"
+sudo cp -r dist/. "$NGINX_WEB_ROOT/"
 sudo chown -R www-data:www-data "$NGINX_WEB_ROOT"
 sudo chmod -R 755 "$NGINX_WEB_ROOT"
 log "Files deployed to $NGINX_WEB_ROOT"
@@ -74,6 +74,12 @@ if [ -d "$NGINX_WEB_ROOT/assets" ]; then
     log "✓ assets directory found"
 else
     log "✗ assets directory not found"
+fi
+
+if [ -f "$NGINX_WEB_ROOT/vite.svg" ]; then
+    log "✓ vite.svg found"
+else
+    log "✗ vite.svg not found"
 fi
 
 echo
