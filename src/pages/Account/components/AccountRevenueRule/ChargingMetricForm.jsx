@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Form, Radio, Card, Space, Checkbox } from 'antd';
+import { Form, Radio, Card, Space, Checkbox, DatePicker } from 'antd';
 import { CurrencyInput, PercentageInput } from '../../../../components/NumericInput';
+import dayjs from 'dayjs';
 
 // Schema constants (should match AccountRevenueRuleModal.jsx)
 const CHARGING_METRIC_TYPES = {
@@ -258,42 +259,111 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                             // Ensure pkgFields is always an array
                             const safeFields = Array.isArray(pkgFields) ? pkgFields : [];
                             
+                            console.log(`📋 Package Form.List for tier ${tierName}:`, { pkgFields, safeFields });
+                            
                             return (
                                 <>
-                                    {safeFields.map(({ key: pkgKey, name: pkgName, ...pkgRest }) => (
-                                        <Space key={pkgKey} align="baseline" style={{ display: 'flex', marginBottom: 8 }}>
-                                            <Form.Item 
-                                                {...pkgRest} 
-                                                name={[pkgName, 'min']} 
-                                                rules={[{ required: true, message: 'Min required' }]}
-                                            >
-                                                <CurrencyInput placeholder="Min (Rp)" />
-                                            </Form.Item>
-                                            <span> - </span>
-                                            <Form.Item 
-                                                {...pkgRest} 
-                                                name={[pkgName, 'max']} 
-                                                rules={[{ required: true, message: 'Max required' }]}
-                                            >
-                                                <CurrencyInput placeholder="Max (Rp)" />
-                                            </Form.Item>
-                                            <span>=</span>
-                                            <Form.Item 
-                                                {...pkgRest} 
-                                                name={[pkgName, 'amount']} 
-                                                rules={[{ required: true, message: 'Amount required' }]}
-                                            >
-                                                <CurrencyInput placeholder="Amount (Rp)" />
-                                            </Form.Item>
-                                            {safeFields.length > 1 && (
-                                                <a onClick={() => removePkg(pkgName)} style={{ color: 'red' }}>
-                                                    Remove
-                                                </a>
-                                            )}
-                                        </Space>
-                                    ))}
+                                    {safeFields.map(({ key: pkgKey, name: pkgName, ...pkgRest }) => {
+                                        console.log(`🎯 Rendering package tier ${pkgName} with key ${pkgKey}`);
+                                        
+                                        return (
+                                        <div key={pkgKey} style={{ 
+                                            marginBottom: 16, 
+                                            border: '1px solid #d9d9d9', 
+                                            borderRadius: 6, 
+                                            padding: 16,
+                                            backgroundColor: '#fafafa'
+                                        }}>
+                                            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                                <Form.Item 
+                                                    {...pkgRest} 
+                                                    name={[pkgName, 'min']} 
+                                                    label="Min Value"
+                                                    rules={[{ required: true, message: 'Min required' }]}
+                                                    style={{ marginBottom: 0, minWidth: 120 }}
+                                                >
+                                                    <CurrencyInput placeholder="Min (Rp)" />
+                                                </Form.Item>
+                                                <span style={{ paddingBottom: 4 }}> - </span>
+                                                <Form.Item 
+                                                    {...pkgRest} 
+                                                    name={[pkgName, 'max']} 
+                                                    label="Max Value"
+                                                    rules={[{ required: true, message: 'Max required' }]}
+                                                    style={{ marginBottom: 0, minWidth: 120 }}
+                                                >
+                                                    <CurrencyInput placeholder="Max (Rp)" />
+                                                </Form.Item>
+                                                <span style={{ paddingBottom: 4 }}>=</span>
+                                                <Form.Item 
+                                                    {...pkgRest} 
+                                                    name={[pkgName, 'amount']} 
+                                                    label="Amount"
+                                                    rules={[{ required: true, message: 'Amount required' }]}
+                                                    style={{ marginBottom: 0, minWidth: 120 }}
+                                                >
+                                                    <CurrencyInput placeholder="Amount (Rp)" />
+                                                </Form.Item>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                                <Form.Item 
+                                                    {...pkgRest} 
+                                                    name={[pkgName, 'start_date']} 
+                                                    label="Start Date"
+                                                    rules={[{ required: true, message: 'Start date required' }]}
+                                                    style={{ marginBottom: 0, minWidth: 140 }}
+                                                >
+                                                    <DatePicker 
+                                                        style={{ width: '100%' }}
+                                                        placeholder="Start Date"
+                                                        format="YYYY-MM-DD"
+                                                    />
+                                                </Form.Item>
+                                                <span style={{ paddingBottom: 4 }}> to </span>
+                                                <Form.Item 
+                                                    {...pkgRest} 
+                                                    name={[pkgName, 'end_date']} 
+                                                    label="End Date"
+                                                    rules={[
+                                                        { required: true, message: 'End date required' },
+                                                        ({ getFieldValue }) => ({
+                                                            validator(_, value) {
+                                                                const startDate = getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'package', 'tiers', pkgName, 'start_date']);
+                                                                if (!value || !startDate) {
+                                                                    return Promise.resolve();
+                                                                }
+                                                                if (dayjs(value).isAfter(dayjs(startDate))) {
+                                                                    return Promise.resolve();
+                                                                }
+                                                                return Promise.reject(new Error('End date must be after start date'));
+                                                            },
+                                                        }),
+                                                    ]}
+                                                    style={{ marginBottom: 0, minWidth: 140 }}
+                                                >
+                                                    <DatePicker 
+                                                        style={{ width: '100%' }}
+                                                        placeholder="End Date"
+                                                        format="YYYY-MM-DD"
+                                                    />
+                                                </Form.Item>
+                                                {safeFields.length > 1 && (
+                                                    <a onClick={() => removePkg(pkgName)} style={{ color: 'red', paddingBottom: 4 }}>
+                                                        Remove
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                                     <Form.Item>
-                                        <a onClick={() => addPkg()} style={{ color: '#1890ff' }}>+ Add Package Tier</a>
+                                        <a onClick={() => addPkg({
+                                            min: 0,
+                                            max: 0,
+                                            amount: 0,
+                                            start_date: dayjs(),
+                                            end_date: dayjs().add(1, 'year')
+                                        })} style={{ color: '#1890ff' }}>+ Add Package Tier</a>
                                     </Form.Item>
                                 </>
                             );

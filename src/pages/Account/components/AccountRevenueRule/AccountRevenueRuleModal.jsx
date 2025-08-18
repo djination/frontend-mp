@@ -7,6 +7,8 @@ import {
   getAccountRevenueRulesByAccountServiceAsTree, 
   createAccountRevenueRulesFromTree 
 } from '../../../../api/accountRevenueRuleApi';
+import { createBulkPackageTiers, getPackageTiersByAccount } from '../../../../api/packageTierApi';
+import dayjs from 'dayjs';
 
 // ===== REVENUE RULE JSON SCHEMA CONSTANTS =====
 const CHARGING_METRIC_TYPES = {
@@ -157,7 +159,8 @@ const ensureBillingRulesStructure = (billingRules) => {
   return result;
 };
 
-const mapApiResponseToFormData = (apiResponse) => {
+const mapApiResponseToFormData = (apiResponse, packageTiers = []) => {
+  console.log('🗺️ Starting mapApiResponseToFormData with:', { apiResponse, packageTiers });
   
   try {
     let extractedData = null;
@@ -167,6 +170,7 @@ const mapApiResponseToFormData = (apiResponse) => {
     }
     
     if (!extractedData || (!extractedData.charging_metric && !extractedData.billing_rules)) {
+      console.log('📋 Using default form data - no extracted data');
       return getDefaultFormData();
     }
     
@@ -175,10 +179,72 @@ const mapApiResponseToFormData = (apiResponse) => {
       billing_rules: ensureBillingRulesStructure(extractedData.billing_rules)
     };
     
+    console.log('📋 Base form data created:', formData);
+    
+    // Integrate package tiers data if available
+    if (packageTiers && packageTiers.length > 0) {
+      console.log('🔄 Integrating package tiers:', packageTiers);
+      console.log('🔍 Current charging metric:', formData.charging_metric);
+      
+      if (formData.charging_metric.type === 'dedicated' && 
+          formData.charging_metric.dedicated?.tiers) {
+        
+        formData.charging_metric.dedicated.tiers = formData.charging_metric.dedicated.tiers.map((tier, tierIndex) => {
+          console.log(`🎯 Processing tier ${tierIndex}:`, tier);
+          
+          if (tier.type === 'package') {
+            // Convert package tiers from database to form format
+            const packageTierData = packageTiers.map((dbTier, index) => {
+              console.log(`Converting dbTier ${index}:`, dbTier);
+              
+              try {
+                const converted = {
+                  min: Number(dbTier.min_value) || 0,
+                  max: Number(dbTier.max_value) || 0,
+                  amount: Number(dbTier.amount) || 0,
+                  start_date: dayjs(dbTier.start_date),
+                  end_date: dayjs(dbTier.end_date)
+                };
+                console.log(`✅ Converted tier ${index}:`, converted);
+                console.log(`✅ start_date dayjs object:`, converted.start_date.format('YYYY-MM-DD'));
+                console.log(`✅ end_date dayjs object:`, converted.end_date.format('YYYY-MM-DD'));
+                return converted;
+              } catch (conversionError) {
+                console.error(`❌ Error converting tier ${index}:`, conversionError);
+                return {
+                  min: 0,
+                  max: 0,
+                  amount: 0,
+                  start_date: dayjs(),
+                  end_date: dayjs().add(1, 'year')
+                };
+              }
+            });
+            
+            console.log('📦 Converted package tier data:', packageTierData);
+            
+            return {
+              ...tier,
+              package: {
+                tiers: packageTierData
+              }
+            };
+          }
+          return tier;
+        });
+        
+        console.log('✅ Final charging metric after integration:', formData.charging_metric);
+      }
+    } else {
+      console.log('ℹ️ No package tiers to integrate or empty array');
+    }
+    
+    console.log('🏁 Final form data:', formData);
     return formData;
     
   } catch (error) {
     console.error('❌ Error mapping API response:', error);
+    console.error('❌ Error stack:', error.stack);
     return getDefaultFormData();
   }
 };
@@ -215,7 +281,10 @@ const RevenueRuleModal = ({
   // Fetch and prepare data when modal opens
   useEffect(() => {
     const fetchData = async () => {
+      console.log('🔄 useEffect fetchData triggered:', { visible, accountId, accountService, initRefCurrent: initRef.current });
+      
       if (!visible || !accountId || !accountService || initRef.current) {
+        console.log('⏭️ Skipping fetchData:', { visible, accountId, accountService, initRefCurrent: initRef.current });
         return;
       }
     
@@ -230,10 +299,83 @@ const RevenueRuleModal = ({
           throw new Error('No account service ID available');
         }
 
+        console.log('🚀 Fetching data for:', { accountId, accountServiceId });
+
+        // Fetch both revenue rules and package tiers
+        const [revenueRulesResponse, packageTiersResponse] = await Promise.allSettled([
+          getAccountRevenueRulesByAccountServiceAsTree(accountId, accountServiceId),
+          getPackageTiersByAccount(accountId)
+        ]);
         
-        const response = await getAccountRevenueRulesByAccountServiceAsTree(accountId, accountServiceId);
+        console.log('📥 API Responses:', { 
+          revenueRules: revenueRulesResponse,
+          packageTiers: packageTiersResponse 
+        });
         
-        const mappedData = mapApiResponseToFormData(response);
+        let revenueRulesData = null;
+        let packageTiersData = [];
+        
+        if (revenueRulesResponse.status === 'fulfilled') {
+          revenueRulesData = revenueRulesResponse.value;
+          console.log('✅ Revenue rules response:', revenueRulesData);
+        } else {
+          console.warn('❌ Failed to fetch revenue rules:', revenueRulesResponse.reason);
+        }
+        
+        if (packageTiersResponse.status === 'fulfilled') {
+          const packageTiersApiResponse = packageTiersResponse.value || {};
+          console.log('📦 Package tiers API response:', packageTiersApiResponse);
+          
+          // Extract the actual data array from the API response
+          if (packageTiersApiResponse.success && packageTiersApiResponse.data) {
+            packageTiersData = packageTiersApiResponse.data;
+          } else {
+            packageTiersData = [];
+          }
+          
+          console.log('📦 Package tiers data extracted:', packageTiersData);
+          console.log('📦 Package tiers type:', typeof packageTiersData);
+          console.log('📦 Package tiers length:', packageTiersData.length);
+          
+          // Don't add dummy data if real data exists
+          if (!packageTiersData || packageTiersData.length === 0) {
+            console.log('🧪 No real data, adding dummy package tier data for testing');
+            packageTiersData = [
+              {
+                min_value: 10000,
+                max_value: 1000000,
+                amount: 5000,
+                start_date: '2025-01-01',
+                end_date: '2025-12-31'
+              },
+              {
+                min_value: 1000001,
+                max_value: 10000000,
+                amount: 10000,
+                start_date: '2025-01-01',
+                end_date: '2025-12-31'
+              }
+            ];
+          } else {
+            console.log('✅ Using real package tier data');
+          }
+        } else {
+          console.warn('❌ Failed to fetch package tiers:', packageTiersResponse.reason);
+          // Even if API fails, add dummy data for testing
+          console.log('🧪 Adding dummy package tier data due to API failure');
+          packageTiersData = [
+            {
+              min_value: 10000,
+              max_value: 1000000,
+              amount: 5000,
+              start_date: '2025-01-01',
+              end_date: '2025-12-31'
+            }
+          ];
+        }
+        
+        const mappedData = mapApiResponseToFormData(revenueRulesData, packageTiersData);
+        console.log('📋 Mapped form data:', mappedData);
         
         setInitialData(mappedData);
         setDataLoaded(true);
@@ -242,7 +384,24 @@ const RevenueRuleModal = ({
         console.error('❌ Error fetching data:', error);
         messageApi.error('Failed to load existing revenue rules. Using defaults.');
         
+        // Add dummy data even on error for testing
         const defaultData = getDefaultFormData();
+        // Force add package tiers to default data
+        if (defaultData.charging_metric.type === 'dedicated' && 
+            defaultData.charging_metric.dedicated?.tiers?.length > 0) {
+          defaultData.charging_metric.dedicated.tiers[0].package = {
+            tiers: [
+              {
+                min: 10000,
+                max: 1000000,
+                amount: 5000,
+                start_date: dayjs('2025-01-01'),
+                end_date: dayjs('2025-12-31')
+              }
+            ]
+          };
+        }
+        console.log('🧪 Using default data with dummy package tiers:', defaultData);
         setInitialData(defaultData);
         setDataLoaded(true);
       } finally {
@@ -258,7 +417,14 @@ const RevenueRuleModal = ({
   // Set form values when initial data is loaded
   useEffect(() => {
     if (dataLoaded && initialData) {
+      console.log('🎯 Setting form values:', initialData);
       form.setFieldsValue(initialData);
+      
+      // Debug: Check what was actually set
+      setTimeout(() => {
+        const currentValues = form.getFieldsValue();
+        console.log('📋 Current form values after setting:', currentValues);
+      }, 100);
     }
   }, [dataLoaded, initialData, form]);
 
@@ -278,17 +444,63 @@ const RevenueRuleModal = ({
         throw new Error('No account service ID available');
       }
       
+      // Extract package tiers for separate table storage
+      const packageTiers = [];
+      if (values.charging_metric?.type === 'dedicated' && values.charging_metric.dedicated?.tiers) {
+        values.charging_metric.dedicated.tiers.forEach((tier) => {
+          if (tier.type === 'package' && tier.package?.tiers) {
+            tier.package.tiers.forEach((pkgTier) => {
+              if (pkgTier.min && pkgTier.max && pkgTier.amount && pkgTier.start_date && pkgTier.end_date) {
+                packageTiers.push({
+                  min_value: pkgTier.min,
+                  max_value: pkgTier.max,
+                  amount: pkgTier.amount,
+                  start_date: dayjs(pkgTier.start_date).format('YYYY-MM-DD'),
+                  end_date: dayjs(pkgTier.end_date).format('YYYY-MM-DD'),
+                });
+              }
+            });
+          }
+        });
+      }
+
+      // Remove package tiers from charging_metric before saving to revenue rules
+      const chargingMetricForRules = { ...values.charging_metric };
+      if (chargingMetricForRules.type === 'dedicated' && chargingMetricForRules.dedicated?.tiers) {
+        chargingMetricForRules.dedicated.tiers = chargingMetricForRules.dedicated.tiers.map(tier => {
+          if (tier.type === 'package') {
+            return {
+              ...tier,
+              package: { tiers: [] } // Empty tiers since we store in separate table
+            };
+          }
+          return tier;
+        });
+      }
+      
       const payload = {
         account_id: accountId,
         account_service_id: accountServiceId,
-        charging_metric: values.charging_metric,
+        charging_metric: chargingMetricForRules,
         billing_rules: values.billing_rules
       };
       
+      // Save revenue rules first
       const response = await createAccountRevenueRulesFromTree(payload);
       
       if (response?.data?.success) {
-        messageApi.success('Revenue rules saved successfully');
+        // Save package tiers if any
+        if (packageTiers.length > 0) {
+          try {
+            await createBulkPackageTiers(accountId, packageTiers);
+            messageApi.success('Revenue rules and package tiers saved successfully');
+          } catch (tierError) {
+            console.error('Error saving package tiers:', tierError);
+            messageApi.warning('Revenue rules saved, but some package tiers failed to save');
+          }
+        } else {
+          messageApi.success('Revenue rules saved successfully');
+        }
         
         if (onSave) {
           onSave(values);
@@ -357,6 +569,17 @@ const RevenueRuleModal = ({
         maskClosable={false}
           destroyOnHidden={true}
         footer={[
+          <Button 
+            key="debug" 
+            onClick={() => {
+              const currentValues = form.getFieldsValue();
+              console.log('🐛 DEBUG - Current form values:', currentValues);
+              console.log('🐛 DEBUG - Initial data:', initialData);
+              console.log('🐛 DEBUG - Data loaded:', dataLoaded);
+            }}
+          >
+            Debug
+          </Button>,
           <Button key="cancel" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>,
