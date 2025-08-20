@@ -131,11 +131,11 @@ const BillingMethodFields = ({ form, parentPath, fieldName, fieldKey, label = "B
                     
                     const methodType = pathValue?.type;
                     
-                    return (
-                        <div style={{ fontSize: '12px', color: '#666', margin: '8px 0' }}>
-                            Debug - Path: {JSON.stringify(actualPath)}, Method Type: "{methodType}", Show Custom Fee: {methodType === BILLING_METHOD_TYPES.POST_PAID ? 'YES' : 'NO'}
-                        </div>
-                    );
+                    // return (
+                    //     <div style={{ fontSize: '12px', color: '#666', margin: '8px 0' }}>
+                    //         Debug - Path: {JSON.stringify(actualPath)}, Method Type: "{methodType}", Show Custom Fee: {methodType === BILLING_METHOD_TYPES.POST_PAID ? 'YES' : 'NO'}
+                    //     </div>
+                    // );
                 }}
             </Form.Item>
         </>

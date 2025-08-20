@@ -1180,18 +1180,18 @@ const RevenueRuleModal = ({
         maskClosable={false}
           destroyOnHidden={true}
         footer={[
-          <Button 
-            key="debug" 
-            onClick={() => {
-              const currentValues = form.getFieldsValue();
-              console.log('🐛 DEBUG - Current form values:', currentValues);
-              console.log('🐛 DEBUG - Initial data:', initialData);
-              console.log('🐛 DEBUG - Data loaded:', dataLoaded);
-              console.log('🐛 DEBUG - Table view data:', tableViewData);
-            }}
-          >
-            Debug
-          </Button>,
+          // <Button 
+          //   key="debug" 
+          //   onClick={() => {
+          //     const currentValues = form.getFieldsValue();
+          //     console.log('🐛 DEBUG - Current form values:', currentValues);
+          //     console.log('🐛 DEBUG - Initial data:', initialData);
+          //     console.log('🐛 DEBUG - Data loaded:', dataLoaded);
+          //     console.log('🐛 DEBUG - Table view data:', tableViewData);
+          //   }}
+          // >
+          //   Debug
+          // </Button>,
           activeTab === 'table_view' && (
             <Button 
               key="refresh"
@@ -1251,11 +1251,11 @@ const RevenueRuleModal = ({
                   key: 'billing_rules',
                   children: <BillingRulesForm form={form} />,
                 },
-                {
-                  label: 'Table View',
-                  key: 'table_view',
-                  children: <RevenueRuleTableView data={tableViewData || form.getFieldsValue()} accountId={accountId} />,
-                },
+                // {
+                //   label: 'Table View',
+                //   key: 'table_view',
+                //   children: <RevenueRuleTableView data={tableViewData || form.getFieldsValue()} accountId={accountId} />,
+                // },
               ]}
             />
           </Form>
