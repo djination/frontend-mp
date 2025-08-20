@@ -145,11 +145,9 @@ const BillingMethodFields = ({ fields, add, remove, form }) => (
                         </div>
                     )}
                                         
-                    {fields.length > 1 && (
-                        <a onClick={() => remove(name)} style={{ color: 'red', marginTop: 8, display: 'inline-block' }}>
-                            Remove
-                        </a>
-                    )}
+                    <a onClick={() => remove(name)} style={{ color: 'red', marginTop: 8, display: 'inline-block' }}>
+                        Remove Billing Method
+                    </a>
                 </div>
             );
         })}
