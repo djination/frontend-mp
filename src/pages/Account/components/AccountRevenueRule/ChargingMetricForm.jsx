@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Form, Radio, Card, Space, Checkbox, DatePicker } from 'antd';
+import { Form, Radio, Card, Space, Checkbox, DatePicker, Input, Select } from 'antd';
 import { CurrencyInput, PercentageInput } from '../../../../components/NumericInput';
 import dayjs from 'dayjs';
 
@@ -45,6 +45,16 @@ const BILLING_TYPES = {
   MONTHLY: 'monthly'
 };
 
+const BILLING_METHOD_TYPES = {
+  AUTO_DEDUCT: 'auto_deduct',
+  POST_PAID: 'post_paid'
+};
+
+const POST_PAID_TYPES = {
+  TRANSACTION: 'transaction',
+  SUBSCRIPTION: 'subscription'
+};
+
 // Utility: Select component for options
 const SelectField = ({ value, onChange, options, ...props }) => (
     <select style={{ width: 200 }} value={value} onChange={onChange} {...props}>
@@ -54,6 +64,122 @@ const SelectField = ({ value, onChange, options, ...props }) => (
         ))}
     </select>
 );
+
+// Billing Method Fields Component
+const BillingMethodFields = ({ form, name, parentPath, label = "Billing Method" }) => {
+    const methodType = form.getFieldValue([...parentPath, name, 'billing_method', 'type']);
+    const postPaidType = form.getFieldValue([...parentPath, name, 'billing_method', 'post_paid', 'type']);
+
+    const handleMethodTypeChange = (value) => {
+        // Build nested object for setFieldsValue
+        let nested = {};
+        let ref = nested;
+        parentPath.forEach(p => {
+            ref[p] = {};
+            ref = ref[p];
+        });
+        ref[name] = {
+            billing_method: {
+                type: value,
+                auto_deduct: value === BILLING_METHOD_TYPES.AUTO_DEDUCT ? { is_enabled: true } : undefined,
+                post_paid: value === BILLING_METHOD_TYPES.POST_PAID ? { type: POST_PAID_TYPES.TRANSACTION } : undefined
+            }
+        };
+        form.setFieldsValue(nested);
+    };
+
+    const handlePostPaidTypeChange = (value) => {
+        let nested = {};
+        let ref = nested;
+        parentPath.forEach(p => {
+            ref[p] = {};
+            ref = ref[p];
+        });
+        ref[name] = {
+            billing_method: {
+                ...form.getFieldValue([...parentPath, name, 'billing_method']),
+                post_paid: { type: value }
+            }
+        };
+        form.setFieldsValue(nested);
+    };
+
+    const handleScheduleChange = (value) => {
+        let nested = {};
+        let ref = nested;
+        parentPath.forEach(p => {
+            ref[p] = {};
+            ref = ref[p];
+        });
+        ref[name] = {
+            billing_method: {
+                ...form.getFieldValue([...parentPath, name, 'billing_method']),
+                post_paid: {
+                    ...form.getFieldValue([...parentPath, name, 'billing_method', 'post_paid']),
+                    schedule: value
+                }
+            }
+        };
+        form.setFieldsValue(nested);
+    };
+
+    return (
+        <>
+            <Form.Item
+                name={[name, 'billing_method', 'type']}
+                label={<span style={{ color: '#333' }}>Method Type</span>}
+                rules={[{ required: true, message: 'Please select billing method' }]}
+            >
+                <Select 
+                    placeholder="Select method type"
+                    onChange={handleMethodTypeChange}
+                    value={methodType}
+                    options={[
+                        { value: BILLING_METHOD_TYPES.AUTO_DEDUCT, label: 'Auto Deduct' },
+                        { value: BILLING_METHOD_TYPES.POST_PAID, label: 'Post Paid' }
+                    ]}
+                />
+            </Form.Item>
+
+            {methodType === BILLING_METHOD_TYPES.POST_PAID && (
+                <>
+                    <Form.Item
+                        name={[name, 'billing_method', 'post_paid', 'type']}
+                        label={<span style={{ color: '#333' }}>Post Paid Type</span>}
+                        rules={[{ required: true, message: 'Please select post paid type' }]}
+                    >
+                        <Radio.Group onChange={e => handlePostPaidTypeChange(e.target.value)} value={postPaidType}>
+                            <Radio value={POST_PAID_TYPES.TRANSACTION}>Transaction</Radio>
+                            <Radio value={POST_PAID_TYPES.SUBSCRIPTION}>Subscription</Radio>
+                        </Radio.Group>
+                    </Form.Item>
+
+                    {postPaidType === POST_PAID_TYPES.SUBSCRIPTION && (
+                        <Form.Item
+                            name={[name, 'billing_method', 'post_paid', 'schedule']}
+                            label={<span style={{ color: '#333' }}>Subscription Schedule</span>}
+                            rules={[{ required: true, message: 'Please select subscription schedule' }]}
+                        >
+                            <Radio.Group onChange={e => handleScheduleChange(e.target.value)}>
+                                <Radio value="monthly">Monthly</Radio>
+                                <Radio value="yearly">Yearly</Radio>
+                            </Radio.Group>
+                        </Form.Item>
+                    )}
+
+                    <Form.Item
+                        name={[name, 'billing_method', 'post_paid', 'custom_fee']}
+                        label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
+                    >
+                        <CurrencyInput 
+                            placeholder="Enter custom fee amount" 
+                        />
+                    </Form.Item>
+                </>
+            )}
+        </>
+    );
+};
 
 // Add-Ons Fields (shared)
 function AddOnsFields({ form, name, parentPath }) {
@@ -143,18 +269,111 @@ function AddOnsFields({ form, name, parentPath }) {
                                     )}
 
                                     {addOnsTypeValue === ADD_ONS_TYPES.INFRASTRUCTURE && (
-                                        <Form.Item
-                                            {...addOnsRest}
-                                            name={[addOnsName, 'amount']}
-                                            label="Infrastructure Amount"
-                                            rules={[{ required: true, message: 'Please input amount' }]}
-                                        >
-                                            <CurrencyInput placeholder="Enter amount" />
-                                        </Form.Item>
+                                        <>
+                                            <Form.Item
+                                                {...addOnsRest}
+                                                name={[addOnsName, 'billing_type']}
+                                                label="Billing Type"
+                                                rules={[{ required: true, message: 'Please select billing type' }]}
+                                            >
+                                                <Radio.Group onChange={e =>
+                                                    handleSelectChange(
+                                                        { billing_type: e.target.value },
+                                                        addOnsName,
+                                                        e.target.value
+                                                    )
+                                                }>
+                                                    <Radio value={BILLING_TYPES.OTC}>OTC</Radio>
+                                                    <Radio value={BILLING_TYPES.MONTHLY}>Monthly</Radio>
+                                                </Radio.Group>
+                                            </Form.Item>
+                                            <Form.Item
+                                                {...addOnsRest}
+                                                name={[addOnsName, 'amount']}
+                                                label="Infrastructure Amount"
+                                                rules={[{ required: true, message: 'Please input amount' }]}
+                                            >
+                                                <CurrencyInput placeholder="Enter amount" />
+                                            </Form.Item>
+                                        </>
+                                    )}
+
+                                    {/* Additional fields for database storage */}
+                                    {addOnsTypeValue && (
+                                        <>
+                                            <Form.Item
+                                                {...addOnsRest}
+                                                name={[addOnsName, 'description']}
+                                                label="Description"
+                                            >
+                                                <Input placeholder="Enter description" />
+                                            </Form.Item>
+                                            
+                                            <Space style={{ display: 'flex' }}>
+                                                <Form.Item
+                                                    {...addOnsRest}
+                                                    name={[addOnsName, 'start_date']}
+                                                    label="Start Date"
+                                                >
+                                                    <DatePicker placeholder="Start date" />
+                                                </Form.Item>
+                                                
+                                                <Form.Item
+                                                    {...addOnsRest}
+                                                    name={[addOnsName, 'end_date']}
+                                                    label="End Date"
+                                                >
+                                                    <DatePicker placeholder="End date" />
+                                                </Form.Item>
+                                            </Space>
+                                            
+                                            <Form.Item
+                                                {...addOnsRest}
+                                                name={[addOnsName, 'is_active']}
+                                                label="Status"
+                                                initialValue={true}
+                                            >
+                                                <Radio.Group>
+                                                    <Radio value={true}>Active</Radio>
+                                                    <Radio value={false}>Inactive</Radio>
+                                                </Radio.Group>
+                                            </Form.Item>
+
+                                            {/* Method Type for Add-Ons */}
+                                            <Form.Item
+                                                {...addOnsRest}
+                                                name={[addOnsName, 'method_type']}
+                                                label={<span style={{ color: '#333' }}>Method Type</span>}
+                                                rules={[{ required: true, message: 'Please select method type' }]}
+                                            >
+                                                <Select 
+                                                    placeholder="Select method type"
+                                                    options={[
+                                                        { value: 'auto_deduct', label: 'Auto Deduct' },
+                                                        { value: 'post_paid', label: 'Post Paid' }
+                                                    ]}
+                                                />
+                                            </Form.Item>
+
+                                            <Form.Item shouldUpdate>
+                                                {() => {
+                                                    const methodType = form.getFieldValue([...parentPath, name, 'add_ons_types', addOnsName, 'method_type']);
+                                                    return methodType === 'post_paid' ? (
+                                                        <Form.Item
+                                                            {...addOnsRest}
+                                                            name={[addOnsName, 'custom_fee']}
+                                                            label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
+                                                        >
+                                                            <CurrencyInput placeholder="Enter custom fee amount" />
+                                                        </Form.Item>
+                                                    ) : null;
+                                                }}
+                                            </Form.Item>
+                                        </>
                                     )}
 
                                     {addOnsFields.length > 1 && (
-                                        <a onClick={() => removeAddOns(addOnsName)} style={{ color: 'red', marginTop: 8, display: 'inline-block' }}>
+                                        <a onClick={() => removeAddOns(addOnsName)} style={{ color: '#ff4d4f', marginTop: 8, display: 'inline-block', fontSize: '13px' }}>
                                             Remove Add-Ons
                                         </a>
                                     )}
@@ -230,11 +449,11 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
     };
 
     return (
-        <div key={tierKey} style={{ marginBottom: 16, border: '1px solid #eee', padding: 16, borderRadius: 4 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <h4>Dedicated Tier {tierName + 1}</h4>
+        <div key={tierKey} style={{ marginBottom: 16, border: '1px solid #eee', padding: 16, borderRadius: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h4 style={{ margin: 0, color: '#333', fontSize: '16px', fontWeight: '600' }}>Dedicated Tier {tierName + 1}</h4>
                 {canRemove && (
-                    <a onClick={onRemove} style={{ color: 'red' }}>
+                    <a onClick={onRemove} style={{ color: '#ff4d4f', fontSize: '14px' }}>
                         Remove Tier
                     </a>
                 )}
@@ -243,12 +462,13 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
             <Form.Item
                 {...restField}
                 name={[tierName, 'type']}
-                label="Dedicated Type"
+                label={<span style={{ color: '#333', fontWeight: '500' }}>Dedicated Type</span>}
                 rules={[{ required: true, message: 'Please select dedicated type' }]}
+                style={{ marginBottom: 16 }}
             >
                 <Radio.Group onChange={e => handleTypeChange(e.target.value)}>
-                    <Radio value={DEDICATED_TIER_TYPES.PACKAGE}>Package</Radio>
-                    <Radio value={DEDICATED_TIER_TYPES.NON_PACKAGE}>Non Package</Radio>
+                    <Radio value={DEDICATED_TIER_TYPES.PACKAGE} style={{ fontSize: '14px' }}>Package</Radio>
+                    <Radio value={DEDICATED_TIER_TYPES.NON_PACKAGE} style={{ fontSize: '14px' }}>Non Package</Radio>
                 </Radio.Group>
             </Form.Item>
             
@@ -369,6 +589,37 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                             );
                         }}
                     </Form.List>
+                    
+                    {/* Method Type for Package */}
+                    <Form.Item
+                        {...restField}
+                        name={[tierName, 'method_type']}
+                        label={<span style={{ color: '#333' }}>Method Type</span>}
+                        rules={[{ required: true, message: 'Please select method type' }]}
+                    >
+                        <Select 
+                            placeholder="Select method type"
+                            options={[
+                                { value: 'auto_deduct', label: 'Auto Deduct' },
+                                { value: 'post_paid', label: 'Post Paid' }
+                            ]}
+                        />
+                    </Form.Item>
+
+                    <Form.Item shouldUpdate>
+                        {() => {
+                            const methodType = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'method_type']);
+                            return methodType === 'post_paid' ? (
+                                <Form.Item
+                                    {...restField}
+                                    name={[tierName, 'custom_fee']}
+                                    label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
+                                >
+                                    <CurrencyInput placeholder="Enter custom fee amount" />
+                                </Form.Item>
+                            ) : null;
+                        }}
+                    </Form.Item>
                 </div>
             )}
             
@@ -393,19 +644,38 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                     >
                         <CurrencyInput placeholder="Enter non package amount" />
                     </Form.Item>
+                    
+                    {/* Method Type for Non Package */}
+                    <Form.Item
+                        {...restField}
+                        name={[tierName, 'method_type']}
+                        label={<span style={{ color: '#333' }}>Method Type</span>}
+                        rules={[{ required: true, message: 'Please select method type' }]}
+                    >
+                        <Select 
+                            placeholder="Select method type"
+                            options={[
+                                { value: 'auto_deduct', label: 'Auto Deduct' },
+                                { value: 'post_paid', label: 'Post Paid' }
+                            ]}
+                        />
+                    </Form.Item>
+
+                    <Form.Item shouldUpdate>
+                        {() => {
+                            const methodType = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'method_type']);
+                            return methodType === 'post_paid' ? (
+                                <Form.Item
+                                    {...restField}
+                                    name={[tierName, 'custom_fee']}
+                                    label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
+                                >
+                                    <CurrencyInput placeholder="Enter custom fee amount" />
+                                </Form.Item>
+                            ) : null;
+                        }}
+                    </Form.Item>
                 </div>
-            )}
-            
-            {tierType && (
-                <Form.Item
-                    {...restField}
-                    name={[tierName, 'has_add_ons']}
-                    valuePropName="checked"
-                >
-                    <Checkbox onChange={e => handleAddOnsChange(e.target.checked)}>
-                        Include Add-Ons
-                    </Checkbox>
-                </Form.Item>
             )}
             
             {tierType && hasAddOns && (
@@ -498,6 +768,29 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
         form.setFieldsValue({ charging_metric: { non_dedicated: { tiers: updated } } });
     };
 
+    const handleAddOnsChange = (tierName, checked) => {
+        const currentTier = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers', tierName]) || {};
+        const updated = { ...currentTier, has_add_ons: checked };
+        
+        if (!checked) {
+            // Clear add_ons_types when unchecked
+            updated.add_ons_types = undefined;
+        }
+        
+        const allTiers = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']) || [];
+        allTiers[tierName] = updated;
+        
+        form.setFieldsValue({ 
+            charging_metric: { 
+                ...form.getFieldValue(['charging_metric']),
+                non_dedicated: { 
+                    ...form.getFieldValue(['charging_metric', 'non_dedicated']),
+                    tiers: allTiers 
+                } 
+            } 
+        });
+    };
+
     return (
         <>
             {fields.map(({ key, name, ...restField }) => {
@@ -510,23 +803,18 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                             label="Non Dedicated Type"
                             rules={[{ required: true, message: 'Please select type' }]}
                         >
-                            <SelectField
-                                value={nonDedicatedType}
-                                onChange={e => handleTypeChange(name, e.target.value)}
-                                options={[
-                                    { value: NON_DEDICATED_TYPES.TRANSACTION_FEE, label: 'Transaction Fee' },
-                                    { value: NON_DEDICATED_TYPES.SUBSCRIPTION, label: 'Subscription' },
-                                    { value: NON_DEDICATED_TYPES.ADD_ONS, label: 'Add-Ons' }
-                                ]}
-                            />
+                            <Radio.Group onChange={e => handleTypeChange(name, e.target.value)}>
+                                <Radio value={NON_DEDICATED_TYPES.TRANSACTION_FEE}>Transaction Fee</Radio>
+                                <Radio value={NON_DEDICATED_TYPES.SUBSCRIPTION}>Subscription</Radio>
+                            </Radio.Group>
                         </Form.Item>
 
                         {nonDedicatedType === NON_DEDICATED_TYPES.TRANSACTION_FEE && (
-                            <div className="rule-subsection">
+                            <>
                                 <Form.Item
                                     {...restField}
                                     name={[name, 'transaction_fee_type']}
-                                    label="Fee Type"
+                                    label={<span style={{ color: '#333' }}>Fee Type</span>}
                                     rules={[{ required: true, message: 'Please select fee type' }]}
                                 >
                                     <Radio.Group>
@@ -542,7 +830,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                 <Form.Item
                                                     {...restField}
                                                     name={[name, 'fixed_rate_value']}
-                                                    label="Fixed Rate Value"
+                                                    label={<span style={{ color: '#333' }}>Fixed Rate Value</span>}
                                                     rules={[{ required: true, message: 'Please input fixed rate value' }]}
                                                 >
                                                     <CurrencyInput placeholder="Enter fixed rate value" />
@@ -554,7 +842,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                 <Form.Item
                                                     {...restField}
                                                     name={[name, 'percentage_value']}
-                                                    label="Percentage Value"
+                                                    label={<span style={{ color: '#333' }}>Percentage Value</span>}
                                                     rules={[{ required: true, message: 'Please input percentage value' }]}
                                                 >
                                                     <PercentageInput placeholder="Enter percentage value" />
@@ -564,15 +852,46 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                         return null;
                                     }}
                                 </Form.Item>
-                            </div>
+
+                                {/* Simplified Method Type for Transaction Fee */}
+                                <Form.Item
+                                    {...restField}
+                                    name={[name, 'method_type']}
+                                    label={<span style={{ color: '#333' }}>Method Type</span>}
+                                    rules={[{ required: true, message: 'Please select method type' }]}
+                                >
+                                    <Select 
+                                        placeholder="Select method type"
+                                        options={[
+                                            { value: 'auto_deduct', label: 'Auto Deduct' },
+                                            { value: 'post_paid', label: 'Post Paid' }
+                                        ]}
+                                    />
+                                </Form.Item>
+
+                                <Form.Item shouldUpdate>
+                                    {() => {
+                                        const methodType = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers', name, 'method_type']);
+                                        return methodType === 'post_paid' ? (
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'custom_fee']}
+                                                label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
+                                            >
+                                                <CurrencyInput placeholder="Enter custom fee amount" />
+                                            </Form.Item>
+                                        ) : null;
+                                    }}
+                                </Form.Item>
+                            </>
                         )}
 
                         {nonDedicatedType === NON_DEDICATED_TYPES.SUBSCRIPTION && (
-                            <div className="rule-subsection">
+                            <>
                                 <Form.Item
                                     {...restField}
                                     name={[name, 'subscription_type']}
-                                    label="Subscription Type"
+                                    label={<span style={{ color: '#333' }}>Subscription Type</span>}
                                     rules={[{ required: true, message: 'Please select subscription type' }]}
                                 >
                                     <Radio.Group>
@@ -583,7 +902,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                 <Form.Item
                                     {...restField}
                                     name={[name, 'subscription_amount']}
-                                    label="Subscription Amount"
+                                    label={<span style={{ color: '#333' }}>Subscription Amount</span>}
                                     rules={[{ required: true, message: 'Please input subscription amount' }]}
                                 >
                                     <CurrencyInput placeholder="Enter subscription amount" />
@@ -595,7 +914,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                             <Form.Item
                                                 {...restField}
                                                 name={[name, 'yearly_discount']}
-                                                label="Yearly Discount"
+                                                label={<span style={{ color: '#333' }}>Yearly Discount</span>}
                                                 rules={[{ required: true, message: 'Please input yearly discount' }]}
                                             >
                                                 <PercentageInput placeholder="Enter discount percentage" />
@@ -603,19 +922,42 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                         ) : null;
                                     }}
                                 </Form.Item>
-                            </div>
-                        )}
 
-                        {nonDedicatedType === NON_DEDICATED_TYPES.ADD_ONS && (
-                            <AddOnsFields
-                                form={form}
-                                name={name}
-                                parentPath={['charging_metric', 'non_dedicated', 'tiers']}
-                            />
+                                {/* Simplified Method Type for Subscription */}
+                                <Form.Item
+                                    {...restField}
+                                    name={[name, 'method_type']}
+                                    label={<span style={{ color: '#333' }}>Method Type</span>}
+                                    rules={[{ required: true, message: 'Please select method type' }]}
+                                >
+                                    <Select 
+                                        placeholder="Select method type"
+                                        options={[
+                                            { value: 'auto_deduct', label: 'Auto Deduct' },
+                                            { value: 'post_paid', label: 'Post Paid' }
+                                        ]}
+                                    />
+                                </Form.Item>
+
+                                <Form.Item shouldUpdate>
+                                    {() => {
+                                        const methodType = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers', name, 'method_type']);
+                                        return methodType === 'post_paid' ? (
+                                            <Form.Item
+                                                {...restField}
+                                                name={[name, 'custom_fee']}
+                                                label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
+                                            >
+                                                <CurrencyInput placeholder="Enter custom fee amount" />
+                                            </Form.Item>
+                                        ) : null;
+                                    }}
+                                </Form.Item>
+                            </>
                         )}
 
                         {fields.length > 1 && (
-                            <a onClick={() => remove(name)} style={{ color: 'red', marginTop: 8, display: 'inline-block' }}>
+                            <a onClick={() => remove(name)} style={{ color: '#ff4d4f', marginTop: 8, display: 'inline-block', fontSize: '13px' }}>
                                 Remove
                             </a>
                         )}
