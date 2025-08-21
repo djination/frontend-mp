@@ -84,7 +84,7 @@ function App() {
       '/account': AccountList,
       '/account/add': AddAccount,
       '/account/edit/:id': EditAccount,
-      '/parameter/industry': MasterIndustry,
+      '/master/industry': MasterIndustry,
       '/parameter/business-type': MasterBusinessType,
       '/parameter/bank': MasterBank,
       '/parameter/bank-category': MasterBankCategory,
@@ -210,6 +210,7 @@ function App() {
 
             {/* Master routes */}
             <Route path="/master">
+              <Route path="industry" element={<MasterIndustry />} />
               <Route path="services" element={<ServicesPage />} />
               <Route path="postal-code" element={<PostalCodeMaster />} />
               <Route path="cdm-providers" element={<CdmProvidersPage />} />
@@ -217,7 +218,6 @@ function App() {
             
             {/* Parameter routes */}
             <Route path="/parameter">
-              <Route path="industry" element={<MasterIndustry />} />
               <Route path="business-type" element={<MasterBusinessType />} />
               <Route path="bank" element={<MasterBank />} />
               <Route path="bank-category" element={<MasterBankCategory />} />

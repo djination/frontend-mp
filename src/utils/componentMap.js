@@ -21,7 +21,7 @@ export const componentMap = {
   '/account': AccountListPage,
   '/account/add': AddAccountPage,
   '/account/edit/:id': EditAccountPage,
-  '/parameter/industry': MasterIndustryPage,
+  '/master/industry': MasterIndustryPage,
   '/parameter/business-type': MasterBusinessTypePage,
   '/parameter/bank': MasterBankPage,
   '/parameter/bank-category': MasterBankCategoryPage,
