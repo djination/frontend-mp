@@ -292,7 +292,7 @@ const AccountBankForm = ({
             loading={loading}
             onClick={handleSave}
           >
-            {editingAccountBank ? 'Update' : 'Save'}
+            {editingAccountBank ? 'Update' : 'Ok'}
           </Button>,
         ]}
       >

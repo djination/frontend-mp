@@ -245,7 +245,7 @@ const AccountPICForm = ({
             loading={loading}
             onClick={handleSave}
           >
-            {editingPIC ? 'Update' : 'Save'}
+            {editingPIC ? 'Update' : 'Ok'}
           </Button>,
         ]}
       >
