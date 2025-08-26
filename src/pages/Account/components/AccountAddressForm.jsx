@@ -1,8 +1,8 @@
 // filepath: d:\Dok Pribadi\merahputih\code\frontend\src\pages\Account\components\AccountAddressForm.jsx
 import React, { useEffect, useState } from 'react';
-import { 
+import {
   Form, Input, Button, Table, Space, Modal, InputNumber,
-  Popconfirm, message 
+  Popconfirm, message
 } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -19,17 +19,17 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
 
   useEffect(() => {
     // Initialize local addresses from props
-    
+
     setLocalAddresses(addresses || []);
   }, [addresses]);
 
   const showModal = (address) => {
     setEditingAddress(address || null);
     form.resetFields();
-    
+
     if (address) {
       form.setFieldsValue(address);
-      
+
       // Set hierarchy data for existing address
       setAddressHierarchy({
         country: address.country || '',
@@ -43,13 +43,13 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       // Reset hierarchy for new address
       setAddressHierarchy({});
     }
-    
+
     setVisible(true);
   };
 
   const handleAddressHierarchyChange = (hierarchyData) => {
     setAddressHierarchy(hierarchyData);
-    
+
     // Update form fields with hierarchy data
     form.setFieldsValue({
       country: hierarchyData.country || '',
@@ -92,7 +92,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
         setLocalAddresses(updatedAddresses);
         onChange(updatedAddresses);
       }
-      
+
       // Close modal and reset states
       setVisible(false);
       setAddressHierarchy({});
@@ -104,14 +104,14 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       setLoading(false);
     }
   };
-  
+
   // Function to fetch updated addresses from server
   const fetchUpdatedAddresses = async () => {
     try {
-      
+
       const response = await getAccountAddresses(accountId);
-      
-      
+
+
       // Determine the correct data path based on the response structure
       let updatedData = [];
       if (response?.data?.account_address) {
@@ -121,9 +121,9 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       } else if (Array.isArray(response?.data)) {
         updatedData = response.data;
       }
-      
-      
-      
+
+
+
       if (updatedData && updatedData.length > 0) {
         setLocalAddresses(updatedData);
         onChange(updatedData);
@@ -143,7 +143,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
     onChange(updatedAddresses);
   };
 
-  
+
 
   const columns = [
     {
@@ -172,12 +172,17 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       key: 'postalcode',
     },
     {
+      title: 'Website',
+      dataIndex: 'website',
+      key: 'website',
+    },
+    {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
         <Space>
-          <Button 
-            icon={<EditOutlined />} 
+          <Button
+            icon={<EditOutlined />}
             onClick={() => showModal(record)}
             size="small"
           />
@@ -187,8 +192,8 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
             okText="Yes"
             cancelText="No"
           >
-            <Button 
-              danger 
+            <Button
+              danger
               icon={<DeleteOutlined />}
               size="small"
             />
@@ -199,27 +204,27 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
   ];
 
   // Debugging untuk cek komponen berjalan
-  
+
 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
           onClick={() => showModal()}
         >
           Add Address
         </Button>
       </div>
-      
+
       <Table
         columns={columns}
         dataSource={localAddresses}
         rowKey={record => record.id || record.tempId}
         pagination={false}
       />
-      
+
       <Modal
         title={editingAddress ? 'Edit Address' : 'Add Address'}
         open={visible}
@@ -235,14 +240,14 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
           >
             <Input placeholder="Enter address line 1" autoComplete="address-line1" />
           </Form.Item>
-          
+
           <Form.Item
             name="address2"
             label="Address Line 2"
           >
             <Input placeholder="Enter address line 2" autoComplete="address-line2" />
           </Form.Item>
-          
+
           {/* Address Hierarchy Selector */}
           <div style={{ marginBottom: 24 }}>
             <AddressHierarchySelector
@@ -251,7 +256,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
               required={true}
             />
           </div>
-          
+
           {/* Hidden fields for form validation */}
           <Form.Item name="country" hidden rules={[{ required: true, message: 'Please select country' }]}>
             <Input />
@@ -271,19 +276,37 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
           <Form.Item name="postalcode" hidden rules={[{ required: true, message: 'Please select postal code' }]}>
             <Input />
           </Form.Item>
-          
+
           <Form.Item
             name="phone_no"
             label="Phone Number"
-            rules={[{ message: 'Please enter phone number' }]}
+            rules={[
+              { required: true, message: 'Please enter phone number' },
+              {
+                validator: (_, value) => {
+                  if (!value || value.startsWith('62')) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Nomor harus diawali dengan 62'));
+                }
+              }
+            ]}
           >
             <Input placeholder="Enter phone number" autoComplete="tel" />
+          </Form.Item>
+
+          <Form.Item
+            name="website"
+            label="Website"
+            rules={[{ message: 'Please enter website' }]}
+          >
+            <Input placeholder="Enter website" autoComplete="off" />
           </Form.Item>
 
           <Form.Item name="latitude" label="Latitude">
             <InputNumber style={{ width: '100%' }} precision={6} />
           </Form.Item>
-          
+
           <Form.Item name="longitude" label="Longitude">
             <InputNumber style={{ width: '100%' }} precision={6} />
           </Form.Item>

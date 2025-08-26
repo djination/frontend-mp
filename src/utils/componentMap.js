@@ -13,6 +13,7 @@ import MasterAccountCategoryPage from '../pages/Parameter/MasterAccountCategory'
 import MasterDocumentTypePage from '../pages/Parameter/MasterDocumentType';
 import ServicesPage from '../pages/Services/ServicesPage';
 import CdmProvidersPage from '../pages/Master/CdmProvider/CdmProvidersPage';
+import BackendExtConfigPage from '../pages/Account/components/BackendExtConfigPage';
 // Import more page components as needed
 
 // This maps route paths to component functions
@@ -31,5 +32,6 @@ export const componentMap = {
   '/parameter/document-type': MasterDocumentTypePage,
   '/master/services': ServicesPage,
   '/master/cdm-providers': CdmProvidersPage,
+  '/master/backend-config': BackendExtConfigPage,
   // Add more routes as needed
 };

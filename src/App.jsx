@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { ConfigProvider, theme, App as AntdApp } from 'antd';
+import { theme, App as AntdApp } from 'antd';
 import { useAuth } from "./components/AuthContext";
 
 // Page components
@@ -31,6 +31,7 @@ import MasterDocumentType from "./pages/Parameter/MasterDocumentType";
 import PostalCodeMaster from "./pages/Master/PostalCodeMaster";
 import RevenueRule from "./pages/RevenueRule/RevenueRule";
 import CdmProvidersPage from './pages/Master/CdmProvider/CdmProvidersPage';
+import BackendExtConfigPage from './pages/Account/components/BackendExtConfigPage';
 
 // Component map for dynamic routing
 import { componentMap } from './utils/componentMap';
@@ -97,6 +98,7 @@ function App() {
       '/profile': ProfilePage,
       '/master/services': ServicesPage,
       '/master/cdm-providers': CdmProvidersPage,
+      '/master/backend-config': BackendExtConfigPage,
     };
     
     if (staticRoutes[path]) {
@@ -214,6 +216,7 @@ function App() {
               <Route path="services" element={<ServicesPage />} />
               <Route path="postal-code" element={<PostalCodeMaster />} />
               <Route path="cdm-providers" element={<CdmProvidersPage />} />
+              <Route path="backend-config" element={<BackendExtConfigPage />} />
             </Route>
             
             {/* Parameter routes */}

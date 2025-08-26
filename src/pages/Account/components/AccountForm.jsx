@@ -809,6 +809,7 @@ const AccountForm = ({
           message.error('Failed to save vendor details');
         }
       }
+      
       message.success(isEdit ? 'Account updated successfully' : 'Account created successfully');
       navigate('/account');
     } catch (error) {

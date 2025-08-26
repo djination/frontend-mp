@@ -251,6 +251,17 @@ const AccountPICForm = ({
       >
         <Form form={form} layout="vertical">
           <Form.Item
+            name="is_owner"
+            label="Is Owner"
+            rules={[{ required: true, message: 'Please select if the PIC is the owner' }]}
+          >
+            <Select placeholder="Select if owner" allowClear>
+              <Select.Option value={true}>Yes</Select.Option>
+              <Select.Option value={false}>No</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
             name="name"
             label="Name"
             rules={[{ required: true, message: 'Please enter name' }]}
@@ -317,6 +328,27 @@ const AccountPICForm = ({
             ]}
           >
             <Input placeholder="Enter email" autoComplete="email" />
+          </Form.Item>
+          <Form.Item
+            name="no_ktp"
+            label="No KTP"
+            rules={[
+              { required: true, message: 'Please enter No KTP' },
+              { type: 'string', message: 'Please enter a valid No KTP' }
+            ]}
+          >
+            <Input placeholder="Enter No KTP" autoComplete="off" />
+
+          </Form.Item>
+          <Form.Item
+            name="no_npwp"
+            label="No NPWP"
+            rules={[
+              { required: true, message: 'Please enter No NPWP' },
+              { type: 'string', message: 'Please enter a valid No NPWP' }
+            ]}
+          >
+            <Input placeholder="Enter No NPWP" autoComplete="off" />
           </Form.Item>
         </Form>
       </Modal>

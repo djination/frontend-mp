@@ -1,18 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Table, Button, Form, Input, Select, Space, Card, 
-  message, Tooltip, Popconfirm, Pagination
+  message, Tooltip, Popconfirm, Pagination, Modal
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, SearchOutlined, UploadOutlined, ApiOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 // Import API yang sudah dibuat
-import { getAccounts, deleteAccount } from '../../api/accountApi';
+import { getAccounts, deleteAccount, getAccountById } from '../../api/accountApi';
 import { getAccountCategories } from '../../api/accountCategoryApi';
 import { getAccountTypes } from '../../api/accountTypeApi';
 
 // Import Mass Upload Component
 import MassUploadAccount from './components/MassUploadAccount';
+
+// Import Customer Sync Utils
+import { syncCustomerToExternalApi } from '../../utils/customerSyncUtils';
+
+// Import Auth Context
+import { useAuth } from '../../components/AuthContext';
 
 // Helper untuk flatten tree account
 const flattenAccounts = (accounts) => {
@@ -34,9 +40,15 @@ const AccountList = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const categorySelectRef = useRef(null);
+  const { user } = useAuth(); // Get current user for logging
 
   // Mass Upload State
   const [massUploadVisible, setMassUploadVisible] = useState(false);
+
+  // Sync State
+  const [syncModalVisible, setSyncModalVisible] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -93,6 +105,7 @@ const AccountList = () => {
           ...params
         }).filter(([_, v]) => v !== undefined && v !== '')
       );
+      
       const response = await getAccounts(cleanedParams);
 
       if (response && response.data) {
@@ -122,8 +135,13 @@ const AccountList = () => {
         }));
       }
     } catch (error) {
-      message.error('Failed to fetch accounts');
-      console.error(error);
+      console.error('Failed to fetch accounts:', error);
+      
+      // Don't show error message for timeout during sync operations
+      if (!error.code || error.code !== 'ECONNABORTED') {
+        message.error('Failed to fetch accounts');
+      }
+      
       setAccounts([]);
     } finally {
       setLoading(false);
@@ -228,6 +246,99 @@ const AccountList = () => {
     message.success('Accounts list refreshed');
   };
 
+  // Sync Customer Handler
+  const handleSyncCustomer = (record) => {
+    setSelectedAccount(record);
+    setSyncModalVisible(true);
+  };
+
+  const confirmSyncCustomer = async () => {
+    if (!selectedAccount) return;
+
+    setSyncLoading(true);
+    try {
+      console.log('🔄 Starting sync for account:', selectedAccount.name);
+      
+      // Try to get full account details including related data and children
+      let accountDataToSync = selectedAccount;
+      try {
+        const fullAccountData = await getAccountById(selectedAccount.id);
+        console.log('📥 Full account data:', fullAccountData);
+        
+        // Use full data if available and has more details
+        if (fullAccountData?.data) {
+          accountDataToSync = fullAccountData.data;
+        }
+      } catch (detailError) {
+        console.warn('⚠️ Could not fetch full account details, using list data:', detailError.message);
+        // Continue with selectedAccount data
+      }
+
+      // Get account children/branches for the account tree
+      try {
+        console.log('🔄 Fetching account children/branches...');
+        const childrenResponse = await getAccounts({ 
+          parent_id: selectedAccount.id,
+          limit: 1000  // Get all children
+        });
+        
+        if (childrenResponse?.data && Array.isArray(childrenResponse.data)) {
+          // Add children to account tree
+          accountDataToSync.account_tree = childrenResponse.data;
+          console.log('✅ Found', childrenResponse.data.length, 'child accounts/branches');
+        } else {
+          console.log('ℹ️ No child accounts found');
+          accountDataToSync.account_tree = [];
+        }
+      } catch (childrenError) {
+        console.warn('⚠️ Could not fetch children accounts:', childrenError.message);
+        accountDataToSync.account_tree = [];
+      }
+      
+      // Sync customer to external API
+      const result = await syncCustomerToExternalApi(
+        accountDataToSync, 
+        null, // configId - will be auto-detected 
+        user?.id, // userId for logging
+        selectedAccount.id // accountId for logging
+      );
+      
+      if (result.success) {
+        message.success(`Successfully synced customer: ${selectedAccount.name}`);
+        console.log('✅ Sync result:', result);
+        
+        // Show detailed success information
+        if (result.customerData) {
+          const { customer, "customer-crew": crew, "beneficiary-account": beneficiary, branch } = result.customerData;
+          Modal.success({
+            title: 'Sync Completed Successfully',
+            content: (
+              <div>
+                <p><strong>Customer:</strong> {customer?.name}</p>
+                <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
+                <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
+                <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p>
+                <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
+                <p><strong>Branches:</strong> {Array.isArray(branch) ? branch.length : (branch ? 1 : 0)} branch(es)</p>
+                <p><strong>External API Response:</strong> {result.response?.message || 'Success'}</p>
+              </div>
+            ),
+          });
+        }
+      } else {
+        message.error(`Failed to sync customer: ${result.error || 'Unknown error'}`);
+        console.error('❌ Sync failed:', result);
+      }
+    } catch (error) {
+      console.error('❌ Sync error:', error);
+      message.error(`Sync failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setSyncLoading(false);
+      setSyncModalVisible(false);
+      setSelectedAccount(null);
+    }
+  };
+
   const columns = [
     {
       title: 'Account No',
@@ -302,6 +413,14 @@ const AccountList = () => {
             <Button
               icon={<EditOutlined />}
               onClick={() => handleEdit(record.id)}
+            />
+          </Tooltip>
+          <Tooltip title="Sync to External API">
+            <Button
+              icon={<ApiOutlined />}
+              onClick={() => handleSyncCustomer(record)}
+              type="primary"
+              ghost
             />
           </Tooltip>
           <Popconfirm
@@ -404,6 +523,41 @@ const AccountList = () => {
         onClose={() => setMassUploadVisible(false)}
         onSuccess={handleMassUploadSuccess}
       />
+
+      {/* Sync Customer Modal */}
+      <Modal
+        title="Sync Customer to External API"
+        open={syncModalVisible}
+        onOk={confirmSyncCustomer}
+        onCancel={() => setSyncModalVisible(false)}
+        confirmLoading={syncLoading}
+        okText="Sync Now"
+        cancelText="Cancel"
+      >
+        <div>
+          <p>Are you sure you want to sync the following customer to external API?</p>
+          {selectedAccount && (
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#f5f5f5', 
+              borderRadius: '6px',
+              marginTop: '12px'
+            }}>
+              <p><strong>Account:</strong> {selectedAccount.name}</p>
+              <p><strong>Account No:</strong> {selectedAccount.account_no}</p>
+              <p><strong>Type:</strong> {selectedAccount.account_type?.name || 'N/A'}</p>
+              <p><strong>Categories:</strong> {
+                selectedAccount.account_categories 
+                  ? selectedAccount.account_categories.map(cat => cat.name).join(', ')
+                  : selectedAccount.account_category?.name || 'N/A'
+              }</p>
+            </div>
+          )}
+          <div style={{ marginTop: '12px', color: '#666' }}>
+            <p><strong>Note:</strong> This will send customer data including PIC, address, and bank information to the configured external API.</p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
