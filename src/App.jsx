@@ -32,6 +32,7 @@ import PostalCodeMaster from "./pages/Master/PostalCodeMaster";
 import RevenueRule from "./pages/RevenueRule/RevenueRule";
 import CdmProvidersPage from './pages/Master/CdmProvider/CdmProvidersPage';
 import BackendExtConfigPage from './pages/Account/components/BackendExtConfigPage';
+import PublishedPackageTierPage from './pages/PublishedPackageTier/PublishedPackageTierPage';
 
 // Component map for dynamic routing
 import { componentMap } from './utils/componentMap';
@@ -217,6 +218,7 @@ function App() {
               <Route path="postal-code" element={<PostalCodeMaster />} />
               <Route path="cdm-providers" element={<CdmProvidersPage />} />
               <Route path="backend-config" element={<BackendExtConfigPage />} />
+              <Route path="published-package-tiers" element={<PublishedPackageTierPage />} />
             </Route>
             
             {/* Parameter routes */}

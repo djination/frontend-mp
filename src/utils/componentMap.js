@@ -14,6 +14,7 @@ import MasterDocumentTypePage from '../pages/Parameter/MasterDocumentType';
 import ServicesPage from '../pages/Services/ServicesPage';
 import CdmProvidersPage from '../pages/Master/CdmProvider/CdmProvidersPage';
 import BackendExtConfigPage from '../pages/Account/components/BackendExtConfigPage';
+import PublishedPackageTierPage from '../pages/PublishedPackageTier/PublishedPackageTierPage';
 // Import more page components as needed
 
 // This maps route paths to component functions
@@ -33,5 +34,6 @@ export const componentMap = {
   '/master/services': ServicesPage,
   '/master/cdm-providers': CdmProvidersPage,
   '/master/backend-config': BackendExtConfigPage,
+  '/master/published-package-tiers': PublishedPackageTierPage,
   // Add more routes as needed
 };

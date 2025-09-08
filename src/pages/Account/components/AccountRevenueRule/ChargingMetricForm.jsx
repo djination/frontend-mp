@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Form, Radio, Card, Space, Checkbox, DatePicker, Input, Select } from 'antd';
+import { Form, Radio, Card, Space, Checkbox, DatePicker, Input, Select, Typography, Alert, message } from 'antd';
 import { CurrencyInput, PercentageInput } from '../../../../components/NumericInput';
 import dayjs from 'dayjs';
+import { MassUploadPackageTierButton } from './MassUploadPackageTierButton';
+
+const { Text } = Typography;
 
 // Schema constants (should match AccountRevenueRuleModal.jsx)
 const CHARGING_METRIC_TYPES = {
@@ -448,6 +451,21 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
         });
     };
 
+    const handlePackageUploadSuccess = (uploadedData, tierIndex, addPkg) => {
+        console.log('📦 Upload success:', uploadedData);
+        
+        // Add each uploaded package tier to the form
+        uploadedData.forEach(tierData => {
+            addPkg({
+                min: tierData.min_value,
+                max: tierData.max_value,
+                amount: tierData.amount,
+                start_date: dayjs(tierData.start_date),
+                end_date: dayjs(tierData.end_date)
+            });
+        });
+    };
+
     return (
         <div key={tierKey} style={{ marginBottom: 16, border: '1px solid #eee', padding: 16, borderRadius: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -577,13 +595,18 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                                     );
                                 })}
                                     <Form.Item>
-                                        <a onClick={() => addPkg({
-                                            min: 0,
-                                            max: 0,
-                                            amount: 0,
-                                            start_date: dayjs(),
-                                            end_date: dayjs().add(1, 'year')
-                                        })} style={{ color: '#1890ff' }}>+ Add Package Tier</a>
+                                        <Space>
+                                            <a onClick={() => addPkg({
+                                                min: 0,
+                                                max: 0,
+                                                amount: 0,
+                                                start_date: dayjs(),
+                                                end_date: dayjs().add(1, 'year')
+                                            })} style={{ color: '#1890ff' }}>+ Add Package Tier</a>
+                                            <MassUploadPackageTierButton 
+                                                onUploadSuccess={(data) => handlePackageUploadSuccess(data, tierName, addPkg)}
+                                            />
+                                        </Space>
                                     </Form.Item>
                                 </>
                             );
@@ -748,6 +771,127 @@ function DedicatedTierFields({ fields, add, remove, form }) {
     );
 }
 
+// Non Dedicated Inheritance Section
+function NonDedicatedInheritanceSection({ form }) {
+    const [inheritFromParent, setInheritFromParent] = useState(false);
+    const [parentValues, setParentValues] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleInheritanceChange = async (checked) => {
+        setInheritFromParent(checked);
+        
+        if (checked) {
+            setLoading(true);
+            try {
+                // Here we would fetch parent account's revenue rule values
+                // For now, we'll simulate with mock data
+                const mockParentValues = {
+                    tiers: [{
+                        type: NON_DEDICATED_TYPES.TRANSACTION_FEE,
+                        transaction_fee_type: TRANSACTION_FEE_TYPES.FIXED_RATE,
+                        fixed_rate_value: 5000,
+                        method_type: 'auto_deduct'
+                    }]
+                };
+                
+                setParentValues(mockParentValues);
+                
+                // Apply parent values to form
+                form.setFieldsValue({
+                    charging_metric: {
+                        ...form.getFieldValue(['charging_metric']),
+                        non_dedicated: {
+                            inherit_from_parent: true,
+                            tiers: mockParentValues.tiers
+                        }
+                    }
+                });
+                
+                message.success('Parent values applied successfully');
+            } catch (error) {
+                console.error('Error fetching parent values:', error);
+                message.error('Failed to fetch parent values');
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            // Reset to default values
+            setParentValues(null);
+            const defaultTier = {
+                type: NON_DEDICATED_TYPES.TRANSACTION_FEE,
+                transaction_fee_type: TRANSACTION_FEE_TYPES.FIXED_RATE,
+                fixed_rate_value: 0,
+                percentage_value: 0,
+                subscription_type: SUBSCRIPTION_TYPES.MONTHLY,
+                subscription_amount: 0,
+                yearly_discount: 0,
+                add_ons_types: []
+            };
+            
+            form.setFieldsValue({
+                charging_metric: {
+                    ...form.getFieldValue(['charging_metric']),
+                    non_dedicated: {
+                        inherit_from_parent: false,
+                        tiers: [defaultTier]
+                    }
+                }
+            });
+        }
+    };
+
+    return (
+        <div style={{ marginBottom: 16, padding: 16, backgroundColor: '#f5f5f5', borderRadius: 6 }}>
+            <Form.Item
+                name={['charging_metric', 'non_dedicated', 'inherit_from_parent']}
+                valuePropName="checked"
+                style={{ marginBottom: parentValues ? 12 : 0 }}
+            >
+                <Checkbox 
+                    onChange={(e) => handleInheritanceChange(e.target.checked)}
+                    loading={loading}
+                >
+                    <Space>
+                        <span style={{ fontWeight: 500 }}>Inherit values from parent account</span>
+                        {loading && <span style={{ fontSize: 12, color: '#666' }}>Loading parent values...</span>}
+                    </Space>
+                </Checkbox>
+            </Form.Item>
+            
+            {parentValues && (
+                <Alert
+                    message="Inherited Configuration"
+                    description={
+                        <div>
+                            <Text type="secondary">
+                                Using parent account's non-dedicated configuration. 
+                                To customize values for this account, uncheck the inheritance option above.
+                            </Text>
+                            <div style={{ marginTop: 8 }}>
+                                <Text strong>Parent Values:</Text>
+                                <ul style={{ marginTop: 4, marginLeft: 16 }}>
+                                    {parentValues.tiers.map((tier, index) => (
+                                        <li key={index}>
+                                            {tier.type === NON_DEDICATED_TYPES.TRANSACTION_FEE 
+                                                ? `Transaction Fee: ${tier.transaction_fee_type === TRANSACTION_FEE_TYPES.FIXED_RATE 
+                                                    ? `Fixed Rate - Rp ${tier.fixed_rate_value?.toLocaleString('id-ID') || 0}`
+                                                    : `Percentage - ${tier.percentage_value || 0}%`}`
+                                                : `Subscription: ${tier.subscription_type} - Rp ${tier.subscription_amount?.toLocaleString('id-ID') || 0}`
+                                            }
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                    type="info"
+                    showIcon
+                />
+            )}
+        </div>
+    );
+}
+
 // Non Dedicated Tier Fields
 function NonDedicatedTierFields({ fields, add, remove, form }) {
     if (!Array.isArray(fields)) {
@@ -760,6 +904,9 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
             </div>
         );
     }
+    
+    // Check if inheritance is enabled
+    const inheritFromParent = form.getFieldValue(['charging_metric', 'non_dedicated', 'inherit_from_parent']) || false;
     
     const handleTypeChange = (name, value) => {
         const currentValues = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']) || [];
@@ -803,7 +950,10 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                             label="Non Dedicated Type"
                             rules={[{ required: true, message: 'Please select type' }]}
                         >
-                            <Radio.Group onChange={e => handleTypeChange(name, e.target.value)}>
+                            <Radio.Group 
+                                onChange={e => handleTypeChange(name, e.target.value)}
+                                disabled={inheritFromParent}
+                            >
                                 <Radio value={NON_DEDICATED_TYPES.TRANSACTION_FEE}>Transaction Fee</Radio>
                                 <Radio value={NON_DEDICATED_TYPES.SUBSCRIPTION}>Subscription</Radio>
                             </Radio.Group>
@@ -817,7 +967,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                     label={<span style={{ color: '#333' }}>Fee Type</span>}
                                     rules={[{ required: true, message: 'Please select fee type' }]}
                                 >
-                                    <Radio.Group>
+                                    <Radio.Group disabled={inheritFromParent}>
                                         <Radio value={TRANSACTION_FEE_TYPES.FIXED_RATE}>Fixed Rate</Radio>
                                         <Radio value={TRANSACTION_FEE_TYPES.PERCENTAGE}>Percentage (%)</Radio>
                                     </Radio.Group>
@@ -833,7 +983,10 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                     label={<span style={{ color: '#333' }}>Fixed Rate Value</span>}
                                                     rules={[{ required: true, message: 'Please input fixed rate value' }]}
                                                 >
-                                                    <CurrencyInput placeholder="Enter fixed rate value" />
+                                                    <CurrencyInput 
+                                                        placeholder="Enter fixed rate value" 
+                                                        disabled={inheritFromParent}
+                                                    />
                                                 </Form.Item>
                                             );
                                         }
@@ -845,7 +998,10 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                     label={<span style={{ color: '#333' }}>Percentage Value</span>}
                                                     rules={[{ required: true, message: 'Please input percentage value' }]}
                                                 >
-                                                    <PercentageInput placeholder="Enter percentage value" />
+                                                    <PercentageInput 
+                                                        placeholder="Enter percentage value" 
+                                                        disabled={inheritFromParent}
+                                                    />
                                                 </Form.Item>
                                             );
                                         }
@@ -862,6 +1018,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                 >
                                     <Select 
                                         placeholder="Select method type"
+                                        disabled={inheritFromParent}
                                         options={[
                                             { value: 'auto_deduct', label: 'Auto Deduct' },
                                             { value: 'post_paid', label: 'Post Paid' }
@@ -894,7 +1051,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                     label={<span style={{ color: '#333' }}>Subscription Type</span>}
                                     rules={[{ required: true, message: 'Please select subscription type' }]}
                                 >
-                                    <Radio.Group>
+                                    <Radio.Group disabled={inheritFromParent}>
                                         <Radio value={SUBSCRIPTION_TYPES.MONTHLY}>Monthly</Radio>
                                         <Radio value={SUBSCRIPTION_TYPES.YEARLY}>Yearly</Radio>
                                     </Radio.Group>
@@ -905,7 +1062,10 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                     label={<span style={{ color: '#333' }}>Subscription Amount</span>}
                                     rules={[{ required: true, message: 'Please input subscription amount' }]}
                                 >
-                                    <CurrencyInput placeholder="Enter subscription amount" />
+                                    <CurrencyInput 
+                                        placeholder="Enter subscription amount" 
+                                        disabled={inheritFromParent}
+                                    />
                                 </Form.Item>
                                 <Form.Item shouldUpdate>
                                     {() => {
@@ -917,7 +1077,10 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                 label={<span style={{ color: '#333' }}>Yearly Discount</span>}
                                                 rules={[{ required: true, message: 'Please input yearly discount' }]}
                                             >
-                                                <PercentageInput placeholder="Enter discount percentage" />
+                                                <PercentageInput 
+                                                    placeholder="Enter discount percentage" 
+                                                    disabled={inheritFromParent}
+                                                />
                                             </Form.Item>
                                         ) : null;
                                     }}
@@ -932,6 +1095,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                 >
                                     <Select 
                                         placeholder="Select method type"
+                                        disabled={inheritFromParent}
                                         options={[
                                             { value: 'auto_deduct', label: 'Auto Deduct' },
                                             { value: 'post_paid', label: 'Post Paid' }
@@ -957,7 +1121,16 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                         )}
 
                         {fields.length > 1 && (
-                            <a onClick={() => remove(name)} style={{ color: '#ff4d4f', marginTop: 8, display: 'inline-block', fontSize: '13px' }}>
+                            <a 
+                                onClick={() => inheritFromParent ? null : remove(name)} 
+                                style={{ 
+                                    color: inheritFromParent ? '#ccc' : '#ff4d4f', 
+                                    marginTop: 8, 
+                                    display: 'inline-block', 
+                                    fontSize: '13px',
+                                    cursor: inheritFromParent ? 'not-allowed' : 'pointer' 
+                                }}
+                            >
                                 Remove
                             </a>
                         )}
@@ -965,7 +1138,15 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                 );
             })}
             <Form.Item>
-                <a onClick={() => add()} style={{ color: '#1890ff' }}>+ Add Row</a>
+                <a 
+                    onClick={() => inheritFromParent ? null : add()} 
+                    style={{ 
+                        color: inheritFromParent ? '#ccc' : '#1890ff',
+                        cursor: inheritFromParent ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    + Add Row
+                </a>
             </Form.Item>
         </>
     );
@@ -1049,6 +1230,7 @@ const ChargingMetricForm = ({ form }) => {
 
             {(chargingType === CHARGING_METRIC_TYPES.NON_DEDICATED || watchChargingType === CHARGING_METRIC_TYPES.NON_DEDICATED) && (
                 <div className="rule-subsection">
+                    <NonDedicatedInheritanceSection form={form} />
                     <Form.List name={['charging_metric', 'non_dedicated', 'tiers']}>
                         {(fields, { add, remove }) => (
                             <NonDedicatedTierFields fields={fields} add={add} remove={remove} form={form} />
