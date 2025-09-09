@@ -100,6 +100,7 @@ function App() {
       '/master/services': ServicesPage,
       '/master/cdm-providers': CdmProvidersPage,
       '/master/backend-config': BackendExtConfigPage,
+      '/master/published-package-tiers': PublishedPackageTierPage,
     };
     
     if (staticRoutes[path]) {
