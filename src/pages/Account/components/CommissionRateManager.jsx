@@ -68,12 +68,14 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
 
   const isLocationPartnerCategory = (categoryIds, categories) => {
     if (!categoryIds || !Array.isArray(categoryIds)) return false;
-    const locationPartnerCategory = categories.find(cat => 
-      cat.name.toLowerCase().includes('location partner') || 
-      cat.name.toLowerCase().includes('location_partner') ||
-      cat.name.toLowerCase().includes('locationpartner')
+    // Match any category name that starts with 'Location' or 'Network Owner' (case-insensitive)
+    const locationCategories = categories.filter(cat =>
+      typeof cat.name === 'string' && (
+        cat.name.trim().toLowerCase().startsWith('location') ||
+        cat.name.trim().toLowerCase().startsWith('network owner')
+      )
     );
-    return locationPartnerCategory && categoryIds.includes(locationPartnerCategory.id);
+    return locationCategories.some(cat => categoryIds.includes(cat.id));
   };
 
   useEffect(() => {
@@ -264,7 +266,14 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       title: 'Commission Type',
       dataIndex: 'commission_type',
       key: 'commission_type',
-      render: (text) => text === 'referral' ? 'Referral' : 'Location Partner',
+      render: (text) => {
+        if (text === 'referral') return 'Referral';
+        // For location categories, find the original category name
+        const matchingCategory = accountCategories.find(cat => 
+          cat.name.toLowerCase().replace(/\s+/g, '_') === text
+        );
+        return matchingCategory ? matchingCategory.name : text;
+      },
     },
     {
       title: 'Rate (%)',
@@ -346,9 +355,19 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
                 {isReferralCategory(selectedAccountCategories, accountCategories) && (
                   <Select.Option value="referral">Referral</Select.Option>
                 )}
-                {isLocationPartnerCategory(selectedAccountCategories, accountCategories) && (
-                  <Select.Option value="location_partner">Location Partner</Select.Option>
-                )}
+                {isLocationPartnerCategory(selectedAccountCategories, accountCategories) && 
+                  accountCategories
+                    .filter(cat => selectedAccountCategories.includes(cat.id))
+                    .filter(cat => typeof cat.name === 'string' && (
+                      cat.name.trim().toLowerCase().startsWith('location') ||
+                      cat.name.trim().toLowerCase().startsWith('network owner')
+                    ))
+                    .map(cat => (
+                      <Select.Option key={cat.id} value={cat.name.toLowerCase().replace(/\s+/g, '_')}>
+                        {cat.name}
+                      </Select.Option>
+                    ))
+                }
               </Select>
             </div>
           </Col>

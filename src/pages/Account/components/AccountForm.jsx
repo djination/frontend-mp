@@ -76,12 +76,14 @@ const isVendorCategory = (categoryIds, categories) => {
 
 const isLocationPartnerCategory = (categoryIds, categories) => {
   if (!categoryIds || !Array.isArray(categoryIds)) return false;
-  const locationPartnerCategory = categories.find(cat => 
-    cat.name.toLowerCase().includes('location partner') || 
-    cat.name.toLowerCase().includes('location_partner') ||
-    cat.name.toLowerCase().includes('locationpartner')
+  // Match any category name that starts with 'Location' or 'Network Owner' (case-insensitive)
+  const locationCategories = categories.filter(cat =>
+    typeof cat.name === 'string' && (
+      cat.name.trim().toLowerCase().startsWith('location') ||
+      cat.name.trim().toLowerCase().startsWith('network owner')
+    )
   );
-  return locationPartnerCategory && categoryIds.includes(locationPartnerCategory.id);
+  return locationCategories.some(cat => categoryIds.includes(cat.id));
 };
 
 const AccountForm = ({

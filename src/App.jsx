@@ -33,6 +33,7 @@ import RevenueRule from "./pages/RevenueRule/RevenueRule";
 import CdmProvidersPage from './pages/Master/CdmProvider/CdmProvidersPage';
 import BackendExtConfigPage from './pages/Account/components/BackendExtConfigPage';
 import PublishedPackageTierPage from './pages/PublishedPackageTier/PublishedPackageTierPage';
+import MasterPaymentGatewayPage from './pages/Master/MasterPaymentGateway/MasterPaymentGatewayPage';
 
 // Component map for dynamic routing
 import { componentMap } from './utils/componentMap';
@@ -101,6 +102,7 @@ function App() {
       '/master/cdm-providers': CdmProvidersPage,
       '/master/backend-config': BackendExtConfigPage,
       '/master/published-package-tiers': PublishedPackageTierPage,
+      '/master/payment-gateway': MasterPaymentGatewayPage,
     };
     
     if (staticRoutes[path]) {
@@ -220,6 +222,7 @@ function App() {
               <Route path="cdm-providers" element={<CdmProvidersPage />} />
               <Route path="backend-config" element={<BackendExtConfigPage />} />
               <Route path="published-package-tiers" element={<PublishedPackageTierPage />} />
+              <Route path="payment-gateway" element={<MasterPaymentGatewayPage />} />
             </Route>
             
             {/* Parameter routes */}

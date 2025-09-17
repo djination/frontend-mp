@@ -13,6 +13,7 @@ import MasterAccountCategoryPage from '../pages/Parameter/MasterAccountCategory'
 import MasterDocumentTypePage from '../pages/Parameter/MasterDocumentType';
 import ServicesPage from '../pages/Services/ServicesPage';
 import CdmProvidersPage from '../pages/Master/CdmProvider/CdmProvidersPage';
+import MasterPaymentGatewayPage from '../pages/Master/MasterPaymentGateway/MasterPaymentGatewayPage';
 import BackendExtConfigPage from '../pages/Account/components/BackendExtConfigPage';
 import PublishedPackageTierPage from '../pages/PublishedPackageTier/PublishedPackageTierPage';
 // Import more page components as needed
@@ -35,5 +36,6 @@ export const componentMap = {
   '/master/cdm-providers': CdmProvidersPage,
   '/master/backend-config': BackendExtConfigPage,
   '/master/published-package-tiers': PublishedPackageTierPage,
+  '/master/payment-gateway': MasterPaymentGatewayPage,
   // Add more routes as needed
 };
