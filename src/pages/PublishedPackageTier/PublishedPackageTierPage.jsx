@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Table, Button, Space, Modal, Form, Input, DatePicker, 
-  InputNumber, message, Popconfirm, Typography, Tag, Tooltip
+  InputNumber, message, Popconfirm, Typography, Tag, Tooltip, notification
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, 
@@ -14,6 +14,7 @@ import {
   updatePublishedPackageTier,
   deletePublishedPackageTier
 } from '../../api/publishedPackageTierApi';
+import { getPublishedPackageTiersDebug } from '../../api/debugApi';
 import MassUploadPublishedPackageTier from '../../components/MassUploadPublishedPackageTier';
 
 const { Title } = Typography;
@@ -113,19 +114,99 @@ const PublishedPackageTierPage = () => {
         message.success('Published package tier created successfully');
       }
 
+      // Only close modal and reset form on success
       setModalVisible(false);
       form.resetFields();
       fetchPublishedPackageTiers();
     } catch (error) {
       console.error('Error saving published package tier:', error);
       console.error('Error response:', error.response?.data);
-      if (error.response?.data?.message) {
-        message.error(Array.isArray(error.response.data.message) 
+      
+      // Show detailed error message for overlaps
+      let errorMessage = 'Failed to save published package tier';
+      
+      if (error.response?.data?.error) {
+        // Clean up the error message by removing GMT timezone info
+        errorMessage = error.response.data.error
+          .replace(/GMT\+\d{4} \([^)]+\)/g, '') // Remove timezone info
+          .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+          .trim();
+      } else if (error.response?.data?.message) {
+        errorMessage = Array.isArray(error.response.data.message) 
           ? error.response.data.message[0]
-          : error.response.data.message);
-      } else {
-        message.error('Failed to save published package tier');
+          : error.response.data.message;
       }
+      
+      // Show error message - use alert as primary method since Ant Design notifications seem to have issues
+      console.log('=== About to show error message ===');
+      console.log('Error message:', errorMessage);
+      
+      if (errorMessage.includes('overlaps with existing tier')) {
+        console.log('=== Showing overlap error notification ===');
+        
+        // Primary method: Browser alert (works reliably)
+        alert(`❌ OVERLAP ERROR\n\n${errorMessage}`);
+        
+        // Secondary: Try Ant Design notifications (for debugging)
+        try {
+          message.error(errorMessage, 10);
+          console.log('=== message.error called successfully ===');
+        } catch (e) {
+          console.error('=== message.error failed ===', e);
+        }
+        
+        try {
+          notification.error({
+            message: 'Package Tier Overlap Error',
+            description: errorMessage,
+            duration: 10,
+            placement: 'topRight',
+          });
+          console.log('=== notification.error called successfully ===');
+        } catch (e) {
+          console.error('=== notification.error failed ===', e);
+        }
+        
+      } else {
+        console.log('=== Showing regular error message ===');
+        
+        // Use alert for regular errors too
+        alert(`❌ ERROR\n\n${errorMessage}`);
+        
+        // Try Ant Design as backup
+        try {
+          message.error(errorMessage, 6);
+        } catch (e) {
+          console.error('=== message.error failed for regular error ===', e);
+        }
+      }
+    }
+  };
+
+  const handleDebugTiers = async () => {
+    try {
+      const debugData = await getPublishedPackageTiersDebug();
+      console.log('=== Debug: Existing Tiers ===');
+      console.table(debugData);
+      
+      Modal.info({
+        title: 'Existing Package Tiers',
+        width: 800,
+        content: (
+          <div>
+            <p>Current active package tiers in database:</p>
+            <pre style={{ background: '#f5f5f5', padding: 10, maxHeight: 400, overflow: 'auto' }}>
+              {JSON.stringify(debugData, null, 2)}
+            </pre>
+            <p style={{ marginTop: 10, fontSize: '12px', color: '#666' }}>
+              Check the console for a table view of this data.
+            </p>
+          </div>
+        ),
+      });
+    } catch (error) {
+      console.error('Error fetching debug data:', error);
+      message.error('Failed to fetch debug data');
     }
   };
 
@@ -260,6 +341,46 @@ const PublishedPackageTierPage = () => {
             >
               Mass Upload
             </Button>
+            {/* <Button 
+              type="default"
+              style={{ background: '#f0f0f0' }}
+              onClick={handleDebugTiers}
+            >
+              Debug: Show Existing Tiers
+            </Button> */}
+            {/* <Button 
+              type="default"
+              style={{ background: '#fff0f0' }}
+              onClick={() => {
+                console.log('=== Testing message notification ===');
+                
+                // Test message API
+                message.error('Test message.error - should appear as toast!', 5);
+                message.success('Test message.success - should also appear!', 3);
+                
+                // Test notification API
+                notification.error({
+                  message: 'Test Notification Error',
+                  description: 'This is a test error notification using notification API',
+                  duration: 5,
+                  placement: 'topRight',
+                });
+                
+                notification.success({
+                  message: 'Test Notification Success',
+                  description: 'This is a test success notification using notification API',
+                  duration: 3,
+                  placement: 'topRight',
+                });
+                
+                // Test alert as fallback
+                setTimeout(() => {
+                  alert('Test Alert - this should definitely show up!');
+                }, 500);
+              }}
+            >
+              Test All Notifications
+            </Button> */}
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
@@ -308,16 +429,18 @@ const PublishedPackageTierPage = () => {
               { required: true, message: 'Please input minimum value!' },
               { 
                 validator: (_, value) => {
-                  if (value !== null && value !== undefined && value >= 0) {
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue) && numValue >= 0) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Value must be positive!'));
+                  return Promise.reject(new Error('Value must be a positive number!'));
                 }
               }
             ]}
           >
             <InputNumber
               style={{ width: '100%' }}
+              min={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
               placeholder="Enter minimum value"
@@ -331,10 +454,11 @@ const PublishedPackageTierPage = () => {
               { required: true, message: 'Please input maximum value!' },
               { 
                 validator: (_, value) => {
-                  if (value !== null && value !== undefined && value >= 0) {
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue) && numValue >= 0) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Value must be positive!'));
+                  return Promise.reject(new Error('Value must be a positive number!'));
                 }
               },
               ({ getFieldValue }) => ({
@@ -349,6 +473,7 @@ const PublishedPackageTierPage = () => {
           >
             <InputNumber
               style={{ width: '100%' }}
+              min={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
               placeholder="Enter maximum value"
@@ -362,16 +487,18 @@ const PublishedPackageTierPage = () => {
               { required: true, message: 'Please input amount!' },
               { 
                 validator: (_, value) => {
-                  if (value !== null && value !== undefined && value >= 0) {
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue) && numValue >= 0) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('Amount must be positive!'));
+                  return Promise.reject(new Error('Amount must be a positive number!'));
                 }
               }
             ]}
           >
             <InputNumber
               style={{ width: '100%' }}
+              min={0}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
               placeholder="Enter amount"
@@ -384,10 +511,12 @@ const PublishedPackageTierPage = () => {
             rules={[
               { 
                 validator: (_, value) => {
-                  if (value === null || value === undefined || value === '') {
-                    return Promise.resolve(); // Optional field
+                  // Allow empty values for optional field
+                  if (value === null || value === undefined || value === '' || value === 0) {
+                    return Promise.resolve();
                   }
-                  if (value >= 0 && value <= 100) {
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
                     return Promise.resolve();
                   }
                   return Promise.reject(new Error('Percentage must be between 0 and 100!'));
@@ -400,9 +529,7 @@ const PublishedPackageTierPage = () => {
               min={0}
               max={100}
               step={0.1}
-              formatter={(value) => `${value}%`}
-              parser={(value) => value.replace('%', '')}
-              placeholder="Enter percentage"
+              placeholder="Enter percentage (0-100)"
             />
           </Form.Item>
 
