@@ -285,17 +285,17 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       dataIndex: 'rate_type',
       key: 'rate_type',
     },
-    {
-      title: 'Territory',
-      dataIndex: 'territory',
-      key: 'territory',
-    },
-    {
-      title: 'Exclusive',
-      dataIndex: 'exclusive',
-      key: 'exclusive',
-      render: (exclusive) => exclusive ? 'Yes' : 'No',
-    },
+    // {
+    //   title: 'Territory',
+    //   dataIndex: 'territory',
+    //   key: 'territory',
+    // },
+    // {
+    //   title: 'Exclusive',
+    //   dataIndex: 'exclusive',
+    //   key: 'exclusive',
+    //   render: (exclusive) => exclusive ? 'Yes' : 'No',
+    // },
     {
       title: 'Actions',
       key: 'actions',
@@ -412,7 +412,7 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
           </Col>
         </Row>
 
-        <Row gutter={16} style={{ marginTop: '16px' }}>
+        {/* <Row gutter={16} style={{ marginTop: '16px' }}>
           <Col span={12}>
             <div>
               <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
@@ -445,7 +445,7 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
               </Select>
             </div>
           </Col>
-        </Row>
+        </Row> */}
 
         <Row gutter={16} style={{ marginTop: '16px' }}>
           <Col span={24}>
