@@ -33,17 +33,12 @@ const PublishedPackageTierPage = () => {
   }, []);
 
   const fetchPublishedPackageTiers = async () => {
-    console.log('=== fetchPublishedPackageTiers called ===');
     setLoading(true);
     try {
       const response = await getPublishedPackageTiers();
-      console.log('Fetched response:', response);
       
       // Handle response structure: { success: true, data: [...] }
       const data = response.data || response;
-      console.log('Extracted data:', data);
-      console.log('Data is array:', Array.isArray(data));
-      console.log('Data length:', Array.isArray(data) ? data.length : 'N/A');
       
       setPublishedPackageTiers(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -62,7 +57,6 @@ const PublishedPackageTierPage = () => {
   };
 
   const handleEdit = (record) => {
-    console.log('=== Editing record ===', record);
     setEditingRecord(record);
     
     // Ensure numeric values are properly converted
@@ -74,7 +68,6 @@ const PublishedPackageTierPage = () => {
       date_range: [dayjs(record.start_date), dayjs(record.end_date)]
     };
     
-    console.log('=== Form data to set ===', formData);
     form.setFieldsValue(formData);
     setModalVisible(true);
   };
@@ -91,7 +84,6 @@ const PublishedPackageTierPage = () => {
   };
 
   const handleSubmit = async (values) => {
-    console.log('=== Form submitted with values ===', values);
     try {
       const submitData = {
         min_value: values.min_value,
@@ -101,15 +93,11 @@ const PublishedPackageTierPage = () => {
         start_date: values.date_range[0].format('YYYY-MM-DD'),
         end_date: values.date_range[1].format('YYYY-MM-DD'),
       };
-      
-      console.log('=== Submit data ===', submitData);
 
       if (editingRecord) {
-        console.log('=== Updating record ===', editingRecord.id);
         await updatePublishedPackageTier(editingRecord.id, submitData);
         message.success('Published package tier updated successfully');
       } else {
-        console.log('=== Creating new record ===');
         await createPublishedPackageTier(submitData);
         message.success('Published package tier created successfully');
       }
@@ -138,21 +126,15 @@ const PublishedPackageTierPage = () => {
       }
       
       // Show error message - use alert as primary method since Ant Design notifications seem to have issues
-      console.log('=== About to show error message ===');
-      console.log('Error message:', errorMessage);
-      
       if (errorMessage.includes('overlaps with existing tier')) {
-        console.log('=== Showing overlap error notification ===');
-        
         // Primary method: Browser alert (works reliably)
         alert(`❌ OVERLAP ERROR\n\n${errorMessage}`);
         
         // Secondary: Try Ant Design notifications (for debugging)
         try {
           message.error(errorMessage, 10);
-          console.log('=== message.error called successfully ===');
         } catch (e) {
-          console.error('=== message.error failed ===', e);
+          console.error('message.error failed:', e);
         }
         
         try {
@@ -162,14 +144,11 @@ const PublishedPackageTierPage = () => {
             duration: 10,
             placement: 'topRight',
           });
-          console.log('=== notification.error called successfully ===');
         } catch (e) {
-          console.error('=== notification.error failed ===', e);
+          console.error('notification.error failed:', e);
         }
         
       } else {
-        console.log('=== Showing regular error message ===');
-        
         // Use alert for regular errors too
         alert(`❌ ERROR\n\n${errorMessage}`);
         
@@ -177,7 +156,7 @@ const PublishedPackageTierPage = () => {
         try {
           message.error(errorMessage, 6);
         } catch (e) {
-          console.error('=== message.error failed for regular error ===', e);
+          console.error('message.error failed for regular error:', e);
         }
       }
     }
@@ -186,7 +165,6 @@ const PublishedPackageTierPage = () => {
   const handleDebugTiers = async () => {
     try {
       const debugData = await getPublishedPackageTiersDebug();
-      console.log('=== Debug: Existing Tiers ===');
       console.table(debugData);
       
       Modal.info({
@@ -211,8 +189,6 @@ const PublishedPackageTierPage = () => {
   };
 
   const handleMassUploadSuccess = () => {
-    console.log('=== handleMassUploadSuccess called ===');
-    console.log('Refreshing published package tiers data...');
     fetchPublishedPackageTiers();
   };
 
@@ -352,8 +328,6 @@ const PublishedPackageTierPage = () => {
               type="default"
               style={{ background: '#fff0f0' }}
               onClick={() => {
-                console.log('=== Testing message notification ===');
-                
                 // Test message API
                 message.error('Test message.error - should appear as toast!', 5);
                 message.success('Test message.success - should also appear!', 3);

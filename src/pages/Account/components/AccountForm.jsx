@@ -321,13 +321,22 @@ const AccountForm = ({
         'address1', 'address2', 'sub_district', 'district', 'city', 'province',
         'postalcode', 'country', 'latitude', 'longitude', 'phone_no', 'is_active', 'account_id'
       ];
-      const cleanAddr = cleanPayload(
-        {
-          ...addr,
-          account_id: accountId,
-        },
-        allowedFields
-      );
+      
+      // Prepare address data with proper type conversion for latitude and longitude
+      const addressData = {
+        ...addr,
+        account_id: accountId,
+        // Ensure latitude and longitude are properly converted to numbers or null
+        latitude: addr.latitude !== null && addr.latitude !== undefined && addr.latitude !== '' 
+          ? Number(addr.latitude) 
+          : null,
+        longitude: addr.longitude !== null && addr.longitude !== undefined && addr.longitude !== '' 
+          ? Number(addr.longitude) 
+          : null,
+      };
+      
+      const cleanAddr = cleanPayload(addressData, allowedFields);
+      
       let response;
       if (!addr.id || String(addr.id).startsWith('temp-') || addr.tempId) {
         response = await createAccountAddress(cleanAddr);

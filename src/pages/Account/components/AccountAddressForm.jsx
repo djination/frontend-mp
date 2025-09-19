@@ -73,11 +73,22 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       const values = await form.validateFields();
       setLoading(true);
 
+      // Ensure latitude and longitude are properly converted to numbers or null
+      const processedValues = {
+        ...values,
+        latitude: values.latitude !== null && values.latitude !== undefined && values.latitude !== '' 
+          ? Number(values.latitude) 
+          : null,
+        longitude: values.longitude !== null && values.longitude !== undefined && values.longitude !== '' 
+          ? Number(values.longitude) 
+          : null,
+      };
+
       if (editingAddress) {
         // Update local state only
         const updatedAddresses = localAddresses.map(addr =>
           (addr.id === editingAddress.id || addr.tempId === editingAddress.tempId)
-            ? { ...addr, ...values }
+            ? { ...addr, ...processedValues }
             : addr
         );
         setLocalAddresses(updatedAddresses);
@@ -85,7 +96,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       } else {
         // Add new address to local state
         const newAddress = {
-          ...values,
+          ...processedValues,
           tempId: Date.now()
         };
         const updatedAddresses = [...localAddresses, newAddress];
