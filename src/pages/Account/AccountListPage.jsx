@@ -398,11 +398,6 @@ const AccountList = () => {
           {active ? 'Active' : 'Inactive'}
         </span>
       ),
-      filters: [
-        { text: 'Active', value: true },
-        { text: 'Inactive', value: false },
-      ],
-      onFilter: (value, record) => record.is_active === value,
     },
     {
       title: 'Actions',

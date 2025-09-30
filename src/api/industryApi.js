@@ -2,7 +2,10 @@ import axiosInstance from "../config/axiosInstance";
 
 export const getIndustries = async (params = {}) => {
   try {
+    console.log('industryApi.getIndustries called with params:', params);
     const response = await axiosInstance.get('/industry', { params });
+    console.log('industryApi.getIndustries response:', response);
+    console.log('industryApi.getIndustries response.data:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching account categories:', error);
@@ -47,5 +50,54 @@ export const deleteIndustry = async (id) => {
   } catch (error) {
     console.error(`Error deleting account category with ID ${id}:`, error);
     throw error;
+  }
+};
+
+export const bulkCreateIndustries = async (data) => {
+  try {
+    console.log('Sending bulk create request with data:', data.length, 'items');
+    const response = await axiosInstance.post('/industry/bulk', data, {
+      timeout: 120000, // 2 minutes for bulk operations
+    });
+    console.log('Bulk create response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error bulk creating industries:', error);
+    
+    // Return a structured error response instead of throwing
+    if (error.code === 'ECONNABORTED') {
+      return {
+        success: false,
+        error: 'Request timeout - server took too long to respond',
+        results: data.map(item => ({
+          success: false,
+          item: item,
+          error: 'Request timeout'
+        }))
+      };
+    }
+    
+    if (error.response?.data) {
+      return {
+        success: false,
+        error: error.response.data.message || 'Server error',
+        results: data.map(item => ({
+          success: false,
+          item: item,
+          error: error.response.data.message || 'Server error'
+        }))
+      };
+    }
+    
+    // For other errors, still return structured response
+    return {
+      success: false,
+      error: error.message || 'Unknown error',
+      results: data.map(item => ({
+        success: false,
+        item: item,
+        error: error.message || 'Unknown error'
+      }))
+    };
   }
 };

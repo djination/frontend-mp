@@ -81,7 +81,40 @@ export const hasAutoDeductBilling = (accountData) => {
 };
 
 /**
- * Transform account data to customer command format
+ * Helper function to resolve parent account UUID from parent_id
+ * @param {string} parentId - Parent account ID
+ * @returns {Promise<string|null>} - Parent account's uuid_be or null
+ */
+export const resolveParentUuid = async (parentId) => {
+  if (!parentId) {
+    return null;
+  }
+  
+  try {
+    console.log('🔍 Resolving parent UUID for ID:', parentId);
+    
+    // This would call your account API to get the parent account's uuid_be
+    // For now, returning the parentId as-is since the server should handle the resolution
+    // TODO: Implement actual API call to get account by ID and return uuid_be field
+    
+    /*
+    const parentAccount = await accountApi.getAccountById(parentId);
+    if (parentAccount && parentAccount.uuid_be) {
+      console.log('✅ Found parent UUID:', parentAccount.uuid_be);
+      return parentAccount.uuid_be;
+    }
+    */
+    
+    console.log('ℹ️ Using parent_id as-is, server should resolve UUID');
+    return parentId;
+  } catch (error) {
+    console.error('❌ Error resolving parent UUID:', error);
+    return null;
+  }
+};
+
+/**
+ * Transform account data to customer command format with updated mapping
  * @param {Object} accountData - Account data from form
  * @returns {Object} - Transformed data for customer command API
  */
@@ -89,46 +122,72 @@ export const transformAccountToCustomerCommand = (accountData) => {
   console.log('🔄 Transforming account data:', accountData);
   
   try {
-    // Find owner PIC (is_owner = true)
+    // Find owner PIC (owner = true)
     const pics = accountData.pics || accountData.account_pic || [];
-    const ownerPic = pics.find(pic => pic.is_owner === true) || {};
+    const ownerPic = pics.find(pic => pic.owner === true) || {};
     
-    // Find non-owner PICs (is_owner = false)
-    const nonOwnerPics = pics.filter(pic => pic.is_owner === false) || [];
+    // Find non-owner PICs (owner = false)
+    const nonOwnerPics = pics.filter(pic => pic.owner === false) || [];
     
     // Get primary address (first address or main address)
     const addresses = accountData.addresses || accountData.account_address || [];
     const primaryAddress = addresses[0] || {};
     
-    // Transform main customer data
+    // Get parent account UUID if parent_id exists
+    let parentUuidBe = null;
+    if (accountData.parent_id) {
+      // This would need to be fetched from the parent account's uuid_be field
+      // For now, we'll pass the parent_id as-is and it should be resolved server-side
+      parentUuidBe = accountData.parent_id;
+    }
+    
+    // Transform main customer data according to new mapping
     const customer = {
-      name: accountData.name || '',
-      email: ownerPic.email || '',
-      msisdn: ownerPic.phone_no ? `+${ownerPic.phone_no.startsWith('0') ? '62' + ownerPic.phone_no.slice(1) : ownerPic.phone_no}` : '',
+      name: accountData.name || '', // m_account.name
+      email: accountData.email || '', // m_account.email
+      msisdn: accountData.phone_no ? (accountData.phone_no.startsWith('+') ? accountData.phone_no : `+${accountData.phone_no.startsWith('0') ? '62' + accountData.phone_no.slice(1) : accountData.phone_no}`) : '', // m_account.phone_no
       address: {
-        building: primaryAddress.address1 || '',
-        street: primaryAddress.address2 || '',
-        region: primaryAddress.sub_district || '',
-        city: primaryAddress.city || '',
-        state: primaryAddress.province || '',
-        country: primaryAddress.country || '',
-        zip_code: primaryAddress.postalcode || ''
+        building: primaryAddress.address1 || '', // m_account_address.address1
+        street: primaryAddress.address2 || '', // m_account_address.address2
+        region: primaryAddress.sub_district || '', // m_account_address.sub_district
+        city: primaryAddress.city || '', // m_account_address.city
+        state: primaryAddress.province || '', // m_account_address.province
+        country: primaryAddress.country || 'Indonesia', // m_account_address.country
+        zip_code: primaryAddress.postalcode || '' // m_account_address.postalcode
       },
-      customer_type: accountData.type_of_business?.name || 'INDIVIDUAL',
-      ktp: ownerPic.no_ktp || '',
-      npwp: ownerPic.no_npwp || ''
+      deduction_active_type: "nominal", // Fixed value "nominal"
+      customer_role: accountData.account_type_name || "branch", // m_account.account_type_name
+      parent_id: parentUuidBe, // uuid_be from parent account
+      customer_type: accountData.type_of_business_detail || "INDIVIDUAL", // m_account.type_of_business_detail
+      ktp: ownerPic.ktp || '', // m_account_pic.ktp (for owner=true)
+      npwp: ownerPic.npwp || '' // m_account_pic.npwp (for owner=true)
     };
+
+    // Transform tier data (m_account_package_tier)
+    const packageTiers = accountData.package_tiers || accountData.packageTiers || [];
+    const tier = [];
+    packageTiers.forEach(packageTier => {
+      tier.push({
+        tier_type: "nominal", // Fixed value "nominal"
+        tier_category: "regular", // Fixed value "regular"
+        min_amount: packageTier.min_value || 0, // m_account_package_tier.min_value
+        max_amount: packageTier.max_value || 0, // m_account_package_tier.max_value
+        fee: packageTier.amount || 0, // m_account_package_tier.amount
+        valid_from: packageTier.start_date || new Date().toISOString(), // m_account_package_tier.start_date
+        valid_to: packageTier.end_date || "2050-12-31T23:59:59" // m_account_package_tier.end_date
+      });
+    });
 
     // Transform customer crew (non-owner PIC data)
     const customerCrew = [];
     nonOwnerPics.forEach(pic => {
       customerCrew.push({
-        ktp: pic.no_ktp || '',
-        npwp: pic.no_npwp || '',
-        name: pic.name || '',
-        msisdn: pic.phone_no ? `+${pic.phone_no}` : '',
-        email: pic.email || '',
-        username: pic.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}`
+        ktp: pic.ktp || '', // m_account_pic.ktp (for owner=false)
+        npwp: pic.npwp || '', // m_account_pic.npwp (for owner=false)
+        name: pic.name || '', // m_account_pic.name (for owner=false)
+        msisdn: pic.phone_no ? (pic.phone_no.startsWith('+') ? pic.phone_no : `+${pic.phone_no}`) : '', // m_account_pic.phone_no (for owner=false, with + prefix)
+        email: pic.email || '', // m_account_pic.email (for owner=false)
+        username: pic.username || pic.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}` // m_account_pic.username (for owner=false)
       });
     });
 
@@ -138,86 +197,85 @@ export const transformAccountToCustomerCommand = (accountData) => {
     if (banks && banks.length > 0) {
       const primaryBank = banks[0];
       beneficiaryAccount = {
-        firstname: primaryBank.bank_account_holder_firstname || '',
-        lastname: primaryBank.bank_account_holder_lastname || '',
+        firstname: primaryBank.bank_account_firstname || '', // m_account_bank.bank_account_firstname
+        lastname: primaryBank.bank_account_lastname || '', // m_account_bank.bank_account_lastname
         bank: {
-          id: primaryBank.bank_id || ''
+          id: primaryBank.bank_id || '' // From GET http://test-stg01.merahputih-id.tech:5002/api/bank/query
         },
-        account_number: primaryBank.bank_account_number || '',
-        account_name: primaryBank.bank_account_holder_name || '',
+        account_number: primaryBank.bank_account_no || '', // m_account_bank.bank_account_no
+        account_name: primaryBank.bank_account_holder_name || '', // m_account_bank.bank_account_holder_name
         account_type: {
-          id: "3"
+          id: "3" // From http://test-stg01.merahputih-id.tech:5002/api/account-type/query
         },
         customer_type: {
-          id: "2"
+          id: "2" // From http://test-stg01.merahputih-id.tech:5002/api/customer-type/query
         },
         customer_status: {
-          id: "1"
+          id: "1" // From http://test-stg01.merahputih-id.tech:5002/api/customer-status/query
         },
         region_code: {
-          id: "1"
+          id: "1" // From http://test-stg01.merahputih-id.tech:5002/api/region-code/query
         },
         country_code: {
-          id: "IDN"
+          id: "IDN" // From http://test-stg01.merahputih-id.tech:5002/api/country-code/query
         }
       };
     }
 
-  // Transform branch data - find branches from account tree
-  const branches = [];
-  if (accountData.account_tree && Array.isArray(accountData.account_tree)) {
-    console.log('🏢 Processing account tree with', accountData.account_tree.length, 'items');
-    
-    try {
-      // Filter for branch accounts or all children if no specific branch type
-      const branchAccounts = accountData.account_tree.filter(acc => {
-        // Check if it's explicitly a branch type or if no specific type filtering needed
-        const accountTypeName = acc.account_type?.name || acc.account_type;
-        const isBranch = (typeof accountTypeName === 'string' && accountTypeName.toLowerCase().includes('branch')) ||
-                        (typeof acc.account_type === 'string' && acc.account_type.toLowerCase() === 'branch');
-        console.log('🔍 Account:', acc.name, 'Type:', accountTypeName, 'Is Branch:', isBranch);
-        return isBranch || accountData.account_tree.length <= 5; // Include all if few children
-      });
+    // Transform branch data - find branches from account tree
+    const branches = [];
+    if (accountData.account_tree && Array.isArray(accountData.account_tree)) {
+      console.log('🏢 Processing account tree with', accountData.account_tree.length, 'items');
       
-      console.log('✅ Found', branchAccounts.length, 'branch accounts');
-      
-      branchAccounts.forEach(branchAccount => {
-        try {
-          const branchAddresses = branchAccount.addresses || branchAccount.account_address || [];
-          const branchAddress = branchAddresses[0] || {};
-          
-          const branchData = {
-            name: branchAccount.name || '',
-            code: branchAccount.account_no || '',
-            address: {
-              building: branchAddress.address1 || '',
-              street: branchAddress.address2 || '',
-              region: branchAddress.reg || '',
-              city: branchAddress.city || '',
-              state: branchAddress.province || '',
-              country: branchAddress.country || 'Indonesia',
-              zip_code: branchAddress.postalcode || ''
-            }
-          };
-          
-          branches.push(branchData);
-          console.log('🏢 Added branch:', branchData.name, 'Code:', branchData.code);
-        } catch (branchError) {
-          console.error('❌ Error processing branch account:', branchAccount.name, branchError);
-        }
-      });
-    } catch (filterError) {
-      console.error('❌ Error filtering branch accounts:', filterError);
-      // Fallback: use all accounts as branches if filtering fails
-      accountData.account_tree.forEach(acc => {
-        branches.push({
-          name: acc.name || '',
-          code: acc.account_no || '',
-          address: customer.address
+      try {
+        // Filter for branch accounts or all children if no specific branch type
+        const branchAccounts = accountData.account_tree.filter(acc => {
+          // Check if it's explicitly a branch type or if no specific type filtering needed
+          const accountTypeName = acc.account_type?.name || acc.account_type;
+          const isBranch = (typeof accountTypeName === 'string' && accountTypeName.toLowerCase().includes('branch')) ||
+                          (typeof acc.account_type === 'string' && acc.account_type.toLowerCase() === 'branch');
+          console.log('🔍 Account:', acc.name, 'Type:', accountTypeName, 'Is Branch:', isBranch);
+          return isBranch || accountData.account_tree.length <= 5; // Include all if few children
         });
-      });
+        
+        console.log('✅ Found', branchAccounts.length, 'branch accounts');
+        
+        branchAccounts.forEach(branchAccount => {
+          try {
+            const branchAddresses = branchAccount.addresses || branchAccount.account_address || [];
+            const branchAddress = branchAddresses[0] || {};
+            
+            const branchData = {
+              name: branchAccount.name || '', // m_account.name
+              code: branchAccount.account_no || '', // m_account.account_no
+              address: {
+                building: branchAddress.address1 || '', // m_account_address.address1
+                street: branchAddress.address2 || '', // m_account_address.address2
+                region: branchAddress.sub_district || '', // m_account_address.sub_district
+                city: branchAddress.city || '', // m_account_address.city
+                state: branchAddress.province || '', // m_account_address.province
+                country: branchAddress.country || 'Indonesia', // m_account_address.country
+                zip_code: branchAddress.postalcode || '' // m_account_address.postalcode
+              },
+              contact_info: {
+                // Additional branch contact info if available
+                pic_name: '',
+                pic_phone: ''
+              }
+            };
+            
+            branches.push(branchData);
+            console.log('🏢 Added branch:', branchData.name, 'Code:', branchData.code);
+          } catch (branchError) {
+            console.error('❌ Error processing branch:', branchAccount?.name || 'Unknown', branchError);
+          }
+        });
+      } catch (treeError) {
+        console.error('❌ Error processing account tree:', treeError);
+      }
+    } else {
+      console.log('ℹ️  No account_tree available or not an array');
     }
-  }
 
   // If no branches found from tree, create from main account data
   if (branches.length === 0) {
@@ -231,6 +289,7 @@ export const transformAccountToCustomerCommand = (accountData) => {
 
   const result = {
     customer,
+    tier, // Add the tier data to the result
     "customer-crew": customerCrew,
     "beneficiary-account": beneficiaryAccount,
     branch: branches.length === 1 ? branches[0] : branches

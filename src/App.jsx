@@ -20,6 +20,7 @@ import ServicesPage from "./pages/Services/ServicesPage";
 import AccountList from './pages/Account/AccountListPage';
 import AddAccount from './pages/Account/AddAccountPage';
 import EditAccount from './pages/Account/EditAccountPage';
+import MachineListPage from './pages/Machine/MachineListPage';
 import MasterIndustry from "./pages/Parameter/MasterIndustry";
 import MasterBusinessType from "./pages/Parameter/MasterBusinessType";
 import MasterBank from "./pages/Parameter/MasterBank";
@@ -34,6 +35,7 @@ import CdmProvidersPage from './pages/Master/CdmProvider/CdmProvidersPage';
 import BackendExtConfigPage from './pages/Account/components/BackendExtConfigPage';
 import PublishedPackageTierPage from './pages/PublishedPackageTier/PublishedPackageTierPage';
 import MasterPaymentGatewayPage from './pages/Master/MasterPaymentGateway/MasterPaymentGatewayPage';
+import APITestPage from './pages/Test/APITestPage';
 
 // Component map for dynamic routing
 import { componentMap } from './utils/componentMap';
@@ -87,6 +89,7 @@ function App() {
       '/account': AccountList,
       '/account/add': AddAccount,
       '/account/edit/:id': EditAccount,
+      '/master/machine': MachineListPage,
       '/master/industry': MasterIndustry,
       '/parameter/business-type': MasterBusinessType,
       '/parameter/bank': MasterBank,
@@ -167,7 +170,7 @@ function App() {
         }
       }}
     >
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
           <Route path="/register" element={<Register />} />
@@ -216,6 +219,7 @@ function App() {
 
             {/* Master routes */}
             <Route path="/master">
+              <Route path="machine" element={<MachineListPage />} />
               <Route path="industry" element={<MasterIndustry />} />
               <Route path="services" element={<ServicesPage />} />
               <Route path="postal-code" element={<PostalCodeMaster />} />
@@ -223,6 +227,7 @@ function App() {
               <Route path="backend-config" element={<BackendExtConfigPage />} />
               <Route path="published-package-tiers" element={<PublishedPackageTierPage />} />
               <Route path="payment-gateway" element={<MasterPaymentGatewayPage />} />
+              <Route path="api-test" element={<APITestPage />} />
             </Route>
             
             {/* Parameter routes */}

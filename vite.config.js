@@ -39,6 +39,124 @@ export default defineConfig(({ mode }) => {
           secure: false,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
+        // OAuth Proxy untuk external API
+        '/oauth': {
+          target: 'http://test-stg01.merahputih-id.tech:9002',
+          changeOrigin: true,
+          secure: false,
+          timeout: 30000,
+          agent: false,
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('OAuth proxy error:', err);
+              if (!res.headersSent) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'OAuth proxy error', message: err.message }));
+              }
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('OAuth proxy request:', req.method, req.url);
+              proxyReq.setTimeout(30000);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('OAuth proxy response:', proxyRes.statusCode);
+            });
+          }
+        },
+        // External Machine API Proxy
+        '/external-api': {
+          target: 'http://test-stg01.merahputih-id.tech:5002',
+          changeOrigin: true,
+          secure: false,
+          timeout: 60000, // Increased timeout to 60s
+          agent: false,
+          headers: {
+            'Connection': 'keep-alive'
+          },
+          rewrite: (path) => {
+            const newPath = path.replace(/^\/external-api/, '/api/cdt/core/master');
+            console.log(`🔄 Standard Proxy rewrite: ${path} → ${newPath}`);
+            return newPath;
+          },
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('External API proxy error:', err);
+              if (!res.headersSent) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                  error: 'External API proxy error', 
+                  message: err.message,
+                  code: err.code 
+                }));
+              }
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('External API proxy request:', req.method, req.url);
+              
+              // Forward Authorization header if present
+              if (req.headers.authorization) {
+                proxyReq.setHeader('Authorization', req.headers.authorization);
+                console.log('🔑 Authorization header forwarded to external API');
+              } else {
+                console.warn('⚠️ No Authorization header in request to external API');
+              }
+              
+              proxyReq.setTimeout(60000);
+              proxyReq.on('timeout', () => {
+                console.log('External API proxy request timeout');
+                proxyReq.destroy();
+              });
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('External API proxy response:', proxyRes.statusCode, 'for', req.url);
+            });
+          }
+        },
+        // External Machine CRUD API Proxy (different base path)
+        '/external-api-crud': {
+          target: 'http://test-stg01.merahputih-id.tech:5002',
+          changeOrigin: true,
+          secure: false,
+          timeout: 60000,
+          agent: false,
+          headers: {
+            'Connection': 'keep-alive'
+          },
+          rewrite: (path) => {
+            const newPath = path.replace(/^\/external-api-crud/, '/api');
+            console.log(`🔄 CRUD Proxy rewrite: ${path} → ${newPath}`);
+            return newPath;
+          },
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('External CRUD API proxy error:', err);
+              if (!res.headersSent) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                  error: 'External CRUD API proxy error', 
+                  message: err.message,
+                  code: err.code 
+                }));
+              }
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('External CRUD API proxy request:', req.method, req.url);
+              
+              // Forward Authorization header if present
+              if (req.headers.authorization) {
+                proxyReq.setHeader('Authorization', req.headers.authorization);
+                console.log('🔑 Authorization header forwarded to external CRUD API');
+              } else {
+                console.warn('⚠️ No Authorization header in request to external CRUD API');
+              }
+              
+              proxyReq.setTimeout(60000);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('External CRUD API proxy response:', proxyRes.statusCode, 'for', req.url);
+            });
+          }
+        },
         '/ws': {
           target: env.VITE_WS_URL || 'ws://localhost:5000',
           ws: true,

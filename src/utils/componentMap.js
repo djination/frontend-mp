@@ -3,6 +3,7 @@ import DashboardPage from '../pages/Dashboard';
 import AccountListPage from '../pages/Account/AccountListPage';
 import AddAccountPage from '../pages/Account/AddAccountPage';
 import EditAccountPage from '../pages/Account/EditAccountPage';
+import MachineListPage from '../pages/Machine/MachineListPage';
 import MasterIndustryPage from '../pages/Parameter/MasterIndustry';
 import MasterBusinessTypePage from '../pages/Parameter/MasterBusinessType';
 import MasterBankPage from '../pages/Parameter/MasterBank';
@@ -24,6 +25,7 @@ export const componentMap = {
   '/account': AccountListPage,
   '/account/add': AddAccountPage,
   '/account/edit/:id': EditAccountPage,
+  '/master/machine': MachineListPage,
   '/master/industry': MasterIndustryPage,
   '/parameter/business-type': MasterBusinessTypePage,
   '/parameter/bank': MasterBankPage,

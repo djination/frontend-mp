@@ -287,7 +287,7 @@ const AccountPICForm = ({
             name="fix_phone_no"
             label="Fix Line Phone"
             rules={[
-              { required: true, message: 'Please enter fix line phone number' },
+              { required: false, message: 'Please enter fix line phone number' },
               {
                 validator: (_, value) => {
                   if (!value || value.startsWith('62')) {
@@ -323,7 +323,7 @@ const AccountPICForm = ({
             name="email"
             label="Email"
             rules={[
-              { required: true, message: 'Please enter email' },
+              { required: false, message: 'Please enter email' },
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >

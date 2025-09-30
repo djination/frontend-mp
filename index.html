@@ -9,5 +9,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Development utilities (only loaded in development) -->
+    <script>
+      if (window.location.hostname === 'localhost') {
+        const devScript = document.createElement('script');
+        devScript.src = '/dev-utils.js';
+        document.head.appendChild(devScript);
+      }
+    </script>
   </body>
 </html>

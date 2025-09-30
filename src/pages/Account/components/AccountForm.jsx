@@ -3,6 +3,7 @@ import {
   Form, Input, Select, Button, Card, Row, Col,
   Switch, Tabs, message, Space, TreeSelect, Divider, Alert, App, Tag
 } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 // form components
@@ -14,6 +15,7 @@ import AccountDocumentForm from './AccountDocumentForm';
 import TypeOfBusinessSelector from './TypeOfBusinessSelector';
 import CommissionRateManager from './CommissionRateManager';
 import VendorDetailsManager from './VendorDetailsManager';
+import IndustrySearchModal from './IndustrySearchModal';
 
 // API calls
 import { getAccountCategories } from '../../../api/accountCategoryApi';
@@ -117,6 +119,8 @@ const AccountForm = ({
   const [commissionRates, setCommissionRates] = useState([]);
   const [vendorDetails, setVendorDetails] = useState([]);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [showIndustryModal, setShowIndustryModal] = useState(false);
+  const [selectedIndustry, setSelectedIndustry] = useState(null);
   
   const fetchAccountDocuments = async (accountId) => {
     if (!accountId) return;
@@ -167,6 +171,21 @@ const AccountForm = ({
     }
   }, [dataFetched]);
 
+  // Monitor industry_id changes and update selected industry display
+  useEffect(() => {
+    if (industries.length > 0) {
+      const industryId = form.getFieldValue('industry_id');
+      if (industryId) {
+        const industry = industries.find(ind => ind.id === industryId);
+        if (industry && (!selectedIndustry || selectedIndustry.id !== industry.id)) {
+          setSelectedIndustry(industry);
+        }
+      } else if (selectedIndustry) {
+        setSelectedIndustry(null);
+      }
+    }
+  }, [industries]);
+
   // Separate useEffect untuk set form values setelah data ter-load
   useEffect(() => {
     if (isEdit && initialValues && initialValues.id && dataFetched && availableAccounts.length > 0) {
@@ -192,6 +211,11 @@ const AccountForm = ({
             }).filter(id => id) // Filter out any null/undefined values
           : [],
       };
+
+      // Set selected industry for modal
+      if (initialValues.industry) {
+        setSelectedIndustry(initialValues.industry);
+      }
 
       // Set selected account categories untuk conditional rendering
       if (initialValues.account_categories) {
@@ -265,11 +289,31 @@ const AccountForm = ({
   const fetchIndustries = async () => {
     try {
       const response = await getIndustries();
-      setIndustries(response?.data || []);
+      console.log('AccountForm fetchIndustries response:', response);
+      // Handle nested response format: response.data.data instead of response.data
+      const industriesData = response?.data?.data || response?.data || [];
+      console.log('AccountForm setting industries data:', industriesData);
+      setIndustries(Array.isArray(industriesData) ? industriesData : []);
     } catch (error) {
+      console.error('Failed to fetch industries:', error);
       message.error('Failed to fetch industries');
       setIndustries([]);
     }
+  };
+
+  // Handler for industry selection
+  const handleIndustrySelect = (industry) => {
+    setSelectedIndustry(industry);
+    form.setFieldValue('industry_id', industry.id);
+  };
+
+  const handleIndustryDeselect = () => {
+    setSelectedIndustry(null);
+    form.setFieldValue('industry_id', null);
+  };
+
+  const openIndustryModal = () => {
+    setShowIndustryModal(true);
   };
 
   const fetchAccountCategories = async () => {
@@ -719,6 +763,7 @@ const AccountForm = ({
         account_no: accountNo,
         name: formValues.name,
         brand_name: formValues.brand_name,
+        email: formValues.email,
         industry_id: formValues.industry_id,
         type_of_business_id: formValues.type_of_business_id,
         type_of_business_detail: formValues.type_of_business_detail,
@@ -914,6 +959,39 @@ const AccountForm = ({
               </Form.Item>
             </Col>
           </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="phone_no"
+                label="Phone Number"
+                rules={[
+                  { required: false, message: 'Please enter phone number' },
+                  {
+                    validator: (_, value) => {
+                      if (!value || value.startsWith('62')) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('Nomor harus diawali dengan 62'));
+                    }
+                  }
+                ]}
+              >
+                <Input placeholder="Enter phone number" autoComplete="tel" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: false, message: 'Please enter email' },
+                  { type: 'email', message: 'Please enter a valid email' }
+                ]}
+              >
+                <Input placeholder="Enter email" autoComplete="email" />
+              </Form.Item>
+            </Col>
+          </Row>
           <Divider orientation="left">Classification</Divider>
           <Row gutter={16}>
             <Col span={12}>
@@ -921,16 +999,32 @@ const AccountForm = ({
                 name="industry_id"
                 label="Industry"
               >
-                <Select
-                  placeholder="Select industry"
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                  options={industries.map(ind => ({
-                    value: ind.id,
-                    label: ind.name
-                  }))}
-                />
+                <div>
+                  <Input
+                    value={selectedIndustry ? `${selectedIndustry.code} - ${selectedIndustry.name}` : ''}
+                    placeholder="Click to select industry"
+                    readOnly
+                    style={{ cursor: 'pointer' }}
+                    onClick={openIndustryModal}
+                    suffix={
+                      <Space>
+                        {selectedIndustry && (
+                          <Button 
+                            type="text" 
+                            size="small" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleIndustryDeselect();
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                        <SearchOutlined style={{ color: '#bfbfbf' }} />
+                      </Space>
+                    }
+                  />
+                </div>
               </Form.Item>
             </Col>
           </Row>
@@ -1205,6 +1299,13 @@ const AccountForm = ({
           </Space>
         </div>
       </Form>
+      
+      <IndustrySearchModal
+        visible={showIndustryModal}
+        onCancel={() => setShowIndustryModal(false)}
+        onSelect={handleIndustrySelect}
+        selectedIndustry={selectedIndustry}
+      />
     </Card>
   );
 };
