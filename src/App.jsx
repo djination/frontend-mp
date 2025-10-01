@@ -36,6 +36,7 @@ import BackendExtConfigPage from './pages/Account/components/BackendExtConfigPag
 import PublishedPackageTierPage from './pages/PublishedPackageTier/PublishedPackageTierPage';
 import MasterPaymentGatewayPage from './pages/Master/MasterPaymentGateway/MasterPaymentGatewayPage';
 import APITestPage from './pages/Test/APITestPage';
+// import BackendExtTestPage from './pages/BackendExtTest/BackendExtTestPage';
 
 // Component map for dynamic routing
 import { componentMap } from './utils/componentMap';
@@ -225,6 +226,7 @@ function App() {
               <Route path="postal-code" element={<PostalCodeMaster />} />
               <Route path="cdm-providers" element={<CdmProvidersPage />} />
               <Route path="backend-config" element={<BackendExtConfigPage />} />
+              {/* <Route path="backend-ext-test" element={<BackendExtTestPage />} /> */}
               <Route path="published-package-tiers" element={<PublishedPackageTierPage />} />
               <Route path="payment-gateway" element={<MasterPaymentGatewayPage />} />
               <Route path="api-test" element={<APITestPage />} />

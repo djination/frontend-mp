@@ -1,8 +1,99 @@
 import axios from "axios";
 import { getOAuthTokenWithCORSHandling, clearOAuthToken } from "./corsOAuthFallback.js";
 
-const MACHINE_CRUD_BASE = "http://test-stg01.merahputih-id.tech:5002/api/machine";
-const MACHINE_QUERY_BASE = "http://test-stg01.merahputih-id.tech:5002/api/cdt/core/master/machine";
+// Audit trail functionality - only for POST/PUT operations
+const logApiCall = async (method, url, data = null, params = null, response = null, error = null) => {
+  try {
+    // Only log POST and PUT operations (create/update), skip GET operations
+    if (method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
+      console.log('📝 Audit trail (skipped for GET):', method, url);
+      return;
+    }
+
+    console.log('📝 Audit trail (logging):', {
+      method,
+      url,
+      status: response?.status || error?.response?.status,
+      timestamp: new Date().toISOString()
+    });
+
+    const logData = {
+      request_method: method,
+      request_url: url,
+      request_data: data ? JSON.stringify(data) : null,
+      request_params: params ? JSON.stringify(params) : null,
+      response_status: response?.status || (error?.response?.status || null),
+      response_data: response?.data ? JSON.stringify(response.data) : null,
+      error_message: error?.message || null,
+      execution_time: Date.now(),
+      created_at: new Date().toISOString()
+    };
+
+    // Send to audit trail endpoint (secured with service token)
+    try {
+      await axios.post('/audit/logs', logData, {
+        timeout: 5000, // 5 second timeout
+        headers: {
+          'X-Service-Token': import.meta.env.VITE_AUDIT_SERVICE_TOKEN || 'audit-service-2024-secure-token-merahputih',
+          'Content-Type': 'application/json'
+        },
+        validateStatus: (status) => status < 500 // Don't throw on 401, only on server errors
+      });
+      console.log('✅ Audit log sent successfully');
+    } catch (logError) {
+      if (logError.response?.status === 401) {
+        console.warn('⚠️ Audit logging authentication failed - check service token');
+      } else {
+        console.warn('❌ Failed to send audit log:', logError.message);
+      }
+      // Don't throw, just warn - audit logging shouldn't break main functionality
+    }
+  } catch (logError) {
+    console.warn('Audit logging failed:', logError.message);
+    // Don't throw, just warn - audit logging shouldn't break main functionality
+  }
+};
+
+// Proxy endpoints (defined in vite.config.js)
+// /external-api → http://test-stg01.merahputih-id.tech:5002/api/cdt/core/master
+// /external-api-crud → http://test-stg01.merahputih-id.tech:5002/api
+
+// Transform flat form data to nested API format
+const transformMachineData = (formData, isCreate = true) => {
+  const transformed = {
+    code: formData.code,
+    name: formData.name,
+    description: formData.description,
+    branch: {
+      id: formData.branch_id
+    },
+    supplier: {
+      id: formData.supplier_id
+    },
+    pjpur: {
+      id: formData.pjpur_id
+    },
+    service_location: {
+      id: formData.service_location_id
+    }
+  };
+
+  // For create operations, include gateway
+  if (isCreate && formData.gateway_id) {
+    transformed.gateway = {
+      id: formData.gateway_id
+    };
+  }
+
+  // For update operations, include maintenance (if available)
+  if (!isCreate && formData.maintenance_id) {
+    transformed.maintenance = {
+      id: formData.maintenance_id
+    };
+  }
+
+  return transformed;
+};
 
 let authToken = null;
 let tokenExpiry = null;
@@ -53,6 +144,7 @@ const getHeaders = async () => {
 export const getMachines = async (page = 1, limit = 10) => {
   let retryCount = 0;
   const maxRetries = 2;
+  const startTime = Date.now();
   
   while (retryCount < maxRetries) {
     try {
@@ -63,14 +155,15 @@ export const getMachines = async (page = 1, limit = 10) => {
       
       if (!headers.Authorization) {
         console.error("Failed to obtain OAuth token for machine API");
-        return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
+        const result = { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
+        return result;
       }
       
-      // Try proxy first with authentication
+      // Use proxy for machine query API
       try {
-        console.log("Attempting machine fetch via proxy with auth...");
+        console.log("Fetching machines via proxy...");
         const response = await axios.get(`/external-api/machine/query?page=${page}&limit=${limit}`, { headers });
-        console.log("Machines fetched via proxy with auth", response.data);
+        console.log("Machines fetched via proxy", response.data);
         
         // Check if response.data is an array (direct API format) or has data property
         if (Array.isArray(response.data)) {
@@ -84,8 +177,6 @@ export const getMachines = async (page = 1, limit = 10) => {
           return response.data;
         }
       } catch (proxyError) {
-        console.warn(`Proxy machine API failed:`, proxyError.message);
-        
         // If it's a 401 error, clear token and retry
         if (proxyError.response?.status === 401 && retryCount === 0) {
           console.log("Got 401 error, clearing token and retrying...");
@@ -94,38 +185,8 @@ export const getMachines = async (page = 1, limit = 10) => {
           continue;
         }
         
-        // Fallback to direct API call
-        try {
-          console.log("Trying direct API as fallback...");
-          const response = await axios.get(`${MACHINE_QUERY_BASE}/query?page=${page}&limit=${limit}`, { headers });
-          console.log("Machines fetched via direct API", response.data);
-          
-          // Check if response.data is an array (direct API format) or has data property
-          if (Array.isArray(response.data)) {
-            return { 
-              data: response.data, 
-              pagination: { page, limit, total: response.data.length, totalPages: 1 } 
-            };
-          } else if (response.data && response.data.data) {
-            return response.data;
-          } else {
-            return response.data;
-          }
-        } catch (directError) {
-          // If direct API also returns 401, clear token and retry
-          if (directError.response?.status === 401 && retryCount === 0) {
-            console.log("Direct API also returned 401, clearing token and retrying...");
-            clearToken();
-            retryCount++;
-            continue;
-          }
-          
-          console.error("All machine fetch attempts failed:", {
-            proxyError: proxyError.message,
-            directError: directError.message
-          });
-          return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
-        }
+        console.error("Machine API call failed:", proxyError.message);
+        return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
       }
     } catch (error) {
       console.error(`Critical error in getMachines:`, error);
@@ -148,96 +209,154 @@ export const getMachines = async (page = 1, limit = 10) => {
 
 export const createMachine = async (data) => {
   try {
-    console.log('Creating machine with data:', data);
+    console.log('Creating machine with form data:', data);
+    
+    // Transform flat form data to nested API format
+    const transformedData = transformMachineData(data, true);
+    console.log('Transformed data for API:', JSON.stringify(transformedData, null, 2));
+    
     const headers = await getHeaders();
     
     if (!headers.Authorization) {
-      throw new Error('No valid authentication token');
+      const error = new Error('No valid authentication token');
+      await logApiCall('POST', '/external-api-crud/machine', transformedData, null, null, error);
+      throw error;
     }
     
-    // Try direct API first
+    // Use proxy for machine command/create
     try {
-      const response = await axios.post(`${MACHINE_CRUD_BASE}`, data, { headers });
-      console.log('Machine created successfully via direct API');
+      const response = await axios.post('/external-api-crud/machine', transformedData, { headers });
+      console.log('Machine created successfully via proxy');
+      
+      // Log successful create
+      await logApiCall('POST', '/external-api-crud/machine', transformedData, null, response);
+      
       return response.data;
-    } catch (directError) {
-      console.warn('Direct create failed, checking if it\'s auth issue...', directError.message);
+    } catch (proxyError) {
+      console.warn('Machine create failed via proxy:', proxyError.message);
+      console.error('📥 Create error response:', proxyError.response?.data);
+      
+      // Log proxy error
+      await logApiCall('POST', '/external-api-crud/machine', transformedData, null, null, proxyError);
       
       // If it's 401, clear token and throw error for retry mechanism
-      if (directError.response?.status === 401) {
+      if (proxyError.response?.status === 401) {
         clearToken();
         throw new Error('Authentication failed - token may be expired');
       }
       
       // For other errors, throw directly
-      throw directError;
+      throw proxyError;
     }
   } catch (error) {
     console.error('Machine creation failed:', error);
+    
+    // Log final error if not already logged
+    if (!error.message.includes('Authentication failed')) {
+      await logApiCall('POST', '/external-api-crud/machine', data, null, null, error);
+    }
+    
     throw error;
   }
 };
 
 export const updateMachine = async (id, data) => {
   try {
-    console.log(`Updating machine ${id} with data:`, data);
+    console.log(`Updating machine ${id} with form data:`, data);
+    
+    // Transform flat form data to nested API format
+    const transformedData = transformMachineData(data, false);
+    console.log('Transformed data for API:', JSON.stringify(transformedData, null, 2));
+    console.log(`🔍 Target endpoint: /external-api-crud/machine/${id}`);
+    
     const headers = await getHeaders();
     
     if (!headers.Authorization) {
-      throw new Error('No valid authentication token');
+      const error = new Error('No valid authentication token');
+      await logApiCall('PUT', `/external-api-crud/machine/${id}`, transformedData, null, null, error);
+      throw error;
     }
     
-    // Try direct API first
+    // Use proxy for machine command/update
     try {
-      const response = await axios.put(`${MACHINE_CRUD_BASE}/${id}`, data, { headers });
-      console.log('Machine updated successfully via direct API');
+      console.log('🔄 Trying primary update endpoint...');
+      const response = await axios.put(`/external-api-crud/machine/${id}`, transformedData, { headers });
+      console.log('Machine updated successfully via proxy');
+      
+      // Log successful update
+      await logApiCall('PUT', `/external-api-crud/machine/${id}`, transformedData, null, response);
+      
       return response.data;
-    } catch (directError) {
-      console.warn('Direct update failed, checking if it\'s auth issue...', directError.message);
+    } catch (proxyError) {
+      console.warn('Primary update endpoint failed:', proxyError.message);
+      console.error('📥 Response error data:', proxyError.response?.data);
+      
+      // Log proxy error
+      await logApiCall('PUT', `/external-api-crud/machine/${id}`, transformedData, null, null, proxyError);
       
       // If it's 401, clear token and throw error for retry mechanism
-      if (directError.response?.status === 401) {
+      if (proxyError.response?.status === 401) {
         clearToken();
         throw new Error('Authentication failed - token may be expired');
       }
       
       // For other errors, throw directly
-      throw directError;
+      throw proxyError;
     }
   } catch (error) {
     console.error('Machine update failed:', error);
+    
+    // Log final error if not already logged
+    if (!error.message.includes('Authentication failed')) {
+      await logApiCall('PUT', `/external-api-crud/machine/${id}`, data, null, null, error);
+    }
+    
     throw error;
   }
 };
-
 export const deleteMachine = async (id) => {
   try {
     console.log(`Deleting machine ${id}`);
     const headers = await getHeaders();
     
     if (!headers.Authorization) {
-      throw new Error('No valid authentication token');
+      const error = new Error('No valid authentication token');
+      await logApiCall('DELETE', `/external-api-crud/machine/${id}`, null, null, null, error);
+      throw error;
     }
     
-    // Try direct API first
+    // Use proxy for machine command/delete
     try {
-      const response = await axios.delete(`${MACHINE_CRUD_BASE}/${id}`, { headers });
-      console.log('Machine deleted successfully via direct API');
+      const response = await axios.delete(`/external-api-crud/machine/${id}`, { headers });
+      console.log('Machine deleted successfully via proxy');
+      
+      // Log successful delete
+      await logApiCall('DELETE', `/external-api-crud/machine/${id}`, null, null, response);
+      
       return response.data;
-    } catch (directError) {
-      console.warn('Direct delete failed, checking if it\'s auth issue...', directError.message);
+    } catch (proxyError) {
+      console.warn('Machine delete failed via proxy:', proxyError.message);
+      
+      // Log proxy error
+      await logApiCall('DELETE', `/external-api-crud/machine/${id}`, null, null, null, proxyError);
       
       // If it's 401, clear token and throw error for retry mechanism
-      if (directError.response?.status === 401) {
+      if (proxyError.response?.status === 401) {
         clearToken();
         throw new Error('Authentication failed - token may be expired');
       }
       
       // For other errors, throw directly
-      throw directError;
+      throw proxyError;
     }
   } catch (error) {
     console.error('Machine deletion failed:', error);
+    
+    // Log final error if not already logged
+    if (!error.message.includes('Authentication failed')) {
+      await logApiCall('DELETE', `/external-api-crud/machine/${id}`, null, null, null, error);
+    }
+    
     throw error;
   }
 };
@@ -255,17 +374,19 @@ export const getVendors = async (type = "all") => {
       
       if (!headers.Authorization) {
         console.error("Failed to obtain OAuth token for vendor API");
-        return { data: [] };
+        const result = { data: [] };
+        return result;
       }
       
-      // Try proxy first with authentication
+      // Use proxy for vendor query API
       try {
-        console.log("Attempting vendor fetch via proxy with auth...");
+        console.log("Fetching vendors via proxy...");
         const response = await axios.get("/external-api/vendor/query", { headers });
-        console.log(`Vendors fetched via proxy with auth, filtering for ${type}...`);
+        console.log(`Vendors fetched via proxy, filtering for ${type}...`);
+        
         return filterVendorsByType(response.data, type);
       } catch (proxyError) {
-        console.warn(`Proxy vendor API failed for type ${type}:`, proxyError.message);
+        console.warn(`Vendor API failed for type ${type}:`, proxyError.message);
         
         // If it's a 401 error, clear token and retry
         if (proxyError.response?.status === 401 && retryCount === 0) {
@@ -275,30 +396,8 @@ export const getVendors = async (type = "all") => {
           continue;
         }
         
-        // Fallback to direct API call
-        try {
-          console.log("Trying direct API as fallback...");
-          const response = await axios.get(
-            "http://test-stg01.merahputih-id.tech:5002/api/cdt/core/master/vendor/query", 
-            { headers }
-          );
-          console.log(`Vendors fetched via direct API, filtering for ${type}...`);
-          return filterVendorsByType(response.data, type);
-        } catch (directError) {
-          // If direct API also returns 401, clear token and retry
-          if (directError.response?.status === 401 && retryCount === 0) {
-            console.log("Direct API also returned 401, clearing token and retrying...");
-            clearToken();
-            retryCount++;
-            continue;
-          }
-          
-          console.error(`All vendor fetch attempts failed for type ${type}:`, {
-            proxyError: proxyError.message,
-            directError: directError.message
-          });
-          return { data: [] };
-        }
+        console.error(`Vendor fetch failed for type ${type}:`, proxyError.message);
+        return { data: [] };
       }
     } catch (error) {
       console.error(`Critical error in getVendors for type ${type}:`, error);
@@ -397,14 +496,14 @@ export const getBranches = async (type = "all") => {
         return { data: [] };
       }
       
-      // Try proxy first with authentication
+      // Use proxy for branch query API
       try {
-        console.log("Attempting branch fetch via proxy with auth...");
+        console.log("Fetching branches via proxy...");
         const response = await axios.get("/external-api/branch/query", { headers });
-        console.log(`Branch data fetched via proxy with auth`);
+        console.log(`Branch data fetched via proxy`);
         return response.data;
       } catch (proxyError) {
-        console.warn(`Proxy branch API failed for type ${type}:`, proxyError.message);
+        console.warn(`Branch API failed for type ${type}:`, proxyError.message);
         
         // If it's a 401 error, clear token and retry
         if (proxyError.response?.status === 401 && retryCount === 0) {
@@ -414,30 +513,8 @@ export const getBranches = async (type = "all") => {
           continue;
         }
         
-        // Fallback to direct API call
-        try {
-          console.log("Trying direct API as fallback...");
-          const response = await axios.get(
-            "http://test-stg01.merahputih-id.tech:5002/api/cdt/core/master/branch/query", 
-            { headers }
-          );
-          console.log(`Branch data fetched via direct API`);
-          return response.data;
-        } catch (directError) {
-          // If direct API also returns 401, clear token and retry
-          if (directError.response?.status === 401 && retryCount === 0) {
-            console.log("Direct API also returned 401, clearing token and retrying...");
-            clearToken();
-            retryCount++;
-            continue;
-          }
-          
-          console.error(`All branch fetch attempts failed for type ${type}:`, {
-            proxyError: proxyError.message,
-            directError: directError.message
-          });
-          return { data: [] };
-        }
+        console.error(`Branch fetch failed for type ${type}:`, proxyError.message);
+        return { data: [] };
       }
     } catch (error) {
       console.error(`Critical error in getBranches for type ${type}:`, error);
@@ -502,7 +579,7 @@ export const getServiceLocations = async (page = 1, limit = 10) => {
       
       try {
         const response = await axios.get(`/external-api/service-location/query?page=${page}&limit=${limit}`, { headers });
-        console.log("Service locations fetched via proxy with auth", response.data);
+        console.log("Service locations fetched via proxy", response.data);
         
         // Check if response.data is an array (direct API format) or has data property
         if (Array.isArray(response.data)) {
@@ -523,35 +600,8 @@ export const getServiceLocations = async (page = 1, limit = 10) => {
           continue;
         }
         
-        try {
-          const response = await axios.get(`http://test-stg01.merahputih-id.tech:5002/api/cdt/core/master/service-location/query?page=${page}&limit=${limit}`, { headers });
-          console.log("Service locations fetched via direct API", response.data);
-          
-          // Check if response.data is an array (direct API format) or has data property
-          if (Array.isArray(response.data)) {
-            return { 
-              data: response.data, 
-              pagination: { page, limit, total: response.data.length, totalPages: 1 } 
-            };
-          } else if (response.data && response.data.data) {
-            return response.data;
-          } else {
-            return response.data;
-          }
-        } catch (directError) {
-          if (directError.response?.status === 401 && retryCount === 0) {
-            console.log("Direct API also returned 401, clearing token and retrying...");
-            clearToken();
-            retryCount++;
-            continue;
-          }
-          
-          console.error("All service location fetch attempts failed:", {
-            proxyError: proxyError.message,
-            directError: directError.message
-          });
-          return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
-        }
+        console.error("Service location fetch failed:", proxyError.message);
+        return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
       }
     } catch (error) {
       console.error(`Critical error in getServiceLocations:`, error);
@@ -574,18 +624,18 @@ export const createServiceLocation = async (data) => {
     const headers = await getHeaders();
     const response = await axios.post("/external-api-crud/service-location", data, { headers });
     console.log("Service location created successfully");
+    
+    // Log successful create
+    await logApiCall('POST', '/external-api-crud/service-location', data, null, response);
+    
     return response.data;
   } catch (error) {
-    console.warn("Direct create failed, trying proxy...", error.message);
-    try {
-      const headers = await getHeaders();
-      const response = await axios.post("/external-api-crud/service-location", data, { headers });
-      console.log("Service location created via proxy");
-      return response.data;
-    } catch (proxyError) {
-      console.error("All create attempts failed:", proxyError);
-      throw error;
-    }
+    console.error("Service location creation failed:", error.message);
+    
+    // Log error
+    await logApiCall('POST', '/external-api-crud/service-location', data, null, null, error);
+    
+    throw error;
   }
 };
 
@@ -594,18 +644,18 @@ export const updateServiceLocation = async (id, data) => {
     const headers = await getHeaders();
     const response = await axios.put(`/external-api-crud/service-location/${id}`, data, { headers });
     console.log("Service location updated successfully");
+    
+    // Log successful update
+    await logApiCall('PUT', `/external-api-crud/service-location/${id}`, data, null, response);
+    
     return response.data;
   } catch (error) {
-    console.warn("Direct update failed, trying proxy...", error.message);
-    try {
-      const headers = await getHeaders();
-      const response = await axios.put(`/external-api-crud/service-location/${id}`, data, { headers });
-      console.log("Service location updated via proxy");
-      return response.data;
-    } catch (proxyError) {
-      console.error("All update attempts failed:", proxyError);
-      throw error;
-    }
+    console.error("Service location update failed:", error.message);
+    
+    // Log error
+    await logApiCall('PUT', `/external-api-crud/service-location/${id}`, data, null, null, error);
+    
+    throw error;
   }
 };
 
@@ -615,18 +665,18 @@ export const createVendor = async (data) => {
     const headers = await getHeaders();
     const response = await axios.post("/external-api-crud/vendor", data, { headers });
     console.log("Vendor created successfully");
+    
+    // Log successful create
+    await logApiCall('POST', '/external-api-crud/vendor', data, null, response);
+    
     return response.data;
   } catch (error) {
-    console.warn("Direct create failed, trying proxy...", error.message);
-    try {
-      const headers = await getHeaders();
-      const response = await axios.post("/external-api-crud/vendor", data, { headers });
-      console.log("Vendor created via proxy");
-      return response.data;
-    } catch (proxyError) {
-      console.error("All create attempts failed:", proxyError);
-      throw error;
-    }
+    console.error("Vendor creation failed:", error.message);
+    
+    // Log error
+    await logApiCall('POST', '/external-api-crud/vendor', data, null, null, error);
+    
+    throw error;
   }
 };
 
@@ -635,18 +685,18 @@ export const updateVendor = async (id, data) => {
     const headers = await getHeaders();
     const response = await axios.put(`/external-api-crud/vendor/${id}`, data, { headers });
     console.log("Vendor updated successfully");
+    
+    // Log successful update
+    await logApiCall('PUT', `/external-api-crud/vendor/${id}`, data, null, response);
+    
     return response.data;
   } catch (error) {
-    console.warn("Direct update failed, trying proxy...", error.message);
-    try {
-      const headers = await getHeaders();
-      const response = await axios.put(`/external-api-crud/vendor/${id}`, data, { headers });
-      console.log("Vendor updated via proxy");
-      return response.data;
-    } catch (proxyError) {
-      console.error("All update attempts failed:", proxyError);
-      throw error;
-    }
+    console.error("Vendor update failed:", error.message);
+    
+    // Log error
+    await logApiCall('PUT', `/external-api-crud/vendor/${id}`, data, null, null, error);
+    
+    throw error;
   }
 };
 
@@ -656,17 +706,17 @@ export const updateBranch = async (id, data) => {
     const headers = await getHeaders();
     const response = await axios.put(`/external-api-crud/branch/${id}`, data, { headers });
     console.log("Branch updated successfully");
+    
+    // Log successful update
+    await logApiCall('PUT', `/external-api-crud/branch/${id}`, data, null, response);
+    
     return response.data;
   } catch (error) {
-    console.warn("Direct update failed, trying proxy...", error.message);
-    try {
-      const headers = await getHeaders();
-      const response = await axios.put(`/external-api-crud/branch/${id}`, data, { headers });
-      console.log("Branch updated via proxy");
-      return response.data;
-    } catch (proxyError) {
-      console.error("All update attempts failed:", proxyError);
-      throw error;
-    }
+    console.error("Branch update failed:", error.message);
+    
+    // Log error
+    await logApiCall('PUT', `/external-api-crud/branch/${id}`, data, null, null, error);
+    
+    throw error;
   }
 };

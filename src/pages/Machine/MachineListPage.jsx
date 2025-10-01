@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, message, Dropdown, Menu, Spin, Card, Modal } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import { Table, Button, Space, message, Dropdown, Menu, Spin, Card, Modal, Switch, Alert } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, ExclamationCircleOutlined, ApiOutlined } from "@ant-design/icons";
 import {
   getMachines,
   deleteMachine,
@@ -31,6 +31,10 @@ const MachineListPage = () => {
   const [branches, setBranches] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingMachine, setEditingMachine] = useState(null);
+  
+  // Backend-ext integration state
+  const [useBackendExt, setUseBackendExt] = useState(false);
+  const [backendExtConfigId, setBackendExtConfigId] = useState('');
 
   useEffect(() => {
     fetchMachines();
@@ -38,10 +42,31 @@ const MachineListPage = () => {
     fetchBranches();
   }, []);
 
+  // Re-fetch data when backend-ext toggle changes
+  useEffect(() => {
+    if (useBackendExt && backendExtConfigId) {
+      machineApiWithBackendExt.setConfigId(backendExtConfigId);
+    }
+    
+    // Re-fetch all data when switching between APIs
+    fetchMachines();
+    fetchVendorsAndSetFilters();
+    fetchBranches();
+  }, [useBackendExt, backendExtConfigId]);
+
   const fetchMachines = async (page = 1, pageSize = 10) => {
     setLoading(true);
     try {
-      const response = await getMachines(page, pageSize);
+      let response;
+      
+      if (useBackendExt) {
+        console.log("🔄 Fetching machines via backend-ext...");
+        response = await machineApiWithBackendExt.getMachines(page, pageSize);
+      } else {
+        console.log("🔄 Fetching machines via direct API...");
+        response = await getMachines(page, pageSize);
+      }
+      
       console.log("Machine data received:", response);
       
       if (response && response.data) {
@@ -57,7 +82,7 @@ const MachineListPage = () => {
       }
     } catch (error) {
       console.error("Failed to fetch machines:", error);
-      message.error("Failed to fetch machine data");
+      message.error(`Failed to fetch machine data ${useBackendExt ? 'via backend-ext' : 'via direct API'}`);
       setMachines([]);
     } finally {
       setLoading(false);
@@ -68,12 +93,25 @@ const MachineListPage = () => {
     try {
       console.log("Fetching vendor data for filters...");
       
-      const [gatewayResult, pjpurResult, supplierResult, maintenanceResult] = await Promise.all([
-        getGatewayVendors(),
-        getPjpurVendors(),
-        getSupplierVendors(),
-        getMaintenanceVendors()
-      ]);
+      let gatewayResult, pjpurResult, supplierResult, maintenanceResult;
+      
+      if (useBackendExt) {
+        console.log("🔄 Fetching vendors via backend-ext...");
+        [gatewayResult, pjpurResult, supplierResult, maintenanceResult] = await Promise.all([
+          machineApiWithBackendExt.getGatewayVendors(),
+          machineApiWithBackendExt.getPjpurVendors(),
+          machineApiWithBackendExt.getSupplierVendors(),
+          machineApiWithBackendExt.getMaintenanceVendors()
+        ]);
+      } else {
+        console.log("🔄 Fetching vendors via direct API...");
+        [gatewayResult, pjpurResult, supplierResult, maintenanceResult] = await Promise.all([
+          getGatewayVendors(),
+          getPjpurVendors(),
+          getSupplierVendors(),
+          getMaintenanceVendors()
+        ]);
+      }
       
       console.log("Vendor filter results:", {
         gateway: gatewayResult,
@@ -117,7 +155,16 @@ const MachineListPage = () => {
 
   const fetchBranches = async () => {
     try {
-      const response = await getBranches();
+      let response;
+      
+      if (useBackendExt) {
+        console.log("🔄 Fetching branches via backend-ext...");
+        response = await machineApiWithBackendExt.getBranches();
+      } else {
+        console.log("🔄 Fetching branches via direct API...");
+        response = await getBranches();
+      }
+      
       console.log("Branch data received:", response);
       
       let branchList = [];
@@ -131,13 +178,20 @@ const MachineListPage = () => {
       console.log("Branches set:", branchList.length);
     } catch (error) {
       console.error("Failed to fetch branches:", error);
-      message.warning("Failed to load branch data");
+      message.warning(`Failed to load branch data ${useBackendExt ? 'via backend-ext' : 'via direct API'}`);
     }
   };
 
   const handleDelete = async (id) => {
     try {
-      await deleteMachine(id);
+      if (useBackendExt) {
+        console.log("🗑️ Deleting machine via backend-ext...");
+        await machineApiWithBackendExt.deleteMachine(id);
+      } else {
+        console.log("🗑️ Deleting machine via direct API...");
+        await deleteMachine(id);
+      }
+      
       message.success("Machine deleted successfully");
       fetchMachines(pagination.current, pagination.pageSize);
     } catch (error) {
@@ -255,19 +309,60 @@ const MachineListPage = () => {
 
   return (
     <div style={{ padding: "24px" }}>
+      {/* Backend-Ext Integration Alert */}
+      {useBackendExt && (
+        <Alert
+          message={
+            <Space>
+              <ApiOutlined />
+              <span>Using Backend-Ext API Integration</span>
+              {backendExtConfigId && <span style={{color: '#52c41a'}}>Config: {backendExtConfigId.substring(0, 8)}...</span>}
+            </Space>
+          }
+          description="All API requests are going through backend-ext system with automatic logging"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      
       <Card>
-        <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+        <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h2>Machine Management</h2>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setEditingMachine(null);
-              setModalVisible(true);
-            }}
-          >
-            Add Machine
-          </Button>
+          
+          <Space>
+            {/* Backend-Ext Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '14px' }}>Backend-Ext:</span>
+              <Switch 
+                checked={useBackendExt}
+                onChange={(checked) => {
+                  setUseBackendExt(checked);
+                  if (checked && !backendExtConfigId) {
+                    // Prompt for config ID if not set
+                    const configId = prompt('Enter Backend-Ext Config ID:', 'machine-api-config');
+                    if (configId) {
+                      setBackendExtConfigId(configId);
+                    } else {
+                      setUseBackendExt(false);
+                    }
+                  }
+                }}
+                size="small"
+              />
+            </div>
+            
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setEditingMachine(null);
+                setModalVisible(true);
+              }}
+            >
+              Add Machine
+            </Button>
+          </Space>
         </div>
 
         <Table
@@ -294,6 +389,7 @@ const MachineListPage = () => {
         editingMachine={editingMachine}
         vendorFilters={vendorFilters}
         branches={branches}
+        useBackendExt={useBackendExt}
       />
     </div>
   );

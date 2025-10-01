@@ -12,7 +12,8 @@ import {
   Switch,
   Tag,
   Popconfirm,
-  Tooltip
+  Tooltip,
+  Alert
 } from 'antd';
 import {
   PlusOutlined,
@@ -20,8 +21,10 @@ import {
   DeleteOutlined,
   ApiOutlined,
   SyncOutlined,
-  EyeOutlined
+  EyeOutlined,
+  ExperimentOutlined
 } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import backendExtApi from '../../../api/backendExtApi';
 
 const { Option } = Select;
@@ -309,6 +312,25 @@ const BackendExtConfigPage = () => {
 
   return (
     <div className="p-4">
+      {/* Navigation Alert */}
+      <Alert
+        message="Backend-Ext Integration Testing"
+        description={
+          <span>
+            Want to test your configurations with Machine API integration? Visit the{' '}
+            <Link to="/master/backend-ext-test">
+              <Button type="link" icon={<ExperimentOutlined />} size="small">
+                Backend-Ext Test Page
+              </Button>
+            </Link>
+            {' '}for automated setup, testing, and demonstration of backend-ext integration.
+          </span>
+        }
+        type="info"
+        showIcon
+        style={{ marginBottom: '16px' }}
+      />
+      
       <Card
         title="Backend External API Configuration"
         extra={

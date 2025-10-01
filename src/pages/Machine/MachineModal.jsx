@@ -11,7 +11,8 @@ const MachineModal = ({
   onSuccess, 
   editingMachine = null,
   vendorFilters = {},
-  branches = []
+  branches = [],
+  useBackendExt = false
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -33,6 +34,7 @@ const MachineModal = ({
           supplier_id: editingMachine.supplier?.id,
           gateway_id: editingMachine.gateway?.id,
           pjpur_id: editingMachine.pjpur?.id,
+          maintenance_id: editingMachine.maintenance?.id,
           service_location_id: editingMachine.service_location?.id,
         });
       } else {
@@ -44,7 +46,16 @@ const MachineModal = ({
 
   const fetchServiceLocations = async () => {
     try {
-      const response = await getServiceLocations(1, 100); // Get first 100 service locations
+      let response;
+      
+      if (useBackendExt) {
+        console.log('🔄 Fetching service locations via backend-ext...');
+        response = await machineApiWithBackendExt.getServiceLocations(1, 100);
+      } else {
+        console.log('🔄 Fetching service locations via direct API...');
+        response = await getServiceLocations(1, 100); // Get first 100 service locations
+      }
+      
       console.log('Service locations response:', response);
       
       // Handle different response formats
@@ -73,10 +84,22 @@ const MachineModal = ({
       console.log('Submitting machine data:', values);
       
       if (isEdit) {
-        await updateMachine(editingMachine.id, values);
+        if (useBackendExt) {
+          console.log('🔧 Updating machine via backend-ext...');
+          await machineApiWithBackendExt.updateMachine(editingMachine.id, values);
+        } else {
+          console.log('🔧 Updating machine via direct API...');
+          await updateMachine(editingMachine.id, values);
+        }
         message.success('Machine updated successfully');
       } else {
-        await createMachine(values);
+        if (useBackendExt) {
+          console.log('🔨 Creating machine via backend-ext...');
+          await machineApiWithBackendExt.createMachine(values);
+        } else {
+          console.log('🔨 Creating machine via direct API...');
+          await createMachine(values);
+        }
         message.success('Machine created successfully');
       }
       
@@ -84,7 +107,8 @@ const MachineModal = ({
       handleCancel();
     } catch (error) {
       console.error('Failed to save machine:', error);
-      message.error(`Failed to ${isEdit ? 'update' : 'create'} machine: ${error.message}`);
+      const apiMethod = useBackendExt ? 'backend-ext' : 'direct API';
+      message.error(`Failed to ${isEdit ? 'update' : 'create'} machine via ${apiMethod}: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -255,21 +279,42 @@ const MachineModal = ({
           </Col>
         </Row>
 
-        <Form.Item
-          name="service_location_id"
-          label="Service Location"
-          rules={[{ required: true, message: 'Please select a service location' }]}
-        >
-          <Select
-            placeholder="Select service location"
-            showSearch
-            filterOption={(input, option) =>
-              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-            }
-          >
-            {renderOptions(serviceLocations)}
-          </Select>
-        </Form.Item>
+        <Row gutter={16}>
+          {/* <Col span={12}>
+            <Form.Item
+              name="maintenance_id"
+              label="Maintenance Vendor"
+              rules={[{ required: isEdit, message: 'Please select a maintenance vendor' }]}
+            >
+              <Select
+                placeholder="Select maintenance vendor"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+              >
+                {renderOptions(vendorFilters.maintenance || [])}
+              </Select>
+            </Form.Item>
+          </Col> */}
+          <Col span={12}>
+            <Form.Item
+              name="service_location_id"
+              label="Service Location"
+              rules={[{ required: true, message: 'Please select a service location' }]}
+            >
+              <Select
+                placeholder="Select service location"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+              >
+                {renderOptions(serviceLocations)}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
       </Form>
     </Modal>
   );
