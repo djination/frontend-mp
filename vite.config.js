@@ -46,12 +46,28 @@ export default defineConfig(({ mode }) => {
           secure: false,
           rewrite: (path) => path.replace(/^\/backend-ext/, '/backend-ext'),
         },
-        // Audit Trail Proxy (public endpoint, no auth required)
+        // Audit Trail Proxy (secured with service token)
         '/audit': {
           target: env.VITE_API_BASE_URL || 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/audit/, '/audit'),
+          configure: (proxy, options) => {
+            proxy.on('error', (err, req, res) => {
+              console.log('Audit proxy error:', err);
+              if (!res.headersSent) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Audit proxy error', message: err.message }));
+              }
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log('🔍 Audit proxy request:', req.method, req.url);
+              proxyReq.setTimeout(30000);
+            });
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log('🔍 Audit proxy response:', proxyRes.statusCode, 'for', req.url);
+            });
+          }
         },
         // OAuth Proxy untuk external API
         '/oauth': {

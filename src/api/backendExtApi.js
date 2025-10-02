@@ -72,6 +72,12 @@ export const backendExtApi = {
     const response = await axiosInstance.post(`${BACKEND_EXT_BASE_URL}/test-connection`, configData);
     return response.data;
   },
+
+  // Audit Trail Logging
+  createAuditLog: async (logData) => {
+    const response = await axiosInstance.post(`${BACKEND_EXT_BASE_URL}/logs`, logData);
+    return response.data;
+  },
 };
 
 export default backendExtApi;

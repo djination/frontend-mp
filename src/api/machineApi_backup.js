@@ -17,30 +17,24 @@ const logApiCall = async (method, url, data = null, params = null, response = nu
       timestamp: new Date().toISOString()
     });
 
-    // Format data sesuai dengan struktur backend audit trail logs
+    // Format data sesuai dengan struktur backend m_backend_ext_logs
     const logData = {
-      app_name: 'frontend',
-      feature_name: 'machine-api',
-      method: method.toUpperCase(),
-      url: url,
-      endpoint: url.split('?')[0], // Extract endpoint without query params
-      request_data: data || null, // Send as object, not JSON string
-      request_params: params || null, // Send as object, not JSON string
+      request_method: method.toUpperCase(),
+      request_url: url,
+      request_data: data ? JSON.stringify(data) : null,
+      request_params: params ? JSON.stringify(params) : null,
       response_status: response?.status || error?.response?.status || null,
-      response_data: response?.data || null, // Send as object, not JSON string
+      response_data: response?.data ? JSON.stringify(response.data) : null,
       error_message: error?.message || null,
-      execution_time_ms: null, // Will be calculated by backend or set to null
-      user_agent: navigator.userAgent,
-      ip_address: null, // Will be extracted from request on backend
-      session_id: null // Optional field
+      execution_time: Date.now()
     };
 
-    // Send to audit trail endpoint (using backend-ext/audit-logs with JWT authentication)
+    // Send to audit trail endpoint (using backend-ext/logs with JWT authentication)
     try {
-      // Use backend-ext/audit-logs endpoint with JWT authentication
-      console.log('📝 Frontend sending audit to backend-ext/audit-logs with JWT auth');
+      // Use backend-ext/logs endpoint with JWT authentication
+      console.log('📝 Frontend sending audit to backend-ext/logs with JWT auth');
       
-      const auditResponse = await axios.post('/backend-ext/audit-logs', logData, {
+      const auditResponse = await axios.post('/backend-ext/logs', logData, {
         timeout: 5000, // 5 second timeout
         headers: {
           ...(await getHeaders()), // Include JWT Authorization header
@@ -59,7 +53,7 @@ const logApiCall = async (method, url, data = null, params = null, response = nu
       if (logError.response?.status === 401) {
         console.warn('⚠️ Audit logging authentication failed - JWT token may be expired');
       } else if (logError.response?.status === 404) {
-        console.warn('⚠️ Backend-ext audit-logs endpoint not found - check backend configuration');
+        console.warn('⚠️ Backend-ext endpoint not found - check backend configuration');
       } else {
         console.warn('❌ Failed to send audit log:', logError.message);
       }
