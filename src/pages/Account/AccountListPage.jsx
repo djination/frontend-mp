@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAccounts, deleteAccount, getAccountById } from '../../api/accountApi';
 import { getAccountCategories } from '../../api/accountCategoryApi';
 import { getAccountTypes } from '../../api/accountTypeApi';
+import { getPackageTiersByAccount } from '../../api/packageTierApi';
 
 // Import Mass Upload Component
 import MassUploadAccount from './components/MassUploadAccount';
@@ -274,25 +275,24 @@ const AccountList = () => {
         // Continue with selectedAccount data
       }
 
-      // Get account children/branches for the account tree
+      // Skip fetching account children/branches - set empty array
+      accountDataToSync.account_tree = [];
+
+      // Get package tiers for this account (used for tier mapping)
       try {
-        console.log('🔄 Fetching account children/branches...');
-        const childrenResponse = await getAccounts({ 
-          parent_id: selectedAccount.id,
-          limit: 1000  // Get all children
-        });
+        console.log('🔄 Fetching package tiers...');
+        const packageTiersResponse = await getPackageTiersByAccount(selectedAccount.id);
         
-        if (childrenResponse?.data && Array.isArray(childrenResponse.data)) {
-          // Add children to account tree
-          accountDataToSync.account_tree = childrenResponse.data;
-          console.log('✅ Found', childrenResponse.data.length, 'child accounts/branches');
+        if (packageTiersResponse?.data && Array.isArray(packageTiersResponse.data)) {
+          accountDataToSync.package_tiers = packageTiersResponse.data;
+          console.log('✅ Found', packageTiersResponse.data.length, 'package tiers');
         } else {
-          console.log('ℹ️ No child accounts found');
-          accountDataToSync.account_tree = [];
+          console.log('ℹ️ No package tiers found');
+          accountDataToSync.package_tiers = [];
         }
-      } catch (childrenError) {
-        console.warn('⚠️ Could not fetch children accounts:', childrenError.message);
-        accountDataToSync.account_tree = [];
+      } catch (packageTiersError) {
+        console.warn('⚠️ Could not fetch package tiers:', packageTiersError.message);
+        accountDataToSync.package_tiers = [];
       }
       
       // Sync customer to external API
@@ -309,21 +309,89 @@ const AccountList = () => {
         
         // Show detailed success information
         if (result.customerData) {
-          const { customer, "customer-crew": crew, "beneficiary-account": beneficiary, branch } = result.customerData;
-          Modal.success({
-            title: 'Sync Completed Successfully',
-            content: (
-              <div>
-                <p><strong>Customer:</strong> {customer?.name}</p>
-                <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
-                <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
-                <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p>
-                <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
-                <p><strong>Branches:</strong> {Array.isArray(branch) ? branch.length : (branch ? 1 : 0)} branch(es)</p>
-                <p><strong>External API Response:</strong> {result.response?.message || 'Success'}</p>
-              </div>
-            ),
-          });
+          const { customer, "customer-crew": crew, "beneficiary-account": beneficiary, branch, tier } = result.customerData;
+          
+          // Check for external API errors in nested response
+          const externalData = result.response?.data?.data;
+          const hasErrors = externalData && (
+            (externalData.customer?.failed > 0) ||
+            (externalData.beneficiary?.failed > 0) ||
+            (externalData.branch?.failed > 0) ||
+            (externalData.crew?.failed > 0) ||
+            (externalData.tier?.failed > 0)
+          );
+
+          if (hasErrors) {
+            // Show warning modal with error details
+            Modal.warning({
+              title: 'Sync Completed with Issues',
+              width: 600,
+              content: (
+                <div>
+                  <p><strong>Sync Status:</strong> Data sent successfully but external API reported issues:</p>
+                  
+                  {externalData.customer?.failed > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <p><strong>❌ Customer:</strong> {externalData.customer.errors.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {externalData.beneficiary?.failed > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <p><strong>❌ Beneficiary Account:</strong> {externalData.beneficiary.errors.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {externalData.branch?.failed > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <p><strong>❌ Branch:</strong> {externalData.branch.errors.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {externalData.crew?.failed > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <p><strong>❌ Customer Crew:</strong> {externalData.crew.errors.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {externalData.tier?.failed > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <p><strong>❌ Tier:</strong> {externalData.tier.errors.join(', ')}</p>
+                    </div>
+                  )}
+
+                  <hr style={{ margin: '16px 0' }} />
+                  
+                  <p><strong>Data Sent:</strong></p>
+                  <p><strong>Customer:</strong> {customer?.name}</p>
+                  <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
+                  <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
+                  <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p>
+                  <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
+                  <p><strong>Bank ID:</strong> {beneficiary?.bank?.id || 'N/A'}</p>
+                  <p><strong>Tier Data:</strong> {tier?.length || 0} tier(s)</p>
+                  <p><strong>Branches:</strong> {Array.isArray(branch) ? branch.length : (branch ? 1 : 0)} branch(es)</p>
+                </div>
+              ),
+            });
+          } else {
+            // Show success modal
+            Modal.success({
+              title: 'Sync Completed Successfully',
+              content: (
+                <div>
+                  <p><strong>Customer:</strong> {customer?.name}</p>
+                  <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
+                  <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
+                  <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p>
+                  <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
+                  <p><strong>Tier Data:</strong> {tier?.length || 0} tier(s)</p>
+                  <p><strong>Branches:</strong> {Array.isArray(branch) ? branch.length : (branch ? 1 : 0)} branch(es)</p>
+                  <p><strong>External API Response:</strong> {result.response?.message || 'Success'}</p>
+                </div>
+              ),
+            });
+          }
         }
       } else {
         message.error(`Failed to sync customer: ${result.error || 'Unknown error'}`);
@@ -550,6 +618,20 @@ const AccountList = () => {
           )}
           <div style={{ marginTop: '12px', color: '#666' }}>
             <p><strong>Note:</strong> This will send customer data including PIC, address, and bank information to the configured external API.</p>
+            {syncLoading && (
+              <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fff7e6', borderRadius: '4px', border: '1px solid #ffd591' }}>
+                <p style={{ margin: 0, color: '#d48806' }}>
+                  <strong>⏳ Please wait:</strong> Sync operation may take up to 2 minutes depending on server load.
+                </p>
+              </div>
+            )}
+            {!syncLoading && (
+              <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#f6ffed', borderRadius: '4px', border: '1px solid #b7eb8f' }}>
+                <p style={{ margin: 0, color: '#52c41a' }}>
+                  <strong>⚡ Tip:</strong> This operation may take 1-2 minutes. Please be patient.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </Modal>

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Form, Input, Button, Table, Space, Modal, InputNumber,
-  Popconfirm, message
+  Popconfirm, message, Checkbox, Tag
 } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -84,25 +84,38 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
           : null,
       };
 
+      let updatedAddresses;
+
       if (editingAddress) {
-        // Update local state only
-        const updatedAddresses = localAddresses.map(addr =>
-          (addr.id === editingAddress.id || addr.tempId === editingAddress.tempId)
-            ? { ...addr, ...processedValues }
-            : addr
-        );
-        setLocalAddresses(updatedAddresses);
-        onChange(updatedAddresses);
+        // Update existing address
+        updatedAddresses = localAddresses.map(addr => {
+          if (addr.id === editingAddress.id || addr.tempId === editingAddress.tempId) {
+            return { ...addr, ...processedValues };
+          }
+          // If this address is being set as primary, unset others
+          if (processedValues.is_primary && addr.is_primary) {
+            return { ...addr, is_primary: false };
+          }
+          return addr;
+        });
       } else {
-        // Add new address to local state
+        // Add new address
         const newAddress = {
           ...processedValues,
           tempId: Date.now()
         };
-        const updatedAddresses = [...localAddresses, newAddress];
-        setLocalAddresses(updatedAddresses);
-        onChange(updatedAddresses);
+        
+        // If new address is primary, unset others
+        if (processedValues.is_primary) {
+          updatedAddresses = localAddresses.map(addr => ({ ...addr, is_primary: false }));
+          updatedAddresses.push(newAddress);
+        } else {
+          updatedAddresses = [...localAddresses, newAddress];
+        }
       }
+
+      setLocalAddresses(updatedAddresses);
+      onChange(updatedAddresses);
 
       // Close modal and reset states
       setVisible(false);
@@ -186,6 +199,16 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
       title: 'Website',
       dataIndex: 'website',
       key: 'website',
+    },
+    {
+      title: 'Primary',
+      dataIndex: 'is_primary',
+      key: 'is_primary',
+      render: (isPrimary) => (
+        <Tag color={isPrimary ? 'green' : 'default'}>
+          {isPrimary ? 'Primary' : 'Secondary'}
+        </Tag>
+      ),
     },
     {
       title: 'Actions',
@@ -320,6 +343,14 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
 
           <Form.Item name="longitude" label="Longitude">
             <InputNumber style={{ width: '100%' }} precision={6} />
+          </Form.Item>
+
+          <Form.Item
+            name="is_primary"
+            valuePropName="checked"
+            initialValue={false}
+          >
+            <Checkbox>Set as Primary Address</Checkbox>
           </Form.Item>
         </Form>
       </Modal>

@@ -22,7 +22,7 @@ const baseURL = getBaseURL();
 
 const axiosInstance = axios.create({
   baseURL: baseURL,
-  timeout: 60000, // Increased to 60 seconds for bulk operations
+  timeout: 120000, // Increased to 2 minutes for bulk operations and customer sync
 })
 
 axiosInstance.interceptors.request.use(

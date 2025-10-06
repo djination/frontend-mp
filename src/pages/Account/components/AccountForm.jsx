@@ -763,7 +763,10 @@ const AccountForm = ({
         account_no: accountNo,
         name: formValues.name,
         brand_name: formValues.brand_name,
+        phone_no: formValues.phone_no,
         email: formValues.email,
+        no_ktp: formValues.no_ktp,
+        no_npwp: formValues.no_npwp,
         industry_id: formValues.industry_id,
         type_of_business_id: formValues.type_of_business_id,
         type_of_business_detail: formValues.type_of_business_detail,
@@ -989,6 +992,30 @@ const AccountForm = ({
                 ]}
               >
                 <Input placeholder="Enter email" autoComplete="email" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="no_ktp"
+                label="KTP"
+                rules={[
+                  { required: false, message: 'Please enter No KTP' }
+                ]}
+              >
+                <Input placeholder="Enter No KTP" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="no_npwp"
+                label="NPWP"
+                rules={[
+                  { required: false, message: 'Please enter No NPWP' }
+                ]}
+              >
+                <Input placeholder="Enter No NPWP" />
               </Form.Item>
             </Col>
           </Row>

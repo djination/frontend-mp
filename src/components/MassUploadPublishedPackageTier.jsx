@@ -70,12 +70,12 @@ const MassUploadPublishedPackageTier = ({ visible, onClose, onSuccess }) => {
   };
 
   const handleDownloadTemplate = () => {
-    // Create CSV template content with flexible date format
+    // Create CSV template content with boolean percentage
     const csvContent = [
       'min_value,max_value,amount,percentage,start_date,end_date',
-      '100000,500000,25000,2.5,1/1/2025,12/31/2025',
-      '500001,1000000,50000,3.0,1/1/2025,12/31/2025',
-      '1000001,5000000,100000,3.5,1/1/2025,12/31/2025'
+      '100000,500000,25000,true,1/1/2025,12/31/2025',
+      '500001,1000000,50000,false,1/1/2025,12/31/2025',
+      '1000001,5000000,100000,true,1/1/2025,12/31/2025'
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -142,7 +142,7 @@ const MassUploadPublishedPackageTier = ({ visible, onClose, onSuccess }) => {
             <Divider orientation="left" plain>Field Requirements</Divider>
             <ul>
               <li><Text strong>Required:</Text> min_value, max_value, amount, start_date, end_date</li>
-              <li><Text strong>Optional:</Text> percentage</li>
+              <li><Text strong>Optional:</Text> percentage (true/false)</li>
               <li><Text strong>Date Format:</Text> MM/DD/YYYY or YYYY-MM-DD (e.g., 1/1/2025 or 2025-01-01)</li>
               <li><Text strong>Number Format:</Text> Use decimal values (e.g., 100000.50)</li>
             </ul>
@@ -153,7 +153,7 @@ const MassUploadPublishedPackageTier = ({ visible, onClose, onSuccess }) => {
               <li>start_date must be before end_date</li>
               <li>No overlapping value ranges for the same time period</li>
               <li>All values must be positive numbers</li>
-              <li>Percentage must be between 0 and 100 (if provided)</li>
+              <li>Percentage must be true or false (if provided)</li>
             </ul>
           </div>
         }

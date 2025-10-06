@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Card, Table, Button, Space, Modal, Form, Input, DatePicker, 
-  InputNumber, message, Popconfirm, Typography, Tag, Tooltip, notification
+  InputNumber, message, Popconfirm, Typography, Tag, Tooltip, notification, Switch
 } from 'antd';
 import { 
   PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, 
-  ExclamationCircleOutlined 
+  ExclamationCircleOutlined, SyncOutlined 
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { 
   getPublishedPackageTiers, 
   createPublishedPackageTier,
   updatePublishedPackageTier,
-  deletePublishedPackageTier
+  deletePublishedPackageTier,
+  syncTiersToExternal
 } from '../../api/publishedPackageTierApi';
 import { getPublishedPackageTiersDebug } from '../../api/debugApi';
 import MassUploadPublishedPackageTier from '../../components/MassUploadPublishedPackageTier';
@@ -23,6 +24,7 @@ const { RangePicker } = DatePicker;
 const PublishedPackageTierPage = () => {
   const [publishedPackageTiers, setPublishedPackageTiers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [massUploadVisible, setMassUploadVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -50,6 +52,20 @@ const PublishedPackageTierPage = () => {
     }
   };
 
+  const handleSync = async () => {
+    setSyncLoading(true);
+    try {
+      await syncTiersToExternal();
+      message.success('Tiers berhasil disinkronisasi ke external API');
+      // Refresh data setelah sync
+      await fetchPublishedPackageTiers();
+    } catch (error) {
+      console.error('Sync error:', error);
+      message.error('Gagal melakukan sinkronisasi: ' + (error.response?.data?.message || error.message));
+    }
+    setSyncLoading(false);
+  };
+
   const handleAdd = () => {
     setEditingRecord(null);
     form.resetFields();
@@ -64,7 +80,7 @@ const PublishedPackageTierPage = () => {
       min_value: Number(record.min_value),
       max_value: Number(record.max_value),
       amount: Number(record.amount),
-      percentage: record.percentage ? Number(record.percentage) : undefined,
+      percentage: !!record.percentage,
       date_range: [dayjs(record.start_date), dayjs(record.end_date)]
     };
     
@@ -227,11 +243,15 @@ const PublishedPackageTierPage = () => {
       sorter: (a, b) => a.amount - b.amount,
     },
     {
-      title: 'Percentage',
+      title: 'Is Percentage',
       dataIndex: 'percentage',
       key: 'percentage',
-      render: (value) => value ? `${value}%` : '-',
-      sorter: (a, b) => (a.percentage || 0) - (b.percentage || 0),
+      render: (value) => (
+        <Tag color={value ? 'green' : 'default'}>
+          {value ? 'Yes' : 'No'}
+        </Tag>
+      ),
+      sorter: (a, b) => Number(!!a.percentage) - Number(!!b.percentage),
     },
     {
       title: 'Date Range',
@@ -362,6 +382,14 @@ const PublishedPackageTierPage = () => {
             >
               Add Package Tier
             </Button>
+            <Button 
+              type="default" 
+              icon={<SyncOutlined />}
+              onClick={handleSync}
+              loading={syncLoading}
+            >
+              Sync to External API
+            </Button>
           </Space>
         </div>
         
@@ -455,6 +483,18 @@ const PublishedPackageTierPage = () => {
           </Form.Item>
 
           <Form.Item
+            name="percentage"
+            label="Is Percentage Based"
+            valuePropName="checked"
+            initialValue={false}
+          >
+            <Switch
+              checkedChildren="Percentage"
+              unCheckedChildren="Fixed Amount"
+            />
+          </Form.Item>
+
+          <Form.Item
             name="amount"
             label="Amount"
             rules={[
@@ -476,34 +516,6 @@ const PublishedPackageTierPage = () => {
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
               placeholder="Enter amount"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="percentage"
-            label="Percentage (Optional)"
-            rules={[
-              { 
-                validator: (_, value) => {
-                  // Allow empty values for optional field
-                  if (value === null || value === undefined || value === '' || value === 0) {
-                    return Promise.resolve();
-                  }
-                  const numValue = parseFloat(value);
-                  if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('Percentage must be between 0 and 100!'));
-                }
-              }
-            ]}
-          >
-            <InputNumber
-              style={{ width: '100%' }}
-              min={0}
-              max={100}
-              step={0.1}
-              placeholder="Enter percentage (0-100)"
             />
           </Form.Item>
 
