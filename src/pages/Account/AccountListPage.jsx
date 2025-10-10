@@ -50,6 +50,7 @@ const AccountList = () => {
   const [syncModalVisible, setSyncModalVisible] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [syncOperationType, setSyncOperationType] = useState('POST');
 
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -248,8 +249,9 @@ const AccountList = () => {
   };
 
   // Sync Customer Handler
-  const handleSyncCustomer = (record) => {
+  const handleSyncCustomer = (record, operationType = 'POST') => {
     setSelectedAccount(record);
+    setSyncOperationType(operationType);
     setSyncModalVisible(true);
   };
 
@@ -296,6 +298,7 @@ const AccountList = () => {
       }
       
       // Sync customer to external API
+      console.log(`🔄 Executing ${syncOperationType} operation for account:`, selectedAccount.name);
       const result = await syncCustomerToExternalApi(
         accountDataToSync, 
         null, // configId - will be auto-detected 
@@ -478,12 +481,24 @@ const AccountList = () => {
               onClick={() => handleEdit(record.id)}
             />
           </Tooltip>
-          <Tooltip title="Sync to External API">
+          <Tooltip title="Create Customer (POST)">
             <Button
-              icon={<ApiOutlined />}
-              onClick={() => handleSyncCustomer(record)}
+              icon={<PlusOutlined />}
+              onClick={() => handleSyncCustomer(record, 'POST')}
               type="primary"
               ghost
+              disabled={record.uuid_be && record.uuid_be !== null && record.uuid_be !== ''}
+              style={{ marginRight: 4 }}
+            />
+          </Tooltip>
+          <Tooltip title="Update Customer (PATCH)">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => handleSyncCustomer(record, 'PATCH')}
+              type="default"
+              ghost
+              disabled={!record.uuid_be || record.uuid_be === null || record.uuid_be === ''}
+              style={{ marginRight: 4 }}
             />
           </Tooltip>
           <Popconfirm
@@ -589,16 +604,16 @@ const AccountList = () => {
 
       {/* Sync Customer Modal */}
       <Modal
-        title="Sync Customer to External API"
+        title={`${syncOperationType === 'POST' ? 'Create' : 'Update'} Customer to External API`}
         open={syncModalVisible}
         onOk={confirmSyncCustomer}
         onCancel={() => setSyncModalVisible(false)}
         confirmLoading={syncLoading}
-        okText="Sync Now"
+        okText={syncOperationType === 'POST' ? 'Create Now' : 'Update Now'}
         cancelText="Cancel"
       >
         <div>
-          <p>Are you sure you want to sync the following customer to external API?</p>
+          <p>Are you sure you want to {syncOperationType === 'POST' ? 'create' : 'update'} the following customer to external API?</p>
           {selectedAccount && (
             <div style={{ 
               padding: '12px', 
@@ -614,6 +629,9 @@ const AccountList = () => {
                   ? selectedAccount.account_categories.map(cat => cat.name).join(', ')
                   : selectedAccount.account_category?.name || 'N/A'
               }</p>
+              {syncOperationType === 'PATCH' && selectedAccount.uuid_be && (
+                <p><strong>External ID:</strong> {selectedAccount.uuid_be}</p>
+              )}
             </div>
           )}
           <div style={{ marginTop: '12px', color: '#666' }}>

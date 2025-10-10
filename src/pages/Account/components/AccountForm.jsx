@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Form, Input, Select, Button, Card, Row, Col,
   Switch, Tabs, message, Space, TreeSelect, Divider, Alert, App, Tag
@@ -302,19 +302,19 @@ const AccountForm = ({
   };
 
   // Handler for industry selection
-  const handleIndustrySelect = (industry) => {
+  const handleIndustrySelect = useCallback((industry) => {
     setSelectedIndustry(industry);
     form.setFieldValue('industry_id', industry.id);
-  };
+  }, [form]);
 
-  const handleIndustryDeselect = () => {
+  const handleIndustryDeselect = useCallback(() => {
     setSelectedIndustry(null);
     form.setFieldValue('industry_id', null);
-  };
+  }, [form]);
 
-  const openIndustryModal = () => {
+  const openIndustryModal = useCallback(() => {
     setShowIndustryModal(true);
-  };
+  }, []);
 
   const fetchAccountCategories = async () => {
     try {
@@ -363,7 +363,7 @@ const AccountForm = ({
     for (const addr of addressItems) {
       const allowedFields = [
         'address1', 'address2', 'sub_district', 'district', 'city', 'province',
-        'postalcode', 'country', 'latitude', 'longitude', 'phone_no', 'is_active', 'account_id'
+        'postalcode', 'country', 'latitude', 'longitude', 'phone_no', 'is_active', 'account_id', 'is_primary'
       ];
       
       // Prepare address data with proper type conversion for latitude and longitude
@@ -397,13 +397,15 @@ const AccountForm = ({
   const savePICs = async (picItems, accountId) => {
     for (const pic of picItems) {
       const allowedFields = [
-        'name', 'phone_no', 'email', 'is_active', 'position_id', 'account_id'
+        'name', 'phone_no', 'email', 'is_active', 'position_id', 'account_id', 'is_owner', 'no_ktp', 'no_npwp', 'username', 'fix_phone_no'
       ];
       const cleanPic = cleanPayload(
         {
           ...pic,
           account_id: accountId,
-          position_id: pic.position_id || (pic.position && pic.position.id)
+          position_id: pic.position_id || (pic.position && pic.position.id),
+          username: pic.username,
+          fix_phone_no: pic.fix_phone_no 
         },
         allowedFields
       );

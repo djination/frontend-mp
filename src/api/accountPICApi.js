@@ -42,6 +42,7 @@ export const createAccountPIC = async (picData) => {
 };
 
 export const updateAccountPIC = async (picId, picData) => {
+  console.log('picData', picData);
   try {
     const response = await axiosInstance.patch(`/account-pic/${picId}`, {
       ...picData,

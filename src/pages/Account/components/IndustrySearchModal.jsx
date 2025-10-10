@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Modal, Input, Table, Button, message, Space } from "antd";
 import { SearchOutlined, CheckOutlined } from "@ant-design/icons";
 import { getIndustries } from "../../../api/industryApi";
@@ -16,6 +16,11 @@ const IndustrySearchModal = ({ visible, onCancel, onSelect, selectedIndustry }) 
   }, [visible]);
 
   useEffect(() => {
+    if (!Array.isArray(industries)) {
+      setFilteredIndustries([]);
+      return;
+    }
+    
     if (searchText) {
       const filtered = industries.filter(industry =>
         industry.name?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -31,7 +36,27 @@ const IndustrySearchModal = ({ visible, onCancel, onSelect, selectedIndustry }) 
     setLoading(true);
     try {
       const response = await getIndustries();
-      const industryList = response?.data || response || [];
+      console.log('IndustrySearchModal - Full response:', response);
+      console.log('IndustrySearchModal - Response data:', response?.data);
+      console.log('IndustrySearchModal - Response data.data:', response?.data?.data);
+      
+      // Handle different response structures
+      let industryList = [];
+      if (response?.data?.data?.data && Array.isArray(response.data.data.data)) {
+        // Structure: response.data.data.data = Array
+        industryList = response.data.data.data;
+      } else if (response?.data?.data && Array.isArray(response.data.data)) {
+        // Structure: response.data.data = Array
+        industryList = response.data.data;
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Structure: response.data = Array
+        industryList = response.data;
+      } else if (Array.isArray(response)) {
+        // Structure: response = Array
+        industryList = response;
+      }
+      
+      console.log('IndustrySearchModal - Extracted industry list:', industryList);
       setIndustries(industryList);
       setFilteredIndustries(industryList);
     } catch (error) {
@@ -42,10 +67,10 @@ const IndustrySearchModal = ({ visible, onCancel, onSelect, selectedIndustry }) 
     }
   };
 
-  const handleSelect = (industry) => {
+  const handleSelect = useCallback((industry) => {
     onSelect(industry);
     onCancel();
-  };
+  }, [onSelect, onCancel]);
 
   const columns = [
     {
@@ -102,7 +127,7 @@ const IndustrySearchModal = ({ visible, onCancel, onSelect, selectedIndustry }) 
         
         <Table
           columns={columns}
-          dataSource={filteredIndustries}
+          dataSource={Array.isArray(filteredIndustries) ? filteredIndustries : []}
           rowKey="id"
           loading={loading}
           pagination={{

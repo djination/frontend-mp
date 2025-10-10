@@ -81,8 +81,13 @@ const AccountPICForm = ({
         const picData = {
           name: values.name,
           email: values.email,
+          fix_phone_no: values.fix_phone_no,
           phone_no: values.phone_no,
           position_id: values.position_id,
+          no_ktp: values.no_ktp,
+          no_npwp: values.no_npwp,
+          username: values.username,
+          is_owner: values.is_owner,
         };
         if (editingPIC) {
           const updatedPICs = localPICs.map(p =>
@@ -323,7 +328,7 @@ const AccountPICForm = ({
             name="email"
             label="Email"
             rules={[
-              { required: false, message: 'Please enter email' },
+              { required: true, message: 'Please enter email' },
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
@@ -349,6 +354,17 @@ const AccountPICForm = ({
             ]}
           >
             <Input placeholder="Enter No NPWP" autoComplete="off" />
+          </Form.Item>
+
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[
+              { required: true, message: 'Please enter Username' },
+              { type: 'string', message: 'Please enter a valid Username' }
+            ]}
+          >
+            <Input placeholder="Enter Username" autoComplete="off" />
           </Form.Item>
         </Form>
       </Modal>

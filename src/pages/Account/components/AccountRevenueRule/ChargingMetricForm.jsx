@@ -8,54 +8,54 @@ const { Text } = Typography;
 
 // Schema constants (should match AccountRevenueRuleModal.jsx)
 const CHARGING_METRIC_TYPES = {
-  DEDICATED: 'dedicated',
-  NON_DEDICATED: 'non_dedicated'
+    DEDICATED: 'dedicated',
+    NON_DEDICATED: 'non_dedicated'
 };
 
 const DEDICATED_TIER_TYPES = {
-  PACKAGE: 'package',
-  NON_PACKAGE: 'non_package'
+    PACKAGE: 'package',
+    NON_PACKAGE: 'non_package'
 };
 
 const NON_PACKAGE_TYPES = {
-  MACHINE_ONLY: 'machine_only',
-  SERVICE_ONLY: 'service_only'
+    MACHINE_ONLY: 'machine_only',
+    SERVICE_ONLY: 'service_only'
 };
 
 const NON_DEDICATED_TYPES = {
-  TRANSACTION_FEE: 'transaction_fee',
-  SUBSCRIPTION: 'subscription',
-  ADD_ONS: 'add_ons'
+    TRANSACTION_FEE: 'transaction_fee',
+    SUBSCRIPTION: 'subscription',
+    ADD_ONS: 'add_ons'
 };
 
 const TRANSACTION_FEE_TYPES = {
-  FIXED_RATE: 'fixed_rate',
-  PERCENTAGE: 'percentage'
+    FIXED_RATE: 'fixed_rate',
+    PERCENTAGE: 'percentage'
 };
 
 const SUBSCRIPTION_TYPES = {
-  MONTHLY: 'monthly',
-  YEARLY: 'yearly'
+    MONTHLY: 'monthly',
+    YEARLY: 'yearly'
 };
 
 const ADD_ONS_TYPES = {
-  SYSTEM_INTEGRATION: 'system_integration',
-  INFRASTRUCTURE: 'infrastructure'
+    SYSTEM_INTEGRATION: 'system_integration',
+    INFRASTRUCTURE: 'infrastructure'
 };
 
 const BILLING_TYPES = {
-  OTC: 'otc',
-  MONTHLY: 'monthly'
+    OTC: 'otc',
+    MONTHLY: 'monthly'
 };
 
 const BILLING_METHOD_TYPES = {
-  AUTO_DEDUCT: 'auto_deduct',
-  POST_PAID: 'post_paid'
+    AUTO_DEDUCT: 'auto_deduct',
+    POST_PAID: 'post_paid'
 };
 
 const POST_PAID_TYPES = {
-  TRANSACTION: 'transaction',
-  SUBSCRIPTION: 'subscription'
+    TRANSACTION: 'transaction',
+    SUBSCRIPTION: 'subscription'
 };
 
 // Utility: Select component for options
@@ -133,7 +133,7 @@ const BillingMethodFields = ({ form, name, parentPath, label = "Billing Method" 
                 label={<span style={{ color: '#333' }}>Method Type</span>}
                 rules={[{ required: true, message: 'Please select billing method' }]}
             >
-                <Select 
+                <Select
                     placeholder="Select method type"
                     onChange={handleMethodTypeChange}
                     value={methodType}
@@ -174,8 +174,8 @@ const BillingMethodFields = ({ form, name, parentPath, label = "Billing Method" 
                         name={[name, 'billing_method', 'post_paid', 'custom_fee']}
                         label={<span style={{ color: '#333' }}>Custom Fee (Optional)</span>}
                     >
-                        <CurrencyInput 
-                            placeholder="Enter custom fee amount" 
+                        <CurrencyInput
+                            placeholder="Enter custom fee amount"
                         />
                     </Form.Item>
                 </>
@@ -229,16 +229,16 @@ function AddOnsFields({ form, name, parentPath }) {
                                         label="Add-Ons Type"
                                         rules={[{ required: true, message: 'Please select add-ons type' }]}
                                     >
-                                                                <Radio.Group onChange={e =>
-                            handleSelectChange(
-                                { type: e.target.value, billing_type: undefined, amount: undefined },
-                                addOnsName,
-                                e.target.value
-                            )
-                        }>
-                            <Radio value={ADD_ONS_TYPES.SYSTEM_INTEGRATION}>System Integration</Radio>
-                            <Radio value={ADD_ONS_TYPES.INFRASTRUCTURE}>Infrastructure</Radio>
-                        </Radio.Group>
+                                        <Radio.Group onChange={e =>
+                                            handleSelectChange(
+                                                { type: e.target.value, billing_type: undefined, amount: undefined },
+                                                addOnsName,
+                                                e.target.value
+                                            )
+                                        }>
+                                            <Radio value={ADD_ONS_TYPES.SYSTEM_INTEGRATION}>System Integration</Radio>
+                                            <Radio value={ADD_ONS_TYPES.INFRASTRUCTURE}>Infrastructure</Radio>
+                                        </Radio.Group>
                                     </Form.Item>
 
                                     {addOnsTypeValue === ADD_ONS_TYPES.SYSTEM_INTEGRATION && (
@@ -311,7 +311,7 @@ function AddOnsFields({ form, name, parentPath }) {
                                             >
                                                 <Input placeholder="Enter description" />
                                             </Form.Item>
-                                            
+
                                             <Space style={{ display: 'flex' }}>
                                                 <Form.Item
                                                     {...addOnsRest}
@@ -320,7 +320,7 @@ function AddOnsFields({ form, name, parentPath }) {
                                                 >
                                                     <DatePicker placeholder="Start date" />
                                                 </Form.Item>
-                                                
+
                                                 <Form.Item
                                                     {...addOnsRest}
                                                     name={[addOnsName, 'end_date']}
@@ -329,7 +329,7 @@ function AddOnsFields({ form, name, parentPath }) {
                                                     <DatePicker placeholder="End date" />
                                                 </Form.Item>
                                             </Space>
-                                            
+
                                             <Form.Item
                                                 {...addOnsRest}
                                                 name={[addOnsName, 'is_active']}
@@ -349,7 +349,7 @@ function AddOnsFields({ form, name, parentPath }) {
                                                 label={<span style={{ color: '#333' }}>Method Type</span>}
                                                 rules={[{ required: true, message: 'Please select method type' }]}
                                             >
-                                                <Select 
+                                                <Select
                                                     placeholder="Select method type"
                                                     options={[
                                                         { value: 'auto_deduct', label: 'Auto Deduct' },
@@ -401,7 +401,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
     const handleTypeChange = (value) => {
         const currentTier = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName]) || {};
         const updated = { ...currentTier, type: value };
-        
+
         // Clear package data when switching away from package type
         if (value !== 'package') {
             updated.package = undefined;
@@ -409,24 +409,24 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
             // Initialize package structure when switching to package type
             updated.package = { tiers: [] };
         }
-        
+
         // Clear non_package data when switching away from non_package type
         if (value !== 'non_package') {
             updated.non_package_type = undefined;
             updated.amount = undefined;
         }
-        
+
         const allTiers = form.getFieldValue(['charging_metric', 'dedicated', 'tiers']) || [];
         allTiers[tierName] = updated;
-        
-        form.setFieldsValue({ 
-            charging_metric: { 
+
+        form.setFieldsValue({
+            charging_metric: {
                 ...form.getFieldValue(['charging_metric']),
-                dedicated: { 
+                dedicated: {
                     ...form.getFieldValue(['charging_metric', 'dedicated']),
-                    tiers: allTiers 
-                } 
-            } 
+                    tiers: allTiers
+                }
+            }
         });
     };
 
@@ -436,24 +436,24 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
         if (!checked) {
             updated.add_ons_types = undefined;
         }
-        
+
         const allTiers = form.getFieldValue(['charging_metric', 'dedicated', 'tiers']) || [];
         allTiers[tierName] = updated;
-        
-        form.setFieldsValue({ 
-            charging_metric: { 
+
+        form.setFieldsValue({
+            charging_metric: {
                 ...form.getFieldValue(['charging_metric']),
-                dedicated: { 
+                dedicated: {
                     ...form.getFieldValue(['charging_metric', 'dedicated']),
-                    tiers: allTiers 
-                } 
-            } 
+                    tiers: allTiers
+                }
+            }
         });
     };
 
     const handlePackageUploadSuccess = (uploadedData, tierIndex, addPkg) => {
         console.log('📦 Upload success:', uploadedData);
-        
+
         // Add each uploaded package tier to the form
         uploadedData.forEach(tierData => {
             addPkg({
@@ -476,7 +476,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                     </a>
                 )}
             </div>
-            
+
             <Form.Item
                 {...restField}
                 name={[tierName, 'type']}
@@ -489,111 +489,145 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                     <Radio value={DEDICATED_TIER_TYPES.NON_PACKAGE} style={{ fontSize: '14px' }}>Non Package</Radio>
                 </Radio.Group>
             </Form.Item>
-            
+
             {tierType === DEDICATED_TIER_TYPES.PACKAGE && (
                 <div className="rule-subsection">
+                    {/* Percentage checkbox for package type */}
+                    <Form.Item
+                        {...restField}
+                        name={[tierName, 'percentage']}
+                        valuePropName="checked"
+                        style={{ marginBottom: 16 }}
+                    >
+                        <Checkbox>
+                            <span style={{ fontWeight: '500' }}>Percentage</span>
+                        </Checkbox>
+                    </Form.Item>
+
                     <Form.List name={[tierName, 'package', 'tiers']}>
                         {(pkgFields, { add: addPkg, remove: removePkg }) => {
                             // Ensure pkgFields is always an array
                             const safeFields = Array.isArray(pkgFields) ? pkgFields : [];
-                            
+
                             console.log(`📋 Package Form.List for tier ${tierName}:`, { pkgFields, safeFields });
-                            
+
                             return (
                                 <>
                                     {safeFields.map(({ key: pkgKey, name: pkgName, ...pkgRest }) => {
                                         console.log(`🎯 Rendering package tier ${pkgName} with key ${pkgKey}`);
-                                        
+
                                         return (
-                                        <div key={pkgKey} style={{ 
-                                            marginBottom: 16, 
-                                            border: '1px solid #d9d9d9', 
-                                            borderRadius: 6, 
-                                            padding: 16,
-                                            backgroundColor: '#fafafa'
-                                        }}>
-                                            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                                                <Form.Item 
-                                                    {...pkgRest} 
-                                                    name={[pkgName, 'min']} 
-                                                    label="Min Value"
-                                                    rules={[{ required: true, message: 'Min required' }]}
-                                                    style={{ marginBottom: 0, minWidth: 120 }}
-                                                >
-                                                    <CurrencyInput placeholder="Min (Rp)" />
-                                                </Form.Item>
-                                                <span style={{ paddingBottom: 4 }}> - </span>
-                                                <Form.Item 
-                                                    {...pkgRest} 
-                                                    name={[pkgName, 'max']} 
-                                                    label="Max Value"
-                                                    rules={[{ required: true, message: 'Max required' }]}
-                                                    style={{ marginBottom: 0, minWidth: 120 }}
-                                                >
-                                                    <CurrencyInput placeholder="Max (Rp)" />
-                                                </Form.Item>
-                                                <span style={{ paddingBottom: 4 }}>=</span>
-                                                <Form.Item 
-                                                    {...pkgRest} 
-                                                    name={[pkgName, 'amount']} 
-                                                    label="Amount"
-                                                    rules={[{ required: true, message: 'Amount required' }]}
-                                                    style={{ marginBottom: 0, minWidth: 120 }}
-                                                >
-                                                    <CurrencyInput placeholder="Amount (Rp)" />
-                                                </Form.Item>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                                                <Form.Item 
-                                                    {...pkgRest} 
-                                                    name={[pkgName, 'start_date']} 
-                                                    label="Start Date"
-                                                    rules={[{ required: true, message: 'Start date required' }]}
-                                                    style={{ marginBottom: 0, minWidth: 140 }}
-                                                >
-                                                    <DatePicker 
-                                                        style={{ width: '100%' }}
-                                                        placeholder="Start Date"
-                                                        format="YYYY-MM-DD"
-                                                    />
-                                                </Form.Item>
-                                                <span style={{ paddingBottom: 4 }}> to </span>
-                                                <Form.Item 
-                                                    {...pkgRest} 
-                                                    name={[pkgName, 'end_date']} 
-                                                    label="End Date"
-                                                    rules={[
-                                                        { required: true, message: 'End date required' },
-                                                        ({ getFieldValue }) => ({
-                                                            validator(_, value) {
-                                                                const startDate = getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'package', 'tiers', pkgName, 'start_date']);
-                                                                if (!value || !startDate) {
+                                            <div key={pkgKey} style={{
+                                                marginBottom: 16,
+                                                border: '1px solid #d9d9d9',
+                                                borderRadius: 6,
+                                                padding: 16,
+                                                backgroundColor: '#fafafa'
+                                            }}>
+                                                <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                                    <Form.Item
+                                                        {...pkgRest}
+                                                        name={[pkgName, 'min']}
+                                                        label="Min Value"
+                                                        rules={[
+                                                            { required: true, message: 'Min required' },
+                                                            {
+                                                                validator: (_, value) => {
+                                                                    const maxValue = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'package', 'tiers', pkgName, 'max']);
+                                                                    if (value && maxValue && parseFloat(value) >= parseFloat(maxValue)) {
+                                                                        return Promise.reject(new Error('Min value must be less than max value'));
+                                                                    }
                                                                     return Promise.resolve();
                                                                 }
-                                                                if (dayjs(value).isAfter(dayjs(startDate))) {
+                                                            }
+                                                        ]}
+                                                        style={{ marginBottom: 0, minWidth: 120 }}
+                                                    >
+                                                        <Input placeholder="Min Value" type="number" />
+                                                    </Form.Item>
+                                                    <span style={{ paddingBottom: 4 }}> - </span>
+                                                    <Form.Item
+                                                        {...pkgRest}
+                                                        name={[pkgName, 'max']}
+                                                        label="Max Value"
+                                                        rules={[
+                                                            { required: true, message: 'Max required' },
+                                                            {
+                                                                validator: (_, value) => {
+                                                                    const minValue = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'package', 'tiers', pkgName, 'min']);
+                                                                    if (value && minValue && parseFloat(value) <= parseFloat(minValue)) {
+                                                                        return Promise.reject(new Error('Max value must be greater than min value'));
+                                                                    }
                                                                     return Promise.resolve();
                                                                 }
-                                                                return Promise.reject(new Error('End date must be after start date'));
-                                                            },
-                                                        }),
-                                                    ]}
-                                                    style={{ marginBottom: 0, minWidth: 140 }}
-                                                >
-                                                    <DatePicker 
-                                                        style={{ width: '100%' }}
-                                                        placeholder="End Date"
-                                                        format="YYYY-MM-DD"
-                                                    />
-                                                </Form.Item>
-                                                {safeFields.length > 1 && (
-                                                    <a onClick={() => removePkg(pkgName)} style={{ color: 'red', paddingBottom: 4 }}>
-                                                        Remove
-                                                    </a>
-                                                )}
+                                                            }
+                                                        ]}
+                                                        style={{ marginBottom: 0, minWidth: 120 }}
+                                                    >
+                                                        <Input placeholder="Max Value" type="number" />
+                                                    </Form.Item>
+                                                    <span style={{ paddingBottom: 4 }}>=</span>
+                                                    <Form.Item
+                                                        {...pkgRest}
+                                                        name={[pkgName, 'amount']}
+                                                        label="Amount"
+                                                        rules={[{ required: true, message: 'Amount required' }]}
+                                                        style={{ marginBottom: 0, minWidth: 120 }}
+                                                    >
+                                                        <Input placeholder="Amount" />
+                                                    </Form.Item>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                                    <Form.Item
+                                                        {...pkgRest}
+                                                        name={[pkgName, 'start_date']}
+                                                        label="Start Date"
+                                                        rules={[{ required: true, message: 'Start date required' }]}
+                                                        style={{ marginBottom: 0, minWidth: 140 }}
+                                                    >
+                                                        <DatePicker
+                                                            style={{ width: '100%' }}
+                                                            placeholder="Start Date"
+                                                            format="YYYY-MM-DD"
+                                                        />
+                                                    </Form.Item>
+                                                    <span style={{ paddingBottom: 4 }}> to </span>
+                                                    <Form.Item
+                                                        {...pkgRest}
+                                                        name={[pkgName, 'end_date']}
+                                                        label="End Date"
+                                                        rules={[
+                                                            { required: true, message: 'End date required' },
+                                                            ({ getFieldValue }) => ({
+                                                                validator(_, value) {
+                                                                    const startDate = getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'package', 'tiers', pkgName, 'start_date']);
+                                                                    if (!value || !startDate) {
+                                                                        return Promise.resolve();
+                                                                    }
+                                                                    if (dayjs(value).isAfter(dayjs(startDate))) {
+                                                                        return Promise.resolve();
+                                                                    }
+                                                                    return Promise.reject(new Error('End date must be after start date'));
+                                                                },
+                                                            }),
+                                                        ]}
+                                                        style={{ marginBottom: 0, minWidth: 140 }}
+                                                    >
+                                                        <DatePicker
+                                                            style={{ width: '100%' }}
+                                                            placeholder="End Date"
+                                                            format="YYYY-MM-DD"
+                                                        />
+                                                    </Form.Item>
+                                                    {safeFields.length > 1 && (
+                                                        <a onClick={() => removePkg(pkgName)} style={{ color: 'red', paddingBottom: 4 }}>
+                                                            Remove
+                                                        </a>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
                                     <Form.Item>
                                         <Space>
                                             <a onClick={() => addPkg({
@@ -603,7 +637,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                                                 start_date: dayjs(),
                                                 end_date: dayjs().add(1, 'year')
                                             })} style={{ color: '#1890ff' }}>+ Add Package Tier</a>
-                                            <MassUploadPackageTierButton 
+                                            <MassUploadPackageTierButton
                                                 onUploadSuccess={(data) => handlePackageUploadSuccess(data, tierName, addPkg)}
                                             />
                                         </Space>
@@ -612,7 +646,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                             );
                         }}
                     </Form.List>
-                    
+
                     {/* Method Type for Package */}
                     <Form.Item
                         {...restField}
@@ -620,7 +654,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                         label={<span style={{ color: '#333' }}>Method Type</span>}
                         rules={[{ required: true, message: 'Please select method type' }]}
                     >
-                        <Select 
+                        <Select
                             placeholder="Select method type"
                             options={[
                                 { value: 'auto_deduct', label: 'Auto Deduct' },
@@ -645,7 +679,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                     </Form.Item>
                 </div>
             )}
-            
+
             {tierType === DEDICATED_TIER_TYPES.NON_PACKAGE && (
                 <div className="rule-subsection">
                     <Form.Item
@@ -667,7 +701,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                     >
                         <CurrencyInput placeholder="Enter non package amount" />
                     </Form.Item>
-                    
+
                     {/* Method Type for Non Package */}
                     <Form.Item
                         {...restField}
@@ -675,7 +709,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                         label={<span style={{ color: '#333' }}>Method Type</span>}
                         rules={[{ required: true, message: 'Please select method type' }]}
                     >
-                        <Select 
+                        <Select
                             placeholder="Select method type"
                             options={[
                                 { value: 'auto_deduct', label: 'Auto Deduct' },
@@ -700,7 +734,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                     </Form.Item>
                 </div>
             )}
-            
+
             {tierType && hasAddOns && (
                 <AddOnsFields
                     form={form}
@@ -714,7 +748,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
 
 // Container component for all Dedicated Tier Fields
 function DedicatedTierFields({ fields, add, remove, form }) {
-    
+
     if (!Array.isArray(fields)) {
         return (
             <div>
@@ -725,7 +759,7 @@ function DedicatedTierFields({ fields, add, remove, form }) {
             </div>
         );
     }
-    
+
     if (fields.length === 0) {
         return (
             <div>
@@ -736,12 +770,12 @@ function DedicatedTierFields({ fields, add, remove, form }) {
             </div>
         );
     }
-    
-    
+
+
     return (
         <>
             {fields.map(({ key, name, ...restField }) => {
-                
+
                 return (
                     <DedicatedTierField
                         key={key}
@@ -756,12 +790,12 @@ function DedicatedTierFields({ fields, add, remove, form }) {
                     />
                 );
             })}
-            
+
             <Form.Item>
-                <a 
+                <a
                     onClick={() => {
                         add && add();
-                    }} 
+                    }}
                     style={{ color: '#1890ff' }}
                 >
                     + Add Dedicated Tier
@@ -779,7 +813,7 @@ function NonDedicatedInheritanceSection({ form }) {
 
     const handleInheritanceChange = async (checked) => {
         setInheritFromParent(checked);
-        
+
         if (checked) {
             setLoading(true);
             try {
@@ -793,9 +827,9 @@ function NonDedicatedInheritanceSection({ form }) {
                         method_type: 'auto_deduct'
                     }]
                 };
-                
+
                 setParentValues(mockParentValues);
-                
+
                 // Apply parent values to form
                 form.setFieldsValue({
                     charging_metric: {
@@ -806,7 +840,7 @@ function NonDedicatedInheritanceSection({ form }) {
                         }
                     }
                 });
-                
+
                 message.success('Parent values applied successfully');
             } catch (error) {
                 console.error('Error fetching parent values:', error);
@@ -827,7 +861,7 @@ function NonDedicatedInheritanceSection({ form }) {
                 yearly_discount: 0,
                 add_ons_types: []
             };
-            
+
             form.setFieldsValue({
                 charging_metric: {
                     ...form.getFieldValue(['charging_metric']),
@@ -847,7 +881,7 @@ function NonDedicatedInheritanceSection({ form }) {
                 valuePropName="checked"
                 style={{ marginBottom: parentValues ? 12 : 0 }}
             >
-                <Checkbox 
+                <Checkbox
                     onChange={(e) => handleInheritanceChange(e.target.checked)}
                     loading={loading}
                 >
@@ -857,14 +891,14 @@ function NonDedicatedInheritanceSection({ form }) {
                     </Space>
                 </Checkbox>
             </Form.Item>
-            
+
             {parentValues && (
                 <Alert
                     message="Inherited Configuration"
                     description={
                         <div>
                             <Text type="secondary">
-                                Using parent account's non-dedicated configuration. 
+                                Using parent account's non-dedicated configuration.
                                 To customize values for this account, uncheck the inheritance option above.
                             </Text>
                             <div style={{ marginTop: 8 }}>
@@ -872,8 +906,8 @@ function NonDedicatedInheritanceSection({ form }) {
                                 <ul style={{ marginTop: 4, marginLeft: 16 }}>
                                     {parentValues.tiers.map((tier, index) => (
                                         <li key={index}>
-                                            {tier.type === NON_DEDICATED_TYPES.TRANSACTION_FEE 
-                                                ? `Transaction Fee: ${tier.transaction_fee_type === TRANSACTION_FEE_TYPES.FIXED_RATE 
+                                            {tier.type === NON_DEDICATED_TYPES.TRANSACTION_FEE
+                                                ? `Transaction Fee: ${tier.transaction_fee_type === TRANSACTION_FEE_TYPES.FIXED_RATE
                                                     ? `Fixed Rate - Rp ${tier.fixed_rate_value?.toLocaleString('id-ID') || 0}`
                                                     : `Percentage - ${tier.percentage_value || 0}%`}`
                                                 : `Subscription: ${tier.subscription_type} - Rp ${tier.subscription_amount?.toLocaleString('id-ID') || 0}`
@@ -904,10 +938,10 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
             </div>
         );
     }
-    
+
     // Check if inheritance is enabled
     const inheritFromParent = form.getFieldValue(['charging_metric', 'non_dedicated', 'inherit_from_parent']) || false;
-    
+
     const handleTypeChange = (name, value) => {
         const currentValues = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']) || [];
         const updated = [...currentValues];
@@ -918,23 +952,23 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
     const handleAddOnsChange = (tierName, checked) => {
         const currentTier = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers', tierName]) || {};
         const updated = { ...currentTier, has_add_ons: checked };
-        
+
         if (!checked) {
             // Clear add_ons_types when unchecked
             updated.add_ons_types = undefined;
         }
-        
+
         const allTiers = form.getFieldValue(['charging_metric', 'non_dedicated', 'tiers']) || [];
         allTiers[tierName] = updated;
-        
-        form.setFieldsValue({ 
-            charging_metric: { 
+
+        form.setFieldsValue({
+            charging_metric: {
                 ...form.getFieldValue(['charging_metric']),
-                non_dedicated: { 
+                non_dedicated: {
                     ...form.getFieldValue(['charging_metric', 'non_dedicated']),
-                    tiers: allTiers 
-                } 
-            } 
+                    tiers: allTiers
+                }
+            }
         });
     };
 
@@ -950,7 +984,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                             label="Non Dedicated Type"
                             rules={[{ required: true, message: 'Please select type' }]}
                         >
-                            <Radio.Group 
+                            <Radio.Group
                                 onChange={e => handleTypeChange(name, e.target.value)}
                                 disabled={inheritFromParent}
                             >
@@ -983,8 +1017,8 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                     label={<span style={{ color: '#333' }}>Fixed Rate Value</span>}
                                                     rules={[{ required: true, message: 'Please input fixed rate value' }]}
                                                 >
-                                                    <CurrencyInput 
-                                                        placeholder="Enter fixed rate value" 
+                                                    <CurrencyInput
+                                                        placeholder="Enter fixed rate value"
                                                         disabled={inheritFromParent}
                                                     />
                                                 </Form.Item>
@@ -998,8 +1032,8 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                     label={<span style={{ color: '#333' }}>Percentage Value</span>}
                                                     rules={[{ required: true, message: 'Please input percentage value' }]}
                                                 >
-                                                    <PercentageInput 
-                                                        placeholder="Enter percentage value" 
+                                                    <PercentageInput
+                                                        placeholder="Enter percentage value"
                                                         disabled={inheritFromParent}
                                                     />
                                                 </Form.Item>
@@ -1016,7 +1050,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                     label={<span style={{ color: '#333' }}>Method Type</span>}
                                     rules={[{ required: true, message: 'Please select method type' }]}
                                 >
-                                    <Select 
+                                    <Select
                                         placeholder="Select method type"
                                         disabled={inheritFromParent}
                                         options={[
@@ -1062,8 +1096,8 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                     label={<span style={{ color: '#333' }}>Subscription Amount</span>}
                                     rules={[{ required: true, message: 'Please input subscription amount' }]}
                                 >
-                                    <CurrencyInput 
-                                        placeholder="Enter subscription amount" 
+                                    <CurrencyInput
+                                        placeholder="Enter subscription amount"
                                         disabled={inheritFromParent}
                                     />
                                 </Form.Item>
@@ -1077,8 +1111,8 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                                 label={<span style={{ color: '#333' }}>Yearly Discount</span>}
                                                 rules={[{ required: true, message: 'Please input yearly discount' }]}
                                             >
-                                                <PercentageInput 
-                                                    placeholder="Enter discount percentage" 
+                                                <PercentageInput
+                                                    placeholder="Enter discount percentage"
                                                     disabled={inheritFromParent}
                                                 />
                                             </Form.Item>
@@ -1093,7 +1127,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                                     label={<span style={{ color: '#333' }}>Method Type</span>}
                                     rules={[{ required: true, message: 'Please select method type' }]}
                                 >
-                                    <Select 
+                                    <Select
                                         placeholder="Select method type"
                                         disabled={inheritFromParent}
                                         options={[
@@ -1121,14 +1155,14 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                         )}
 
                         {fields.length > 1 && (
-                            <a 
-                                onClick={() => inheritFromParent ? null : remove(name)} 
-                                style={{ 
-                                    color: inheritFromParent ? '#ccc' : '#ff4d4f', 
-                                    marginTop: 8, 
-                                    display: 'inline-block', 
+                            <a
+                                onClick={() => inheritFromParent ? null : remove(name)}
+                                style={{
+                                    color: inheritFromParent ? '#ccc' : '#ff4d4f',
+                                    marginTop: 8,
+                                    display: 'inline-block',
                                     fontSize: '13px',
-                                    cursor: inheritFromParent ? 'not-allowed' : 'pointer' 
+                                    cursor: inheritFromParent ? 'not-allowed' : 'pointer'
                                 }}
                             >
                                 Remove
@@ -1138,9 +1172,9 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                 );
             })}
             <Form.Item>
-                <a 
-                    onClick={() => inheritFromParent ? null : add()} 
-                    style={{ 
+                <a
+                    onClick={() => inheritFromParent ? null : add()}
+                    style={{
                         color: inheritFromParent ? '#ccc' : '#1890ff',
                         cursor: inheritFromParent ? 'not-allowed' : 'pointer'
                     }}
@@ -1175,7 +1209,7 @@ const ChargingMetricForm = ({ form }) => {
     // Ensure proper structure when type changes
     const handleChargingTypeChange = (value) => {
         const currentValues = form.getFieldValue(['charging_metric']) || {};
-        
+
         const updatedValues = {
             ...currentValues,
             type: value,
