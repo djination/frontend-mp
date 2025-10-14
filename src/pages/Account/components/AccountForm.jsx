@@ -256,8 +256,24 @@ const AccountForm = ({
   }, [dataFetched, initialValues?.id, form, isEdit, availableAccounts.length]);
 
   const getDeletedItems = (initialArr, currentArr) => {
-    const currentIds = currentArr.filter(x => x.id).map(x => x.id);
-    return initialArr.filter(item => item.id && !currentIds.includes(item.id));
+    // Get current IDs (both id and tempId)
+    const currentIds = currentArr
+      .filter(x => x.id || x.tempId)
+      .map(x => x.id || x.tempId);
+    
+    const deleted = initialArr.filter(item => {
+      // Only include items that have a valid ID (not tempId) and are not in current array
+      const hasValidId = item.id && 
+                        item.id !== 'undefined' && 
+                        item.id !== undefined && 
+                        item.id !== null && 
+                        !String(item.id).startsWith('temp-');
+      const notInCurrent = !currentIds.includes(item.id);
+      
+      return hasValidId && notInCurrent;
+    });
+    
+    return deleted;
   };
 
   const fetchDropdowns = async () => {
@@ -804,23 +820,63 @@ const AccountForm = ({
       if (isEdit && accountId) {
         const deletedAddresses = getDeletedItems(initialAddresses, addresses);
         for (const addr of deletedAddresses) {
-          await deleteAccountAddress(addr.id);
+          if (addr.id && 
+              addr.id !== 'undefined' && 
+              addr.id !== undefined && 
+              addr.id !== null && 
+              !String(addr.id).startsWith('temp-')) {
+            await deleteAccountAddress(addr.id);
+          } else {
+            console.warn('Skipping address deletion - invalid ID:', addr.id);
+          }
         }
         const deletedPICs = getDeletedItems(initialPICs, pics);
         for (const pic of deletedPICs) {
-          await deleteAccountPIC(pic.id);
+          if (pic.id && 
+              pic.id !== 'undefined' && 
+              pic.id !== undefined && 
+              pic.id !== null && 
+              !String(pic.id).startsWith('temp-')) {
+            await deleteAccountPIC(accountId, pic.id);
+          } else {
+            console.warn('Skipping PIC deletion - invalid ID:', pic.id);
+          }
         }
         const deletedAccountBanks = getDeletedItems(initialAccountBanks, accountBanks);
         for (const accountBank of deletedAccountBanks) {
-          await deleteAccountBank(accountBank.id);
+          if (accountBank.id && 
+              accountBank.id !== 'undefined' && 
+              accountBank.id !== undefined && 
+              accountBank.id !== null && 
+              !String(accountBank.id).startsWith('temp-')) {
+            await deleteAccountBank(accountBank.id);
+          } else {
+            console.warn('Skipping bank deletion - invalid ID:', accountBank.id);
+          }
         }
         const deletedAccountServices = getDeletedItems(initialAccountServices, accountServices);
         for (const accountService of deletedAccountServices) {
-          await deleteAccountService(accountService.id);
+          if (accountService.id && 
+              accountService.id !== 'undefined' && 
+              accountService.id !== undefined && 
+              accountService.id !== null && 
+              !String(accountService.id).startsWith('temp-')) {
+            await deleteAccountService(accountService.id);
+          } else {
+            console.warn('Skipping service deletion - invalid ID:', accountService.id);
+          }
         }
         const deletedDocuments = getDeletedItems(initialAccountDocuments, accountDocuments);
         for (const doc of deletedDocuments) {
-          await deleteAccountDocument(doc.id);
+          if (doc.id && 
+              doc.id !== 'undefined' && 
+              doc.id !== undefined && 
+              doc.id !== null && 
+              !String(doc.id).startsWith('temp-')) {
+            await deleteAccountDocument(doc.id);
+          } else {
+            console.warn('Skipping document deletion - invalid ID:', doc.id);
+          }
         }
       }
 
