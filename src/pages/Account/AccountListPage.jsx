@@ -17,6 +17,7 @@ import MassUploadAccount from './components/MassUploadAccount';
 
 // Import Customer Sync Utils
 import { syncCustomerToExternalApi } from '../../utils/customerSyncUtils';
+import { backendExtApi } from '../../api/backendExtApi';
 
 // Import Auth Context
 import { useAuth } from '../../components/AuthContext';
@@ -255,6 +256,101 @@ const AccountList = () => {
     setSyncModalVisible(true);
   };
 
+  // PUT Customer Handler (replaces PATCH)
+  const handlePUTCustomer = async (record) => {
+    if (!record.uuid_be) {
+      message.error('Account must be synced first before updating customer data');
+      return;
+    }
+
+    setSyncLoading(true);
+    try {
+      // Get full account details including address information
+      let accountDataToSync = record;
+      try {
+        const fullAccountData = await getAccountById(record.id);
+        
+        if (fullAccountData?.data) {
+          accountDataToSync = fullAccountData.data;
+        }
+      } catch (detailError) {
+        // Continue with list data if fetch fails
+      }
+      
+      // Get primary address from account_address array
+      const primaryAddress = accountDataToSync.account_address && accountDataToSync.account_address.length > 0 
+        ? accountDataToSync.account_address.find(addr => addr.is_primary) || accountDataToSync.account_address[0]
+        : null;
+      
+      // Prepare customer data for PUT request
+      const customerData = {
+        name: accountDataToSync.name || '',
+        email: accountDataToSync.email || '',
+        msisdn: accountDataToSync.phone_no ? (accountDataToSync.phone_no.startsWith('+') ? accountDataToSync.phone_no : `+${accountDataToSync.phone_no.startsWith('0') ? '62' + accountDataToSync.phone_no.slice(1) : accountDataToSync.phone_no}`) : '',
+        address: {
+          building: primaryAddress?.address1 || '',
+          street: primaryAddress?.address2 || '',
+          region: primaryAddress?.sub_district || '',
+          city: primaryAddress?.city || '',
+          state: primaryAddress?.province || '',
+          country: primaryAddress?.country || 'Indonesia',
+          zip_code: primaryAddress?.postalcode || ''
+        },
+        branch: {
+          id: accountDataToSync.branch_uuid_be || '',
+          code: accountDataToSync.account_no || '',
+          name: accountDataToSync.name || ''
+        },
+        customer_type: "INDIVIDUAL",
+        ktp: accountDataToSync.no_ktp || '',
+        npwp: accountDataToSync.no_npwp || ''
+      };
+
+      // Validate required fields before sending
+      if (!customerData.name) {
+        message.error('Customer name is required');
+        return;
+      }
+      if (!customerData.email) {
+        message.error('Customer email is required');
+        return;
+      }
+      if (!accountDataToSync.branch_uuid_be) {
+        message.error('Branch UUID is required for PUT operation');
+        return;
+      }
+
+      // Make PUT request to external API
+      const requestData = {
+        config_id: '473b8ffa-9c2e-4384-b5dc-dd2af3c1f0f9',
+        data: customerData,
+        url: `/api/customer/command/${record.uuid_be}`,
+        method: 'PUT'
+      };
+
+      const response = await backendExtApi.makeSimplifiedApiRequest(requestData);
+
+      if (response && response.success !== false) {
+        message.success(`Successfully updated customer: ${record.name}`);
+      } else {
+        throw new Error(response?.error || 'External API returned error');
+      }
+    } catch (error) {
+      let errorMessage = 'Failed to update customer';
+      if (error.response?.data?.error) {
+        errorMessage = `External API Error: ${error.response.data.error}`;
+      } else if (error.response?.data?.message) {
+        errorMessage = `External API Error: ${error.response.data.message}`;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      message.error(errorMessage);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   const confirmSyncCustomer = async () => {
     if (!selectedAccount) return;
 
@@ -491,10 +587,10 @@ const AccountList = () => {
               style={{ marginRight: 4 }}
             />
           </Tooltip>
-          <Tooltip title="Update Customer (PATCH)">
+          <Tooltip title="Update Customer (PUT)">
             <Button
               icon={<EditOutlined />}
-              onClick={() => handleSyncCustomer(record, 'PATCH')}
+              onClick={() => handlePUTCustomer(record)}
               type="default"
               ghost
               disabled={!record.uuid_be || record.uuid_be === null || record.uuid_be === ''}

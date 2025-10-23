@@ -305,10 +305,8 @@ const AccountForm = ({
   const fetchIndustries = async () => {
     try {
       const response = await getIndustries();
-      console.log('AccountForm fetchIndustries response:', response);
       // Handle nested response format: response.data.data instead of response.data
       const industriesData = response?.data?.data || response?.data || [];
-      console.log('AccountForm setting industries data:', industriesData);
       setIndustries(Array.isArray(industriesData) ? industriesData : []);
     } catch (error) {
       console.error('Failed to fetch industries:', error);
@@ -1289,6 +1287,14 @@ const AccountForm = ({
           onChange={setPics}
           accountId={initialValues.id}
           isEdit={isEdit}
+          accountData={{
+            id: initialValues.id,
+            uuid_be: initialValues.uuid_be,
+            name: initialValues.name || form.getFieldValue('name')
+          }}
+          onPICUpdate={(pic, response) => {
+            message.success('PIC synced successfully');
+          }}
         />
       )
     },
@@ -1313,6 +1319,10 @@ const AccountForm = ({
           onChange={setAccountServices}
           accountId={initialValues.id}
           isEdit={isEdit}
+          accountData={initialValues}
+          onPATCHSuccess={(result) => {
+            // Optionally refresh account data or show success message
+          }}
         />
       )
     },

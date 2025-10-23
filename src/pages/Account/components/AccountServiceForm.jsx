@@ -36,7 +36,9 @@ const AccountServiceForm = ({
   accountServices = [],
   onChange,
   accountId,
-  isEdit
+  isEdit,
+  accountData = null,
+  onPATCHSuccess = null,
 }) => {
   const [serviceTree, setServiceTree] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -372,6 +374,8 @@ const AccountServiceForm = ({
           accountService={currentService.accountService}
           onSave={rules => handleSaveRevenueRule(currentService.id, rules)}
           initialRules={revenueRules[currentService.id] || []}
+          accountData={accountData}
+          onPATCHSuccess={onPATCHSuccess}
         />
       )}
     </div>
@@ -383,6 +387,8 @@ AccountServiceForm.propTypes = {
   onChange: PropTypes.func.isRequired,
   accountId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   isEdit: PropTypes.bool.isRequired,
+  accountData: PropTypes.object,
+  onPATCHSuccess: PropTypes.func,
 };
 
 export default AccountServiceForm;

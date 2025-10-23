@@ -407,6 +407,8 @@ const RevenueRuleModal = ({
   accountService,
   onSave,
   initialRules = [],
+  accountData = null,
+  onPATCHSuccess = null,
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -1227,7 +1229,7 @@ const RevenueRuleModal = ({
                 {
                   label: 'Charging Metric',
                   key: 'charging_metric',
-                  children: <ChargingMetricForm form={form} />,
+                  children: <ChargingMetricForm form={form} accountData={accountData} onPATCHSuccess={onPATCHSuccess} />,
                 },
                 {
                   label: 'Add-Ons',
@@ -1261,6 +1263,8 @@ RevenueRuleModal.propTypes = {
   accountService: PropTypes.object,
   onSave: PropTypes.func,
   initialRules: PropTypes.array,
+  accountData: PropTypes.object,
+  onPATCHSuccess: PropTypes.func,
 };
 
 

@@ -2,6 +2,7 @@ import backendExtApi from '../api/backendExtApi';
 import { updateAccount } from '../api/accountApi';
 import { updatePackageTier } from '../api/packageTierApi';
 import { updateAccountPIC } from '../api/accountPICApi';
+import { updateAccountBank } from '../api/accountBankApi';
 import { validateCustomerCommandData, formatDataForPreview, generateDebugReport } from './debugUtils';
 
 /**
@@ -95,10 +96,9 @@ export const calculateDeductionActiveType = (accountData) => {
   // Check if any method type is auto_deduct
   const packageTiers = accountData.package_tiers || [];
   const hasAutoDeduct = packageTiers.some(tier => 
-    tier.method_type === 'auto_deduct' || 
-    tier.billing_method_type === 'Auto Deduct' ||
-    tier.billingMethodType === 'Auto Deduct'
+    tier.billing_method.method === 'auto_deduct' 
   );
+  console.log('🔍 hasAutoDeduct:', hasAutoDeduct);
 
   // If no auto deduct method, return null (don't include deduction_active_type)
   if (!hasAutoDeduct) {
@@ -249,7 +249,8 @@ export const transformAccountToCustomerCommand = (accountData, isUpdate = false)
         max_amount: parseFloat(packageTier.max_value) || 0, // getAccountPackageTier.data[].max_value
         fee: parseFloat(packageTier.amount) || 0, // getAccountPackageTier.data[].amount
         valid_from: packageTier.start_date ? `${packageTier.start_date}T00:00:00` : new Date().toISOString(), // getAccountPackageTier.data[].start_date
-        valid_to: packageTier.end_date ? `${packageTier.end_date}T23:59:59` : "2050-12-31T23:59:59" // getAccountPackageTier.data[].end_date
+        valid_to: packageTier.end_date ? `${packageTier.end_date}T23:59:59` : "2050-12-31T23:59:59", // getAccountPackageTier.data[].end_date
+        billing_method: packageTier.billing_method?.method || null // getAccountPackageTier.data[].billing_method.method
       };
 
       // Add ID for PATCH operation
@@ -356,9 +357,9 @@ export const transformAccountToCustomerCommand = (accountData, isUpdate = false)
     };
 
     // Add ID for branch in PATCH operation
-    if (isUpdate && accountData.uuid_be) {
-      result.branch.id = accountData.uuid_be;
-      console.log('🔄 PATCH operation: Adding branch ID:', accountData.uuid_be);
+    if (isUpdate && accountData.branch_uuid_be) {
+      result.branch.id = accountData.branch_uuid_be;
+      console.log('🔄 PATCH operation: Adding branch ID:', accountData.branch_uuid_be);
     }
 
   // Validate required fields
@@ -619,19 +620,22 @@ export const syncCustomerToExternalApi = async (accountData, configId = null, us
 
     while (retryCount <= maxRetries) {
       try {
-        // Make API request with different parameters for PATCH
+        // Make API request with different parameters for POST/PATCH
         const requestData = {
           config_id: targetConfigId,
           data: customerCommandData,
           user_id: userId,
-          account_id: accountId
+          account_id: accountId,
+          method: operationType // Add method for both POST and PATCH
         };
 
-        // For PATCH operation, add the customer UUID to the URL
+        // For PATCH operation, override the URL with customer UUID
         if (isUpdate && accountData.uuid_be) {
-          requestData.url_suffix = `/api/customer/${accountData.uuid_be}`;
-          requestData.method = 'PATCH';
-          console.log('🔄 PATCH request with URL suffix:', requestData.url_suffix);
+          requestData.url = `/api/customer/${accountData.uuid_be}`;
+          console.log('🔄 PATCH request with URL:', requestData.url);
+        } else {
+          // For POST operation, no URL override needed (use config default)
+          console.log('🔄 POST request for creating new customer');
         }
 
         response = await backendExtApi.makeSimplifiedApiRequest(requestData);
@@ -1045,7 +1049,40 @@ export const processExternalApiResponse = async (apiResponse, originalAccountDat
       }
     }
 
-    // 3. Process Customer-Crew data (update account_pic.uuid_be)
+    // 3. Process Branch data (update account.branch_uuid_be)
+    const branchId = responseData.branch?.data?.id || 
+                    responseData.branch?.id || 
+                    responseData.branch_id ||
+                    responseData.data?.branch?.id ||
+                    responseData.data?.branch_id;
+                    
+    console.log('🏢 Branch ID found:', branchId);
+    console.log('🏢 Branch data structure:', responseData.branch);
+    
+    if (branchId) {
+      const branchResult = await processBranchResponse(branchId, originalAccountData, userId);
+      if (branchResult.success) {
+        processedResults.updatedRecords.push(branchResult);
+        processedResults.summary.totalUpdated++;
+      } else {
+        processedResults.errors.push(branchResult.error);
+        processedResults.summary.totalErrors++;
+      }
+    }
+
+    // 4. Process Beneficiary data (update account_bank.uuid_be)
+    if (responseData.beneficiary && responseData.beneficiary.data && Array.isArray(responseData.beneficiary.data)) {
+      const beneficiaryResult = await processBeneficiaryResponse(responseData.beneficiary, originalAccountData, userId);
+      if (beneficiaryResult.success) {
+        processedResults.updatedRecords.push(beneficiaryResult);
+        processedResults.summary.totalUpdated++;
+      } else {
+        processedResults.errors.push(beneficiaryResult.error);
+        processedResults.summary.totalErrors++;
+      }
+    }
+
+    // 5. Process Customer-Crew data (update account_pic.uuid_be)
     if (responseData.crew && responseData.crew.data && Array.isArray(responseData.crew.data)) {
       const crewResult = await processCrewResponse(responseData.crew, originalAccountData, userId);
       if (crewResult.success) {
@@ -1331,6 +1368,170 @@ const processCrewResponse = async (crewResponse, originalAccountData, userId) =>
   }
 };
 
+/**
+ * Process beneficiary response and update account_bank.uuid_be
+ * @param {Object} beneficiaryResponse - Beneficiary response from external API
+ * @param {Object} originalAccountData - Original account data
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - Processing result
+ */
+export const processBeneficiaryResponse = async (beneficiaryResponse, originalAccountData, userId = null) => {
+  try {
+    console.log('🏦 Processing beneficiary response...');
+    console.log('🏦 Beneficiary response:', beneficiaryResponse);
+
+    if (!beneficiaryResponse.data || !Array.isArray(beneficiaryResponse.data)) {
+      throw new Error('Invalid beneficiary response data');
+    }
+
+    const beneficiaryIds = beneficiaryResponse.data.map(beneficiary => beneficiary.id).filter(id => id);
+    const originalBanks = originalAccountData.account_bank || [];
+    
+    console.log('🏦 Extracted beneficiary IDs:', beneficiaryIds);
+    console.log('🏦 Original banks count:', originalBanks.length);
+
+    if (beneficiaryIds.length === 0) {
+      return {
+        success: true,
+        type: 'beneficiary',
+        message: 'No beneficiary IDs to update',
+        updatedCount: 0
+      };
+    }
+
+    const updatePromises = [];
+
+    // Update each bank account with external beneficiary ID
+    for (let i = 0; i < Math.min(beneficiaryIds.length, originalBanks.length); i++) {
+      const externalBeneficiaryId = beneficiaryIds[i];
+      const originalBank = originalBanks[i];
+
+      if (externalBeneficiaryId && originalBank.id) {
+        const updateData = {
+          uuid_be: externalBeneficiaryId
+        };
+
+        updatePromises.push(
+          updateAccountBank(originalBank.id, updateData)
+            .then(result => {
+              console.log(`✅ Successfully updated bank ${originalBank.id} with uuid_be: ${externalBeneficiaryId}`);
+              return {
+                success: true,
+                bankId: originalBank.id,
+                uuidBe: externalBeneficiaryId
+              };
+            })
+            .catch(error => {
+              console.error(`❌ Failed to update bank ${originalBank.id}:`, error);
+              console.error(`❌ Bank data:`, originalBank);
+              console.error(`❌ Update data:`, updateData);
+              
+              // Extract more detailed error information
+              let errorMessage = error.message;
+              if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+              } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+              }
+              
+              return {
+                success: false,
+                bankId: originalBank.id,
+                uuidBe: externalBeneficiaryId,
+                error: errorMessage,
+                fullError: error
+              };
+            })
+        );
+      }
+    }
+
+    const results = await Promise.all(updatePromises);
+    
+    const successfulUpdates = results.filter(r => r.success);
+    const failedUpdates = results.filter(r => !r.success);
+
+    console.log('✅ Beneficiary updates completed:', {
+      total: results.length,
+      successful: successfulUpdates.length,
+      failed: failedUpdates.length
+    });
+
+    return {
+      success: failedUpdates.length === 0,
+      type: 'beneficiary',
+      updatedCount: successfulUpdates.length,
+      failedCount: failedUpdates.length,
+      details: results,
+      updatedAt: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error('❌ Error processing beneficiary response:', error);
+    
+    return {
+      success: false,
+      type: 'beneficiary',
+      error: error.message,
+      updatedAt: new Date().toISOString()
+    };
+  }
+};
+
+/**
+ * Process branch response and update account.branch_uuid_be
+ * @param {string} branchId - Branch ID from external API
+ * @param {Object} originalAccountData - Original account data
+ * @param {string} userId - User ID
+ * @returns {Promise<Object>} - Processing result
+ */
+export const processBranchResponse = async (branchId, originalAccountData, userId = null) => {
+  try {
+    console.log('🏢 Processing branch response...');
+    console.log('🏢 Branch ID:', branchId);
+    console.log('🏢 Account ID:', originalAccountData.id);
+
+    if (!branchId || !originalAccountData.id) {
+      throw new Error('Missing branch ID or account ID');
+    }
+
+    // Update account.branch_uuid_be
+    const updateData = {
+      branch_uuid_be: branchId
+    };
+    
+    console.log('🏢 Update data for account:', updateData);
+    console.log('🏢 Calling updateAccount with ID:', originalAccountData.id);
+    
+    const response = await updateAccount(originalAccountData.id, updateData);
+    
+    if (response && response.success !== false) {
+      console.log('✅ Successfully updated account with branch_uuid_be:', branchId);
+      return {
+        success: true,
+        type: 'branch',
+        accountId: originalAccountData.id,
+        branchUuidBe: branchId,
+        updatedAt: new Date().toISOString()
+      };
+    } else {
+      throw new Error(`Failed to update account: ${response?.message || 'Unknown error'}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error processing branch response:', error);
+    
+    return {
+      success: false,
+      type: 'branch',
+      error: error.message,
+      accountId: originalAccountData?.id,
+      branchId: branchId,
+      updatedAt: new Date().toISOString()
+    };
+  }
+};
+
 export default {
   transformAccountToCustomerCommand,
   syncCustomerToExternalApi,
@@ -1339,6 +1540,8 @@ export default {
   validateCustomerData,
   transformCustomerData,
   processExternalApiResponse,
+  processBranchResponse,
+  processBeneficiaryResponse,
   getAvailableBackendConfigs,
   hasAutoDeductBilling,
   resolveParentUuid,

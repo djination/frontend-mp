@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Form, Radio, Card, Space, Checkbox, DatePicker, Input, Select, Typography, Alert, message } from 'antd';
+import { Form, Radio, Card, Space, Checkbox, DatePicker, Input, Select, Typography, Alert, message, Button } from 'antd';
+import { SyncOutlined } from '@ant-design/icons';
 import { CurrencyInput, PercentageInput } from '../../../../components/NumericInput';
 import dayjs from 'dayjs';
 import { MassUploadPackageTierButton } from './MassUploadPackageTierButton';
+import { syncCustomerToExternalApi } from '../../../../utils/customerSyncUtils';
+import { useAuth } from '../../../../components/AuthContext';
 
 const { Text } = Typography;
 
@@ -394,9 +397,10 @@ function AddOnsFields({ form, name, parentPath }) {
 }
 
 // Individual Dedicated Tier Field Component
-function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canRemove }) {
+function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canRemove, accountData, onPATCHSuccess, user }) {
     const tierType = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'type']);
     const hasAddOns = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName, 'has_add_ons']);
+    const [patchLoading, setPatchLoading] = useState(false);
 
     const handleTypeChange = (value) => {
         const currentTier = form.getFieldValue(['charging_metric', 'dedicated', 'tiers', tierName]) || {};
@@ -452,8 +456,6 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
     };
 
     const handlePackageUploadSuccess = (uploadedData, tierIndex, addPkg) => {
-        console.log('📦 Upload success:', uploadedData);
-
         // Add each uploaded package tier to the form
         uploadedData.forEach(tierData => {
             addPkg({
@@ -464,6 +466,76 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                 end_date: dayjs(tierData.end_date)
             });
         });
+    };
+
+    // PATCH function for updating customer tiers
+    const handlePATCHCustomer = async () => {
+        if (!accountData || !accountData.uuid_be) {
+            message.error('Account must be synced first before updating tiers');
+            return;
+        }
+
+        try {
+            // Get current form values
+            const formValues = form.getFieldsValue();
+            const chargingMetric = formValues.charging_metric;
+            
+            if (!chargingMetric || chargingMetric.type !== CHARGING_METRIC_TYPES.DEDICATED) {
+                message.error('Please configure dedicated charging metric first');
+                return;
+            }
+
+            // Prepare account data for sync
+            const accountDataToSync = {
+                ...accountData,
+                charging_metric: chargingMetric,
+                package_tiers: [] // Will be populated from dedicated tiers
+            };
+
+            // Transform dedicated tiers to package_tiers format
+            if (chargingMetric.dedicated && chargingMetric.dedicated.tiers) {
+                const packageTiers = [];
+                chargingMetric.dedicated.tiers.forEach(tier => {
+                    if (tier.type === DEDICATED_TIER_TYPES.PACKAGE && tier.package && tier.package.tiers) {
+                        tier.package.tiers.forEach(pkgTier => {
+                            packageTiers.push({
+                                min_value: pkgTier.min,
+                                max_value: pkgTier.max,
+                                amount: pkgTier.amount,
+                                start_date: pkgTier.start_date ? dayjs(pkgTier.start_date).format('YYYY-MM-DD') : null,
+                                end_date: pkgTier.end_date ? dayjs(pkgTier.end_date).format('YYYY-MM-DD') : null,
+                                percentage: tier.percentage || false,
+                                method_type: tier.method_type || 'auto_deduct'
+                            });
+                        });
+                    }
+                });
+                accountDataToSync.package_tiers = packageTiers;
+            }
+
+            // Import syncCustomerToExternalApi here to avoid circular dependency
+            const { syncCustomerToExternalApi } = await import('../../../../utils/customerSyncUtils');
+
+            // Sync customer to external API (PATCH operation)
+            const result = await syncCustomerToExternalApi(
+                accountDataToSync, 
+                null, // configId - will be auto-detected 
+                user?.id, // userId for logging
+                accountData.id // accountId for logging
+            );
+            
+            if (result.success) {
+                message.success(`Successfully updated customer tiers: ${accountData.name}`);
+                
+                if (onPATCHSuccess) {
+                    onPATCHSuccess(result);
+                }
+            } else {
+                message.error(`Failed to update customer tiers: ${result.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            message.error(`PATCH failed: ${error.message || 'Unknown error'}`);
+        }
     };
 
     return (
@@ -493,29 +565,41 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
             {tierType === DEDICATED_TIER_TYPES.PACKAGE && (
                 <div className="rule-subsection">
                     {/* Percentage checkbox for package type */}
-                    <Form.Item
-                        {...restField}
-                        name={[tierName, 'percentage']}
-                        valuePropName="checked"
-                        style={{ marginBottom: 16 }}
-                    >
-                        <Checkbox>
-                            <span style={{ fontWeight: '500' }}>Percentage</span>
-                        </Checkbox>
-                    </Form.Item>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                        <Form.Item
+                            {...restField}
+                            name={[tierName, 'percentage']}
+                            valuePropName="checked"
+                            style={{ marginBottom: 0 }}
+                        >
+                            <Checkbox>
+                                <span style={{ fontWeight: '500' }}>Percentage</span>
+                            </Checkbox>
+                        </Form.Item>
+                        
+                        {/* PATCH button for updating tiers */}
+                        {accountData && accountData.uuid_be && (
+                            <Button
+                                type="primary"
+                                icon={<SyncOutlined />}
+                                onClick={handlePATCHCustomer}
+                                loading={patchLoading}
+                                size="small"
+                                style={{ marginLeft: 8 }}
+                            >
+                                Update Tiers
+                            </Button>
+                        )}
+                    </div>
 
                     <Form.List name={[tierName, 'package', 'tiers']}>
                         {(pkgFields, { add: addPkg, remove: removePkg }) => {
                             // Ensure pkgFields is always an array
                             const safeFields = Array.isArray(pkgFields) ? pkgFields : [];
 
-                            console.log(`📋 Package Form.List for tier ${tierName}:`, { pkgFields, safeFields });
-
                             return (
                                 <>
                                     {safeFields.map(({ key: pkgKey, name: pkgName, ...pkgRest }) => {
-                                        console.log(`🎯 Rendering package tier ${pkgName} with key ${pkgKey}`);
-
                                         return (
                                             <div key={pkgKey} style={{
                                                 marginBottom: 16,
@@ -747,7 +831,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
 }
 
 // Container component for all Dedicated Tier Fields
-function DedicatedTierFields({ fields, add, remove, form }) {
+function DedicatedTierFields({ fields, add, remove, form, accountData, onPATCHSuccess, user }) {
 
     if (!Array.isArray(fields)) {
         return (
@@ -787,6 +871,9 @@ function DedicatedTierFields({ fields, add, remove, form }) {
                             remove && remove(name);
                         }}
                         canRemove={fields.length > 1}
+                        accountData={accountData}
+                        onPATCHSuccess={onPATCHSuccess}
+                        user={user}
                     />
                 );
             })}
@@ -1187,9 +1274,11 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
 }
 
 // Robust ChargingMetricForm with form-managed state
-const ChargingMetricForm = ({ form }) => {
+const ChargingMetricForm = ({ form, accountData = null, onPATCHSuccess = null }) => {
     const [chargingType, setChargingType] = useState(null);
+    const [patchLoading, setPatchLoading] = useState(false);
     const watchChargingType = Form.useWatch(['charging_metric', 'type'], form);
+    const { user } = useAuth();
 
     // Update local state when form value changes
     useEffect(() => {
@@ -1243,6 +1332,7 @@ const ChargingMetricForm = ({ form }) => {
         setChargingType(value);
     };
 
+
     return (
         <Card title="Charging Metric" className="revenue-rule-card">
             <Form.Item name={['charging_metric', 'type']} label="Charging Type">
@@ -1256,7 +1346,15 @@ const ChargingMetricForm = ({ form }) => {
                 <div className="rule-subsection">
                     <Form.List name={['charging_metric', 'dedicated', 'tiers']}>
                         {(fields, { add, remove }) => (
-                            <DedicatedTierFields fields={fields} add={add} remove={remove} form={form} />
+                            <DedicatedTierFields 
+                                fields={fields} 
+                                add={add} 
+                                remove={remove} 
+                                form={form} 
+                                accountData={accountData}
+                                onPATCHSuccess={onPATCHSuccess}
+                                user={user}
+                            />
                         )}
                     </Form.List>
                 </div>

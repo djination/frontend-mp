@@ -348,7 +348,7 @@ const AccountAddressForm = ({ addresses = [], onChange, accountId, isEdit }) => 
           <Form.Item
             name="is_primary"
             valuePropName="checked"
-            initialValue={false}
+            initialValue={true}
           >
             <Checkbox>Set as Primary Address</Checkbox>
           </Form.Item>
