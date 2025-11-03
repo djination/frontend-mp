@@ -17,6 +17,7 @@ import CdmProvidersPage from '../pages/Master/CdmProvider/CdmProvidersPage';
 import MasterPaymentGatewayPage from '../pages/Master/MasterPaymentGateway/MasterPaymentGatewayPage';
 import BackendExtConfigPage from '../pages/Account/components/BackendExtConfigPage';
 import PublishedPackageTierPage from '../pages/PublishedPackageTier/PublishedPackageTierPage';
+import TransactionDepositReportPage from '../pages/TransactionDeposit/TransactionDepositReportPage';
 // Import more page components as needed
 
 // This maps route paths to component functions
@@ -39,5 +40,6 @@ export const componentMap = {
   '/master/backend-config': BackendExtConfigPage,
   '/master/published-package-tiers': PublishedPackageTierPage,
   '/master/payment-gateway': MasterPaymentGatewayPage,
+  '/report/transaction-deposit': TransactionDepositReportPage,
   // Add more routes as needed
 };

@@ -36,6 +36,7 @@ import BackendExtConfigPage from './pages/Account/components/BackendExtConfigPag
 import PublishedPackageTierPage from './pages/PublishedPackageTier/PublishedPackageTierPage';
 import MasterPaymentGatewayPage from './pages/Master/MasterPaymentGateway/MasterPaymentGatewayPage';
 import APITestPage from './pages/Test/APITestPage';
+import TransactionDepositReportPage from './pages/TransactionDeposit/TransactionDepositReportPage';
 // import BackendExtTestPage from './pages/BackendExtTest/BackendExtTestPage';
 
 // Component map for dynamic routing
@@ -107,6 +108,7 @@ function App() {
       '/master/backend-config': BackendExtConfigPage,
       '/master/published-package-tiers': PublishedPackageTierPage,
       '/master/payment-gateway': MasterPaymentGatewayPage,
+      '/report/transaction-deposit': TransactionDepositReportPage,
     };
     
     if (staticRoutes[path]) {
@@ -131,6 +133,28 @@ function App() {
     
     // Default routes that should always be accessible
     if (path === '/dashboard') return true;
+    
+    // Static routes that are defined but may not be in menu yet
+    const staticPaths = [
+      '/report/transaction-deposit',
+      '/master/machine',
+      '/master/services',
+      '/master/cdm-providers',
+      '/master/backend-config',
+      '/master/published-package-tiers',
+      '/master/payment-gateway',
+      '/parameter/business-type',
+      '/parameter/bank',
+      '/parameter/bank-category',
+      '/parameter/position',
+      '/parameter/account-type',
+      '/parameter/account-category',
+      '/parameter/document-type',
+      '/parameter/revenue-rules',
+    ];
+    
+    // Allow access to static paths even if not in menu
+    if (staticPaths.includes(path)) return true;
     
     // Recursive function to check paths in menu tree
     const checkPathInMenus = (menus, targetPath) => {
@@ -243,6 +267,16 @@ function App() {
               <Route path="document-type" element={<MasterDocumentType />} />
               <Route path="revenue-rules" element={<RevenueRule />} />
             </Route>
+            
+            {/* Report routes */}
+            <Route
+              path="/report/transaction-deposit"
+              element={
+                hasAccessToPath('/report/transaction-deposit') ? 
+                <TransactionDepositReportPage /> :
+                <UnauthorizedPage />
+              }
+            />
             
             {/* Dynamic routes from user menus */}
             {userMenus && userMenus.map(menu => (
