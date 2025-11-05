@@ -138,7 +138,7 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
   return (
     <div className={`fixed left-0 top-0 h-full w-64 ${isDarkMode ? 'bg-gray-900' : 'bg-blue-900'} overflow-y-auto`}>
       <div className={`py-4 px-6 ${isDarkMode ? 'bg-gray-950' : 'bg-blue-950'} flex justify-between items-center`}>
-        <h2 className="text-xl font-semibold text-white">App Name</h2>
+        <h2 className="text-xl font-semibold text-white">Customer Database</h2>
         <Switch
           checkedChildren={<BulbOutlined />}
           unCheckedChildren={<BulbOutlined />}

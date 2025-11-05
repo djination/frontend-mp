@@ -46,12 +46,26 @@ const TransactionDepositReportPage = () => {
     try {
       // Fetch all machines for dropdown
       const response = await getMachines(1, 1000);
-      if (response?.data) {
-        setMachines(response.data);
+      
+      // Handle different response structures
+      let machinesData = [];
+      
+      if (response) {
+        if (Array.isArray(response.data)) {
+          machinesData = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          machinesData = response.data.data;
+        } else if (Array.isArray(response)) {
+          machinesData = response;
+        }
       }
+      
+      // Ensure machines is always an array
+      setMachines(Array.isArray(machinesData) ? machinesData : []);
     } catch (error) {
       console.error('Failed to fetch machines:', error);
       message.warning('Failed to load machines list');
+      setMachines([]); // Set empty array on error
     }
   };
 
@@ -132,6 +146,16 @@ const TransactionDepositReportPage = () => {
   const handleSearch = (values) => {
     const searchParams = {};
 
+    // Code filter
+    if (values.code) {
+      searchParams.code = values.code;
+    }
+
+    // CDM Trx No filter
+    if (values.cdm_trx_no) {
+      searchParams.cdm_trx_no = values.cdm_trx_no;
+    }
+
     // Machine filter
     if (values.machine_id) {
       searchParams.machine_id = values.machine_id;
@@ -191,9 +215,17 @@ const TransactionDepositReportPage = () => {
     }
   };
 
-  const handleTableChange = (newPagination) => {
+  const handleTableChange = (newPagination, filters, sorter) => {
     const searchValues = form.getFieldsValue();
     const searchParams = {};
+
+    if (searchValues.code) {
+      searchParams.code = searchValues.code;
+    }
+
+    if (searchValues.cdm_trx_no) {
+      searchParams.cdm_trx_no = searchValues.cdm_trx_no;
+    }
 
     if (searchValues.machine_id) {
       searchParams.machine_id = searchValues.machine_id;
@@ -206,6 +238,25 @@ const TransactionDepositReportPage = () => {
 
     if (searchValues.transaction_status) {
       searchParams.transaction_status = searchValues.transaction_status;
+    }
+
+    // Handle sorting
+    if (sorter && sorter.field) {
+      let sortField = sorter.field;
+      let sortOrder = sorter.order;
+
+      // Convert Ant Design order to backend format
+      if (sortOrder === 'ascend') {
+        sortOrder = 'ASC';
+      } else if (sortOrder === 'descend') {
+        sortOrder = 'DESC';
+      }
+
+      // Only add sort params if order is defined
+      if (sortOrder) {
+        searchParams.sort = sortField;
+        searchParams.order = sortOrder;
+      }
     }
 
     setPagination({
@@ -227,17 +278,20 @@ const TransactionDepositReportPage = () => {
       dataIndex: 'code',
       key: 'code',
       width: 150,
+      sorter: true,
     },
     {
       title: 'CDM Trx No',
       dataIndex: 'cdm_trx_no',
       key: 'cdm_trx_no',
       width: 180,
+      sorter: true,
     },
     {
       title: 'Machine',
       key: 'machine',
       width: 150,
+      sorter: false, // Cannot sort by JSON field easily
       render: (_, record) => {
         if (record.machine && typeof record.machine === 'object') {
           return record.machine.name || record.machine.code || '-';
@@ -249,6 +303,7 @@ const TransactionDepositReportPage = () => {
       title: 'Customer',
       key: 'customer',
       width: 150,
+      sorter: false, // Cannot sort by JSON field easily
       render: (_, record) => {
         if (record.customer && typeof record.customer === 'object') {
           return record.customer.name || '-';
@@ -262,6 +317,7 @@ const TransactionDepositReportPage = () => {
       key: 'total_deposit',
       width: 120,
       align: 'right',
+      sorter: true,
       render: (value) => {
         return value ? new Intl.NumberFormat('id-ID', {
           style: 'currency',
@@ -276,6 +332,7 @@ const TransactionDepositReportPage = () => {
       key: 'charging_fee',
       width: 120,
       align: 'right',
+      sorter: true,
       render: (value) => {
         return value ? new Intl.NumberFormat('id-ID', {
           style: 'currency',
@@ -290,6 +347,7 @@ const TransactionDepositReportPage = () => {
       key: 'total_transfer',
       width: 120,
       align: 'right',
+      sorter: true,
       render: (value) => {
         return value ? new Intl.NumberFormat('id-ID', {
           style: 'currency',
@@ -303,6 +361,7 @@ const TransactionDepositReportPage = () => {
       dataIndex: 'transaction_status',
       key: 'transaction_status',
       width: 100,
+      sorter: true,
       render: (status) => {
         const colorMap = {
           SUCCESS: 'green',
@@ -321,6 +380,7 @@ const TransactionDepositReportPage = () => {
       dataIndex: 'cdm_trx_date',
       key: 'cdm_trx_date',
       width: 120,
+      sorter: true,
       render: (date) => {
         return date ? dayjs(date).format('YYYY-MM-DD') : '-';
       },
@@ -330,6 +390,7 @@ const TransactionDepositReportPage = () => {
       dataIndex: 'cdm_trx_time',
       key: 'cdm_trx_time',
       width: 100,
+      sorter: true,
     },
   ];
 
@@ -344,25 +405,62 @@ const TransactionDepositReportPage = () => {
         >
           <Row gutter={16}>
             <Col span={6}>
+              <Form.Item name="code" label="Code">
+                <Input placeholder="Search by code" allowClear />
+              </Form.Item>
+            </Col>
+
+            <Col span={6}>
+              <Form.Item name="cdm_trx_no" label="CDM Trx No">
+                <Input placeholder="Search by CDM transaction number" allowClear />
+              </Form.Item>
+            </Col>
+
+            <Col span={6}>
               <Form.Item name="machine_id" label="Nama Mesin">
                 <Select
                   placeholder="Pilih mesin"
                   allowClear
                   showSearch
                   optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                  }
+                  filterOption={(input, option) => {
+                    if (!option || !option.children) return false;
+                    const text = typeof option.children === 'string' 
+                      ? option.children 
+                      : String(option.children);
+                    return text.toLowerCase().includes(input.toLowerCase());
+                  }}
                 >
-                  {machines.map(machine => (
-                    <Select.Option key={machine.id} value={machine.id} label={machine.name}>
-                      {machine.name} ({machine.code})
+                  {Array.isArray(machines) && machines.length > 0 ? (
+                    machines.map(machine => (
+                      <Select.Option 
+                        key={machine.id || machine.code} 
+                        value={machine.id}
+                      >
+                        {machine.name || machine.code} {machine.code ? `(${machine.code})` : ''}
+                      </Select.Option>
+                    ))
+                  ) : (
+                    <Select.Option disabled value="">
+                      No machines available
                     </Select.Option>
-                  ))}
+                  )}
                 </Select>
               </Form.Item>
             </Col>
 
+            <Col span={6}>
+              <Form.Item name="transaction_status" label="Status">
+                <Select placeholder="Pilih status" allowClear>
+                  <Select.Option value="SUCCESS">SUCCESS</Select.Option>
+                  <Select.Option value="FAILED">FAILED</Select.Option>
+                  <Select.Option value="PENDING">PENDING</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
             <Col span={8}>
               <Form.Item name="date_range" label="Tanggal Transaksi">
                 <RangePicker
@@ -372,17 +470,7 @@ const TransactionDepositReportPage = () => {
               </Form.Item>
             </Col>
 
-            <Col span={4}>
-              <Form.Item name="transaction_status" label="Status">
-                <Select placeholder="Pilih status" allowClear>
-                  <Select.Option value="SUCCESS">SUCCESS</Select.Option>
-                  <Select.Option value="FAILED">FAILED</Select.Option>
-                  <Select.Option value="PENDING">PENDING</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col span={6}>
+            <Col span={16}>
               <Form.Item>
                 <Space>
                   <Button
