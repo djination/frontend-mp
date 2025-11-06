@@ -190,11 +190,26 @@ const TransactionDepositReportPage = () => {
     try {
       message.loading({ content: 'Syncing from external API...', key: 'sync', duration: 0 });
       
-      const result = await syncFromExternalApi();
+      const response = await syncFromExternalApi();
       
-      if (result.success) {
+      // Handle different response structures
+      // Backend ResponseInterceptor wraps: { success: true, data: { ... } }
+      let result = response;
+      if (response && response.success && response.data) {
+        // Response is wrapped by interceptor
+        result = response.data;
+      }
+      
+      if (result && result.success !== false) {
+        // Extract summary safely
+        const summary = result.summary || {};
+        const created = summary.created || 0;
+        const updated = summary.updated || 0;
+        const errors = summary.errors || 0;
+        const total = summary.total || 0;
+        
         message.success({
-          content: `Sync completed! ${result.summary.created} created, ${result.summary.updated} updated, ${result.summary.errors} errors`,
+          content: `Sync completed! ${total} total, ${created} created, ${updated} updated, ${errors} errors`,
           key: 'sync',
           duration: 5,
         });
@@ -202,13 +217,44 @@ const TransactionDepositReportPage = () => {
         // Refresh data after sync
         fetchTransactions();
       } else {
-        message.error({ content: 'Sync failed', key: 'sync' });
+        // Handle error response
+        const errorMsg = result?.error || result?.message || 'Sync failed';
+        message.error({ 
+          content: errorMsg,
+          key: 'sync',
+          duration: 5,
+        });
       }
     } catch (error) {
       console.error('Sync error:', error);
+      
+      // Extract error message from various possible structures
+      let errorMessage = 'Failed to sync from external API';
+      
+      if (error.response) {
+        // Axios error with response
+        const errorData = error.response.data;
+        if (errorData) {
+          if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = typeof errorData.error === 'string' 
+              ? errorData.error 
+              : errorData.error.message || errorMessage;
+          } else if (errorData.data && errorData.data.message) {
+            errorMessage = errorData.data.message;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       message.error({
-        content: error.response?.data?.message || 'Failed to sync from external API',
+        content: errorMessage,
         key: 'sync',
+        duration: 5,
       });
     } finally {
       setSyncing(false);
