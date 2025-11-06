@@ -723,6 +723,8 @@ const AccountForm = ({
             vendor_classification: vendor.vendor_classification,
             vendor_rating: vendor.vendor_rating,
             tax_id: vendor.tax_id,
+            email: vendor.email,
+            phone: vendor.phone,
             contract_start_date: vendor.contract_start_date,
             contract_end_date: vendor.contract_end_date,
             payment_terms: vendor.payment_terms,
@@ -739,6 +741,8 @@ const AccountForm = ({
             vendor_classification: vendor.vendor_classification,
             vendor_rating: vendor.vendor_rating,
             tax_id: vendor.tax_id,
+            email: vendor.email,
+            phone: vendor.phone,
             contract_start_date: vendor.contract_start_date,
             contract_end_date: vendor.contract_end_date,
             payment_terms: vendor.payment_terms,
@@ -1371,6 +1375,7 @@ const AccountForm = ({
           onVendorDetailsChange={setVendorDetails}
           initialVendorDetails={isEdit ? (initialValues?.vendor_details ? [initialValues.vendor_details] : []) : []}
           form={form}
+          accountData={isEdit ? initialValues : null}
         />
       )
     });

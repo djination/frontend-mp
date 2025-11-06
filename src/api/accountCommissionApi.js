@@ -48,3 +48,18 @@ export const deleteVendorDetails = async (accountId) => {
   const response = await axiosInstance.delete(`/account/${accountId}/vendor-details`);
   return response.data;
 };
+
+export const syncVendorToExternalApi = async (accountId, configId = null) => {
+  try {
+    const params = configId ? { config_id: configId } : {};
+    const response = await axiosInstance.post(
+      `/account/${accountId}/vendor-details/sync`,
+      null,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error syncing vendor to external API:', error);
+    throw error;
+  }
+};

@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Form, Input, Select, Button, Row, Col, Divider, Space, Table, Popconfirm, message, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, ApiOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import { 
   createOrUpdateVendorDetails, 
   getVendorDetails, 
-  deleteVendorDetails 
+  deleteVendorDetails,
+  syncVendorToExternalApi
 } from '../../../api/accountCommissionApi';
 
-const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCategories, onVendorDetailsChange, initialVendorDetails, form }) => {
+const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCategories, onVendorDetailsChange, initialVendorDetails, form, accountData }) => {
   const [vendorForm] = Form.useForm();
   const [vendorDetails, setVendorDetailsState] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -89,10 +91,12 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     try {
       // Get values from the vendor form fields directly
       const values = {
-        vendor_type: activeForm.getFieldValue('vendor_vendor_type'),
+        vendor_type: activeForm.getFieldValue('vendor_vendor_type') || [],
         vendor_classification: activeForm.getFieldValue('vendor_vendor_classification'),
         vendor_rating: activeForm.getFieldValue('vendor_vendor_rating'),
         tax_id: activeForm.getFieldValue('vendor_tax_id'),
+        email: activeForm.getFieldValue('vendor_email'),
+        phone: activeForm.getFieldValue('vendor_phone'),
         contract_start_date: activeForm.getFieldValue('vendor_contract_start_date'),
         contract_end_date: activeForm.getFieldValue('vendor_contract_end_date'),
         payment_terms: activeForm.getFieldValue('vendor_payment_terms'),
@@ -101,8 +105,21 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
       };
       
       // Validate required fields manually
-      if (!values.vendor_type) {
-        message.error('Please select vendor type');
+      if (!values.vendor_type || values.vendor_type.length === 0) {
+        message.error('Please select at least one vendor type');
+        return;
+      }
+      if (!values.email) {
+        message.error('Please enter vendor email');
+        return;
+      }
+      if (!values.phone) {
+        message.error('Please enter vendor phone');
+        return;
+      }
+      // Validate phone format (+62)
+      if (values.phone && !values.phone.startsWith('+62')) {
+        message.error('Phone number must start with +62');
         return;
       }
       
@@ -118,10 +135,12 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
       setLoading(true);
       
       const vendorData = {
-        vendor_type: values.vendor_type,
+        vendor_type: Array.isArray(values.vendor_type) ? values.vendor_type : (values.vendor_type ? [values.vendor_type] : []),
         vendor_classification: values.vendor_classification || '',
         vendor_rating: values.vendor_rating || '',
         tax_id: values.tax_id || '',
+        email: values.email || '',
+        phone: values.phone || '',
         contract_start_date: values.contract_start_date ? values.contract_start_date.format('YYYY-MM-DD') : null,
         contract_end_date: values.contract_end_date ? values.contract_end_date.format('YYYY-MM-DD') : null,
         payment_terms: values.payment_terms || '',
@@ -133,10 +152,12 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
       // If editing existing vendor (not temp), update in backend immediately
       if (editingVendor && !editingVendor.id.toString().startsWith('temp_')) {
         const backendData = {
-          vendor_type: vendorData.vendor_type,
+          vendor_type: vendorData.vendor_type, // Array
           vendor_classification: vendorData.vendor_classification,
           vendor_rating: vendorData.vendor_rating,
           tax_id: vendorData.tax_id,
+          email: vendorData.email,
+          phone: vendorData.phone,
           contract_start_date: vendorData.contract_start_date,
           contract_end_date: vendorData.contract_end_date,
           payment_terms: vendorData.payment_terms,
@@ -161,6 +182,8 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           vendor_vendor_classification: undefined,
           vendor_vendor_rating: undefined,
           vendor_tax_id: undefined,
+          vendor_email: undefined,
+          vendor_phone: undefined,
           vendor_contract_start_date: undefined,
           vendor_contract_end_date: undefined,
           vendor_payment_terms: undefined,
@@ -187,6 +210,8 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           vendor_vendor_classification: undefined,
           vendor_vendor_rating: undefined,
           vendor_tax_id: undefined,
+          vendor_email: undefined,
+          vendor_phone: undefined,
           vendor_contract_start_date: undefined,
           vendor_contract_end_date: undefined,
           vendor_payment_terms: undefined,
@@ -209,11 +234,20 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
 
   const handleEditVendor = useCallback((vendor) => {
     setEditingVendor(vendor);
+    // Handle vendor_type as array or string
+    const vendorTypeValue = Array.isArray(vendor.vendor_type) 
+      ? vendor.vendor_type 
+      : vendor.vendor_type 
+        ? [vendor.vendor_type] 
+        : [];
+    
     activeForm.setFieldsValue({
-      vendor_vendor_type: vendor.vendor_type,
+      vendor_vendor_type: vendorTypeValue,
       vendor_vendor_classification: vendor.vendor_classification,
       vendor_vendor_rating: vendor.vendor_rating,
       vendor_tax_id: vendor.tax_id,
+      vendor_email: vendor.email,
+      vendor_phone: vendor.phone,
       vendor_contract_start_date: vendor.contract_start_date ? moment(vendor.contract_start_date) : null,
       vendor_contract_end_date: vendor.contract_end_date ? moment(vendor.contract_end_date) : null,
       vendor_payment_terms: vendor.payment_terms,
@@ -253,6 +287,8 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           vendor_vendor_classification: undefined,
           vendor_vendor_rating: undefined,
           vendor_tax_id: undefined,
+          vendor_email: undefined,
+          vendor_phone: undefined,
           vendor_contract_start_date: undefined,
           vendor_contract_end_date: undefined,
           vendor_payment_terms: undefined,
@@ -269,12 +305,102 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     }
   }, [vendorDetails, editingVendor, activeForm, accountId]); // Remove fetchVendorDetails from dependencies
 
+  // Handler for syncing vendor to external API
+  const handleSyncVendorToExternalApi = async () => {
+    if (!accountId) {
+      message.error('Account ID is required');
+      return;
+    }
+
+    // Check if vendor details exist
+    if (!vendorDetails || vendorDetails.length === 0) {
+      message.error('Please create vendor details first before syncing');
+      return;
+    }
+
+    const vendorDetail = vendorDetails[0]; // Get first vendor detail (should only be one)
+
+    // Validate required fields
+    if (!vendorDetail.email) {
+      message.error('Vendor email is required');
+      return;
+    }
+    if (!vendorDetail.phone) {
+      message.error('Vendor phone is required');
+      return;
+    }
+    if (!vendorDetail.phone.startsWith('+62')) {
+      message.error('Phone number must start with +62');
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      message.loading({ content: 'Syncing vendor to external API...', key: 'sync', duration: 0 });
+      
+      const result = await syncVendorToExternalApi(accountId);
+      
+      // Handle response structure
+      let syncResult = result;
+      if (result && result.success && result.data) {
+        syncResult = result.data;
+      }
+      
+      if (syncResult && syncResult.success !== false) {
+        message.success({
+          content: syncResult.message || 'Vendor synced successfully',
+          key: 'sync',
+          duration: 5,
+        });
+        
+        // Refresh vendor details to get updated vendor_uuid_be
+        await fetchVendorDetails();
+      } else {
+        message.error({
+          content: syncResult?.error || syncResult?.message || 'Failed to sync vendor',
+          key: 'sync',
+          duration: 5,
+        });
+      }
+    } catch (error) {
+      console.error('Sync vendor error:', error);
+      
+      let errorMessage = 'Failed to sync vendor to external API';
+      if (error.response) {
+        const errorData = error.response.data;
+        if (errorData) {
+          if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = typeof errorData.error === 'string' 
+              ? errorData.error 
+              : errorData.error.message || errorMessage;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      message.error({
+        content: errorMessage,
+        key: 'sync',
+        duration: 5,
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleCancelEdit = () => {
     activeForm.setFieldsValue({
       vendor_vendor_type: undefined,
       vendor_vendor_classification: undefined,
       vendor_vendor_rating: undefined,
       vendor_tax_id: undefined,
+      vendor_email: undefined,
+      vendor_phone: undefined,
       vendor_contract_start_date: undefined,
       vendor_contract_end_date: undefined,
       vendor_payment_terms: undefined,
@@ -290,6 +416,22 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
       title: 'Vendor Type',
       dataIndex: 'vendor_type',
       key: 'vendor_type',
+      render: (types) => {
+        if (!types) return '-';
+        const typeArray = Array.isArray(types) ? types : [types];
+        return typeArray.length > 0 ? typeArray.join(', ') : '-';
+      },
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      render: (text) => text || '-',
+    },
+    {
+      title: 'Phone',
+      dataIndex: 'phone',
+      key: 'phone',
       render: (text) => text || '-',
     },
     {
@@ -359,14 +501,12 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
     },
   ], [handleEditVendor, handleDeleteVendor]);
 
-  // Memoized select options to prevent recreation
+  // Memoized select options to prevent recreation - Updated to match requirements
   const vendorTypeOptions = useMemo(() => [
-    { value: "supplier", label: "Supplier" },
-    { value: "contractor", label: "Contractor" },
-    { value: "consultant", label: "Consultant" },
-    { value: "service_provider", label: "Service Provider" },
-    { value: "distributor", label: "Distributor" },
-    { value: "other", label: "Other" }
+    { value: "PJPUR", label: "PJPUR" },
+    { value: "Gateway", label: "Gateway" },
+    { value: "Supplier", label: "Supplier" },
+    { value: "Maintenance", label: "Maintenance" }
   ], []);
 
   const vendorClassificationOptions = useMemo(() => [
@@ -435,6 +575,16 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           >
             Refresh
           </Button>
+          <Button 
+            type="primary"
+            icon={<ApiOutlined />} 
+            onClick={handleSyncVendorToExternalApi}
+            loading={syncing}
+            disabled={!vendorDetails || vendorDetails.length === 0}
+            title="Sync vendor to external API"
+          >
+            Sync to External API
+          </Button>
         </Space>
       }
     >
@@ -445,8 +595,15 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
             <Form.Item
               name="vendor_vendor_type"
               label="Vendor Type"
+              rules={[{ required: false, message: 'Please select at least one vendor type' }]}
+              validateTrigger={['onChange', 'onBlur']}
             >
-              <Select placeholder="Select vendor type" options={vendorTypeOptions} />
+              <Select 
+                mode="multiple"
+                placeholder="Select vendor types" 
+                options={vendorTypeOptions}
+                allowClear
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -455,6 +612,42 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
               label="Vendor Classification"
             >
               <Select placeholder="Select vendor classification" options={vendorClassificationOptions} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="vendor_email"
+              label="Email"
+              rules={[
+                { required: false, message: 'Please enter vendor email' },
+                { type: 'email', message: 'Please enter a valid email' }
+              ]}
+              validateTrigger={['onChange', 'onBlur']}
+            >
+              <Input placeholder="Enter vendor email" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="vendor_phone"
+              label="Phone"
+              rules={[
+                { required: false, message: 'Please enter vendor phone' },
+                {
+                  validator: (_, value) => {
+                    if (!value || value.startsWith('+62')) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Phone number must start with +62'));
+                  }
+                }
+              ]}
+              validateTrigger={['onChange', 'onBlur']}
+            >
+              <Input placeholder="Enter vendor phone (e.g., +6281234567890)" />
             </Form.Item>
           </Col>
         </Row>
