@@ -367,7 +367,7 @@ const AccountPICForm = ({
           </Button>,
         ]}
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" initialValues={{ is_owner: true }}>
           <Form.Item
             name="is_owner"
             label="Is Owner"
@@ -441,7 +441,7 @@ const AccountPICForm = ({
             name="email"
             label="Email"
             rules={[
-              { required: true, message: 'Please enter email' },
+              { required: false, message: 'Please enter email' },
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
