@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Space, message, Dropdown, Menu, Spin, Card, Modal, Switch, Alert } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, ExclamationCircleOutlined, ApiOutlined } from "@ant-design/icons";
+import { Table, Button, Space, message, Dropdown, Menu, Spin, Card, Modal, Switch, Alert, Form, Select } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, DownOutlined, ExclamationCircleOutlined, ApiOutlined, SyncOutlined } from "@ant-design/icons";
 import {
   getMachines,
   deleteMachine,
@@ -10,6 +10,8 @@ import {
   getMaintenanceVendors,
   getBranches
 } from "../../api/machineApi";
+import { getMasterMachines, createMasterMachine } from "../../api/masterMachineApi";
+import { getAccountOptions } from "../../api/accountApi";
 import MachineModal from './MachineModal';
 
 const MachineListPage = () => {
@@ -31,6 +33,12 @@ const MachineListPage = () => {
   const [branches, setBranches] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingMachine, setEditingMachine] = useState(null);
+  const [masterMachines, setMasterMachines] = useState([]);
+  const [syncLoading, setSyncLoading] = useState({});
+  const [syncModalVisible, setSyncModalVisible] = useState(false);
+  const [syncingMachine, setSyncingMachine] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [syncForm] = Form.useForm();
   
   // Backend-ext integration state
   const [useBackendExt, setUseBackendExt] = useState(false);
@@ -40,7 +48,30 @@ const MachineListPage = () => {
     fetchMachines();
     fetchVendorsAndSetFilters();
     fetchBranches();
+    fetchMasterMachines();
+    fetchAccounts();
   }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await getAccountOptions();
+      if (response?.data) {
+        setAccounts(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch accounts:', error);
+    }
+  };
+
+  const fetchMasterMachines = async () => {
+    try {
+      const response = await getMasterMachines();
+      const machines = Array.isArray(response?.data) ? response.data : response?.data?.data || [];
+      setMasterMachines(machines);
+    } catch (error) {
+      console.error('Failed to fetch master machines:', error);
+    }
+  };
 
   // Re-fetch data when backend-ext toggle changes
   useEffect(() => {
@@ -52,6 +83,7 @@ const MachineListPage = () => {
     fetchMachines();
     fetchVendorsAndSetFilters();
     fetchBranches();
+    fetchMasterMachines();
   }, [useBackendExt, backendExtConfigId]);
 
   const fetchMachines = async (page = 1, pageSize = 10) => {
@@ -207,6 +239,7 @@ const MachineListPage = () => {
   // Modal functions
   const handleModalSuccess = () => {
     fetchMachines(pagination.current, pagination.pageSize);
+    fetchMasterMachines();
   };
 
   const handleEdit = (machine) => {
@@ -224,6 +257,58 @@ const MachineListPage = () => {
       cancelText: 'Cancel',
       onOk: () => handleDelete(machine.id),
     });
+  };
+
+  const handleSync = (machine) => {
+    // Check if machine is already synced
+    const existingMasterMachine = masterMachines.find(m => 
+      m.data && (m.data.id === machine.id || m.data.code === machine.code)
+    );
+    
+    if (existingMasterMachine) {
+      message.info('Machine is already synced. Please edit the machine to update account or machine type.');
+      return;
+    }
+    
+    setSyncingMachine(machine);
+    syncForm.resetFields();
+    setSyncModalVisible(true);
+  };
+
+  const handleSyncConfirm = async () => {
+    if (!syncingMachine) return;
+    
+    try {
+      const values = await syncForm.validateFields();
+      setSyncLoading(prev => ({ ...prev, [syncingMachine.id]: true }));
+      
+      const masterMachineData = {
+        account_id: values.account_id,
+        machine_type: values.machine_type,
+        data: syncingMachine, // Store full machine data from external API
+      };
+      
+      await createMasterMachine(masterMachineData);
+      message.success(`Machine "${syncingMachine.name}" synced successfully`);
+      
+      // Refresh master machines list
+      await fetchMasterMachines();
+      
+      setSyncModalVisible(false);
+      setSyncingMachine(null);
+      syncForm.resetFields();
+    } catch (error) {
+      console.error('Failed to sync machine:', error);
+      message.error(`Failed to sync machine: ${error.message || 'Unknown error'}`);
+    } finally {
+      setSyncLoading(prev => ({ ...prev, [syncingMachine.id]: false }));
+    }
+  };
+
+  const handleSyncCancel = () => {
+    setSyncModalVisible(false);
+    setSyncingMachine(null);
+    syncForm.resetFields();
   };
 
   const columns = [
@@ -283,27 +368,64 @@ const MachineListPage = () => {
       render: (_, record) => record.service_location?.name || '-',
     },
     {
+      title: "Account",
+      key: "account",
+      width: 200,
+      render: (_, record) => {
+        const masterMachine = masterMachines.find(m => 
+          m.data && (m.data.id === record.id || m.data.code === record.code)
+        );
+        return masterMachine?.account?.name || '-';
+      },
+    },
+    {
+      title: "Machine Type",
+      key: "machine_type",
+      width: 150,
+      render: (_, record) => {
+        const masterMachine = masterMachines.find(m => 
+          m.data && (m.data.id === record.id || m.data.code === record.code)
+        );
+        if (!masterMachine?.machine_type) return '-';
+        return masterMachine.machine_type === 'dedicated' ? 'Dedicated' : 'Non-Dedicated';
+      },
+    },
+    {
       title: "Actions",
       key: "actions",
-      width: 100,
+      width: 150,
       fixed: 'right',
-      render: (_, record) => (
-        <Space size="small">
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            title="Edit"
-          />
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDeleteConfirm(record)}
-            title="Delete"
-          />
-        </Space>
-      ),
+      render: (_, record) => {
+        const isSynced = masterMachines.some(m => 
+          m.data && (m.data.id === record.id || m.data.code === record.code)
+        );
+        
+        return (
+          <Space size="small">
+            <Button
+              type="text"
+              icon={<SyncOutlined />}
+              onClick={() => handleSync(record)}
+              title={isSynced ? "Already synced" : "Sync to Master Machine"}
+              disabled={isSynced}
+              loading={syncLoading[record.id]}
+            />
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              title="Edit"
+            />
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteConfirm(record)}
+              title="Delete"
+            />
+          </Space>
+        );
+      },
     },
   ];
 
@@ -391,6 +513,54 @@ const MachineListPage = () => {
         branches={branches}
         useBackendExt={useBackendExt}
       />
+
+      {/* Sync Modal */}
+      <Modal
+        title="Sync Machine to Master Machine"
+        open={syncModalVisible}
+        onOk={handleSyncConfirm}
+        onCancel={handleSyncCancel}
+        okText="Sync"
+        cancelText="Cancel"
+        confirmLoading={syncingMachine && syncLoading[syncingMachine.id]}
+      >
+        {syncingMachine && (
+          <div style={{ marginBottom: 16 }}>
+            <p><strong>Machine:</strong> {syncingMachine.name} ({syncingMachine.code})</p>
+          </div>
+        )}
+        <Form form={syncForm} layout="vertical">
+          <Form.Item
+            name="account_id"
+            label="Account Name"
+            rules={[{ required: true, message: 'Please select an account' }]}
+          >
+            <Select
+              placeholder="Select account"
+              showSearch
+              filterOption={(input, option) =>
+                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+              }
+            >
+              {accounts.map(account => (
+                <Select.Option key={account.value || account.id} value={account.value || account.id}>
+                  {account.label || `${account.account_no} - ${account.name}`}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="machine_type"
+            label="Machine Type"
+            rules={[{ required: true, message: 'Please select machine type' }]}
+          >
+            <Select placeholder="Select machine type">
+              <Select.Option value="dedicated">Dedicated</Select.Option>
+              <Select.Option value="non-dedicated">Non-Dedicated</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

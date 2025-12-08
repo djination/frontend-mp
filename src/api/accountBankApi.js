@@ -22,10 +22,31 @@ export const getAccountBankById = async (id) => {
 
 export const createAccountBank = async (accountBankData) => {
   try {
+    console.log('📤 Creating Account Bank:', accountBankData);
     const response = await axiosInstance.post('/account-bank', accountBankData);
     return response.data;
   } catch (error) {
-    console.error('Error creating Account bank:', error);
+    console.error('❌ Error creating Account bank:', error);
+    
+    // Log detailed error information
+    if (error.response) {
+      console.error('Error response details:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+      
+      // Throw error with more details
+      const errorMessage = error.response.data?.message || 
+                          error.response.data?.error || 
+                          error.response.statusText || 
+                          'Failed to create account bank';
+      const detailedError = new Error(errorMessage);
+      detailedError.response = error.response;
+      throw detailedError;
+    }
+    
     throw error;
   }
 };

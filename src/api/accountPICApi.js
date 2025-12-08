@@ -22,6 +22,12 @@ export const getAccountPICById = async (accountId, picId) => {
 
 export const createAccountPIC = async (picData) => {
   try {
+    console.log('📤 Creating Account PIC:', {
+      hasPassword: !!picData.password,
+      passwordLength: picData.password ? picData.password.length : 0,
+      picData: { ...picData, password: picData.password ? '***' : undefined }
+    });
+    
     // Kirim data langsung tanpa modifikasi tambahan
     const response = await axiosInstance.post('/account-pic', picData);
     return response.data;
@@ -42,7 +48,13 @@ export const createAccountPIC = async (picData) => {
 };
 
 export const updateAccountPIC = async (picId, picData) => {
-  console.log('picData', picData);
+  console.log('📤 Updating Account PIC:', {
+    picId,
+    hasPassword: !!picData.password,
+    passwordLength: picData.password ? picData.password.length : 0,
+    picData: { ...picData, password: picData.password ? '***' : undefined }
+  });
+  
   try {
     const response = await axiosInstance.patch(`/account-pic/${picId}`, {
       ...picData,

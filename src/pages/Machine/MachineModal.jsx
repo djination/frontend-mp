@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Select, Button, message, Row, Col } from 'antd';
 import { createMachine, updateMachine, getServiceLocations } from '../../api/machineApi';
+import { getAccountOptions } from '../../api/accountApi';
+import { createMasterMachine, updateMasterMachine, getMasterMachines } from '../../api/masterMachineApi';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -17,14 +19,20 @@ const MachineModal = ({
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [serviceLocations, setServiceLocations] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [masterMachineId, setMasterMachineId] = useState(null);
   const isEdit = !!editingMachine;
 
   useEffect(() => {
     if (visible) {
-      // Fetch service locations when modal opens
+      // Fetch service locations and accounts when modal opens
       fetchServiceLocations();
+      fetchAccounts();
       
       if (isEdit && editingMachine) {
+        // Fetch master machine data to get account_id and machine_type
+        fetchMasterMachineData(editingMachine.id);
+        
         // Populate form with editing machine data
         form.setFieldsValue({
           code: editingMachine.code,
@@ -40,9 +48,45 @@ const MachineModal = ({
       } else {
         // Reset form for new machine
         form.resetFields();
+        setMasterMachineId(null);
       }
     }
   }, [visible, isEdit, editingMachine, form]);
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await getAccountOptions();
+      if (response?.data) {
+        setAccounts(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch accounts:', error);
+      message.warning('Failed to load accounts');
+    }
+  };
+
+  const fetchMasterMachineData = async (machineId) => {
+    try {
+      // Find master machine by machine_id (stored in data field)
+      const response = await getMasterMachines();
+      const machines = Array.isArray(response?.data) ? response.data : response?.data?.data || [];
+      
+      // Find master machine that has this machine ID in its data
+      const masterMachine = machines.find(m => 
+        m.data && (m.data.id === machineId || m.data.code === editingMachine.code)
+      );
+      
+      if (masterMachine) {
+        setMasterMachineId(masterMachine.id);
+        form.setFieldsValue({
+          account_id: masterMachine.account_id,
+          machine_type: masterMachine.machine_type,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch master machine data:', error);
+    }
+  };
 
   const fetchServiceLocations = async () => {
     try {
@@ -83,24 +127,72 @@ const MachineModal = ({
       
       console.log('Submitting machine data:', values);
       
+      let machineResponse;
+      
       if (isEdit) {
         if (useBackendExt) {
           console.log('🔧 Updating machine via backend-ext...');
-          await machineApiWithBackendExt.updateMachine(editingMachine.id, values);
+          machineResponse = await machineApiWithBackendExt.updateMachine(editingMachine.id, values);
         } else {
           console.log('🔧 Updating machine via direct API...');
-          await updateMachine(editingMachine.id, values);
+          machineResponse = await updateMachine(editingMachine.id, values);
         }
         message.success('Machine updated successfully');
       } else {
         if (useBackendExt) {
           console.log('🔨 Creating machine via backend-ext...');
-          await machineApiWithBackendExt.createMachine(values);
+          machineResponse = await machineApiWithBackendExt.createMachine(values);
         } else {
           console.log('🔨 Creating machine via direct API...');
-          await createMachine(values);
+          machineResponse = await createMachine(values);
         }
         message.success('Machine created successfully');
+      }
+      
+      // Save to MasterMachine entity if account_id and machine_type are provided
+      if (values.account_id && values.machine_type) {
+        try {
+          // Extract machine data from response
+          let machineData = {};
+          if (machineResponse?.data) {
+            machineData = machineResponse.data;
+          } else if (machineResponse) {
+            machineData = machineResponse;
+          } else if (isEdit && editingMachine) {
+            machineData = editingMachine;
+          } else {
+            // For new machines, use form values
+            machineData = {
+              code: values.code,
+              name: values.name,
+              description: values.description,
+            };
+          }
+          
+          // Ensure we have the machine ID
+          if (!machineData.id && (machineResponse?.id || editingMachine?.id)) {
+            machineData.id = machineResponse?.id || editingMachine?.id;
+          }
+          
+          const masterMachineData = {
+            account_id: values.account_id,
+            machine_type: values.machine_type,
+            data: machineData
+          };
+          
+          if (masterMachineId) {
+            // Update existing master machine
+            await updateMasterMachine(masterMachineId, masterMachineData);
+            console.log('✅ Master machine updated');
+          } else {
+            // Create new master machine
+            await createMasterMachine(masterMachineData);
+            console.log('✅ Master machine created');
+          }
+        } catch (masterError) {
+          console.error('Failed to save to master machine:', masterError);
+          message.warning('Machine saved but failed to link to account');
+        }
       }
       
       onSuccess();
@@ -280,23 +372,6 @@ const MachineModal = ({
         </Row>
 
         <Row gutter={16}>
-          {/* <Col span={12}>
-            <Form.Item
-              name="maintenance_id"
-              label="Maintenance Vendor"
-              rules={[{ required: isEdit, message: 'Please select a maintenance vendor' }]}
-            >
-              <Select
-                placeholder="Select maintenance vendor"
-                showSearch
-                filterOption={(input, option) =>
-                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                }
-              >
-                {renderOptions(vendorFilters.maintenance || [])}
-              </Select>
-            </Form.Item>
-          </Col> */}
           <Col span={12}>
             <Form.Item
               name="service_location_id"
@@ -311,6 +386,42 @@ const MachineModal = ({
                 }
               >
                 {renderOptions(serviceLocations)}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="account_id"
+              label="Account Name"
+              rules={[{ required: true, message: 'Please select an account' }]}
+            >
+              <Select
+                placeholder="Select account"
+                showSearch
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
+              >
+                {accounts.map(account => (
+                  <Select.Option key={account.value || account.id} value={account.value || account.id}>
+                    {account.label || `${account.account_no} - ${account.name}`}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="machine_type"
+              label="Machine Type"
+              rules={[{ required: true, message: 'Please select machine type' }]}
+            >
+              <Select placeholder="Select machine type">
+                <Select.Option value="dedicated">Dedicated</Select.Option>
+                <Select.Option value="non-dedicated">Non-Dedicated</Select.Option>
               </Select>
             </Form.Item>
           </Col>

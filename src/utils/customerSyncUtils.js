@@ -272,7 +272,8 @@ export const transformAccountToCustomerCommand = (accountData, isUpdate = false)
         name: pic.name || '', // getAccount.data.account_pic[].name
         msisdn: pic.phone_no ? (pic.phone_no.startsWith('+') ? pic.phone_no : `+${pic.phone_no.startsWith('0') ? '62' + pic.phone_no.slice(1) : pic.phone_no}`) : '', // getAccount.data.account_pic[].phone_no dengan format msisdn
         email: pic.email || '', // getAccount.data.account_pic[].email
-        username: pic.username || pic.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}` // getAccount.data.account_pic[].username
+        username: pic.username || pic.name?.toLowerCase().replace(/\s+/g, '') || `user${Date.now()}`, // getAccount.data.account_pic[].username
+        password: pic.password || '', // getAccount.data.account_pic[].password
       };
 
       // Add ID for PATCH operation

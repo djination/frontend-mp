@@ -12,6 +12,7 @@ import AccountPICForm from './AccountPICForm';
 import AccountBankForm from './AccountBankForm';
 import AccountServiceForm from './AccountServiceForm';
 import AccountDocumentForm from './AccountDocumentForm';
+import AccountMachineForm from './AccountMachineForm';
 import TypeOfBusinessSelector from './TypeOfBusinessSelector';
 import CommissionRateManager from './CommissionRateManager';
 import VendorDetailsManager from './VendorDetailsManager';
@@ -107,6 +108,7 @@ const AccountForm = ({
   const [accountBanks, setAccountBanks] = useState([]);
   const [accountServices, setAccountServices] = useState([]);
   const [accountDocuments, setAccountDocuments] = useState([]);
+  const [machines, setMachines] = useState([]);
   const [dataFetched, setDataFetched] = useState(false);
   const [hierarchyWarning, setHierarchyWarning] = useState(null);
   const [initialAddresses, setInitialAddresses] = useState([]);
@@ -411,7 +413,8 @@ const AccountForm = ({
   const savePICs = async (picItems, accountId) => {
     for (const pic of picItems) {
       const allowedFields = [
-        'name', 'phone_no', 'email', 'is_active', 'position_id', 'account_id', 'is_owner', 'no_ktp', 'no_npwp', 'username', 'fix_phone_no'
+        'name', 'phone_no', 'email', 'is_active', 'position_id', 'account_id', 'is_owner', 'no_ktp', 'no_npwp', 'username', 'fix_phone_no', 'password',
+        'role_access', 'role_access_mobile', 'web_portal', 'mobile', 'role'
       ];
       const cleanPic = cleanPayload(
         {
@@ -423,6 +426,14 @@ const AccountForm = ({
         },
         allowedFields
       );
+      
+      // Log untuk debugging
+      console.log('💾 Saving PIC to backend:', {
+        picId: pic.id,
+        hasPassword: !!cleanPic.password,
+        cleanPic
+      });
+      
       let response;
       if (!pic.id || String(pic.id).startsWith('temp-') || pic.tempId) {
         response = await createAccountPIC(cleanPic);
@@ -1294,6 +1305,7 @@ const AccountForm = ({
           accountData={{
             id: initialValues.id,
             uuid_be: initialValues.uuid_be,
+            branch_uuid_be: initialValues.branch_uuid_be,
             name: initialValues.name || form.getFieldValue('name')
           }}
           onPICUpdate={(pic, response) => {
@@ -1339,6 +1351,23 @@ const AccountForm = ({
           onChange={setAccountDocuments}
           accountId={initialValues.id}
           isEdit={isEdit}
+        />
+      )
+    },
+    {
+      key: 'machines',
+      label: 'Machines',
+      children: (
+        <AccountMachineForm
+          machines={machines}
+          onChange={setMachines}
+          accountId={initialValues.id}
+          isEdit={isEdit}
+          accountData={{
+            id: initialValues.id,
+            uuid_be: initialValues.uuid_be,
+            name: initialValues.name || form.getFieldValue('name')
+          }}
         />
       )
     }

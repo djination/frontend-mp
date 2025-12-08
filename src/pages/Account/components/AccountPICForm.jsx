@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Form, Input, Button, Table, Space, Modal, Popconfirm, 
-  Select, message, Tooltip 
+  Select, message, Tooltip, Switch 
 } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined, SyncOutlined } from '@ant-design/icons';
 import { getPositions } from '../../../api/positionApi';
-import { getAccountPICById, getAccountPICs } from '../../../api/accountPICApi';
+import { getAccountPICById, getAccountPICs, updateAccountPIC } from '../../../api/accountPICApi';
 import backendExtApi from '../../../api/backendExtApi';
 
 import PropTypes from 'prop-types';
@@ -96,8 +96,38 @@ const AccountPICForm = ({
           no_ktp: values.no_ktp,
           no_npwp: values.no_npwp,
           username: values.username,
+          role: values.role,
           is_owner: values.is_owner,
+          role_access: values.role_access,
+          role_access_mobile: values.role_access_mobile,
+          web_portal: values.web_portal,
+          mobile: values.mobile,
         };
+        
+        // Include password: required for new PIC, optional for edit (only if provided)
+        if (!editingPIC) {
+          // Creating new PIC - password is required, so it will always be present
+          picData.password = values.password;
+        } else if (values.password && values.password.trim() !== '') {
+          // Editing existing PIC - only include password if user wants to change it
+          picData.password = values.password;
+        }
+        
+        // Preserve is_active when editing (default to true for new PICs)
+        if (editingPIC) {
+          // Keep existing is_active value when editing
+          picData.is_active = editingPIC.is_active !== undefined ? editingPIC.is_active : true;
+        } else {
+          // New PICs default to active
+          picData.is_active = true;
+        }
+        
+        console.log('📝 PIC Form Save:', {
+          isEdit: !!editingPIC,
+          picData,
+          hasPassword: !!picData.password
+        });
+        
         if (editingPIC) {
           const updatedPICs = localPICs.map(p =>
             (p.id === editingPIC.id || p.tempId === editingPIC.tempId)
@@ -120,6 +150,7 @@ const AccountPICForm = ({
         setLoading(false);
       })
       .catch(info => {
+        console.error('❌ Form validation failed:', info);
         message.error('Failed to save PIC');
       });
   };
@@ -165,71 +196,213 @@ const AccountPICForm = ({
 
   // Function to sync PIC to external API
   const handleSyncPIC = async (pic) => {
-    // Check if PIC has uuid_be, if not, show warning but still allow sync attempt
-    if (!pic.uuid_be) {
-      message.warning('PIC does not have external UUID. Sync may fail if PIC is not already synced.');
-    }
-
     if (!accountData || !accountData.uuid_be) {
       message.error('Account must be synced first before syncing PIC');
       return;
     }
 
-    // Use uuid_be if available, otherwise use regular id
-    const picId = pic.uuid_be || pic.id;
+    if (!accountData.branch_uuid_be) {
+      message.error('Account branch must be synced first before syncing PIC' + accountData.branch_uuid_be);
+      return;
+    }
+
+    // Check if PIC has local ID (required for saving uuid_be)
+    if (!pic.id && !pic.tempId) {
+      message.error('PIC must be saved first before syncing');
+      return;
+    }
+
+    // Use uuid_be if available, otherwise use regular id for loading state
+    const picId = pic.uuid_be || pic.id || pic.tempId;
     setSyncLoading(prev => ({ ...prev, [picId]: true }));
 
     try {
-      // Transform PIC data to external API format
-      const crewData = {
-        id: pic.uuid_be || pic.id, // Use uuid_be if available, otherwise use regular id
-        name: pic.name,
-        ktp: pic.no_ktp || '',
-        npwp: pic.no_npwp || '',
-        customer: {
-          id: accountData.uuid_be,
-          name: accountData.name
-        },
-        username: pic.username || '',
-        email: pic.email || '',
-        msisdn: pic.phone_no ? (pic.phone_no.startsWith('+') ? pic.phone_no : `+${pic.phone_no.startsWith('0') ? '62' + pic.phone_no.slice(1) : pic.phone_no}`) : ''
-      };
-
-      console.log('🔄 Creating new customer crew in external API:', crewData);
-
-      // Make API request to external API (PUT method for creating new customer crew)
-      const requestData = {
-        config_id: '473b8ffa-9c2e-4384-b5dc-dd2af3c1f0f9',
-        data: crewData,
-        url: `/api/customer-crew/command/${pic.uuid_be || pic.id}`, // Use path only, not full URL
-        method: 'PUT'
-      };
-
-      console.log('📤 Request data being sent:', JSON.stringify(requestData, null, 2));
-
-      // Use only makeSimplifiedApiRequest like customerSyncUtils.js
-      const response = await backendExtApi.makeSimplifiedApiRequest(requestData);
-
-      if (response && response.success !== false) {
-        message.success('Customer crew created in external API successfully');
-        console.log('✅ Customer crew creation successful:', response);
-        
-        // Call parent callback if provided
-        if (onPICUpdate) {
-          onPICUpdate(pic, response);
+      // Format phone number to +62 format
+      const formatPhoneNumber = (phone) => {
+        if (!phone) return '';
+        if (phone.startsWith('+')) return phone;
+        if (phone.startsWith('0')) {
+          return `+62${phone.slice(1)}`;
         }
-      } else {
-        throw new Error(response?.error || 'External API returned error');
+        return `+62${phone}`;
+      };
+
+      // Transform PIC data to new external API format
+      const userData = {
+        email: pic.email || '',
+        phone_number: formatPhoneNumber(pic.phone_no),
+        username: pic.username || '',
+        password: pic.password || '',
+        role: pic.role || 'LOCATION_PARTNER', // Default role, can be updated if needed
+        customer_id: accountData.uuid_be,
+        branch_id: accountData.branch_uuid_be,
+        role_access: pic.role_access || 'ADMIN',
+        role_access_mobile: pic.role_access_mobile || 'CUSTOMER',
+        web_portal: pic.web_portal !== undefined ? pic.web_portal : false,
+        mobile: pic.mobile !== undefined ? pic.mobile : false,
+        name: pic.name || ''
+      };
+
+      // Add ID for update operation (PATCH) if PIC already has uuid_be
+      const isUpdate = !!pic.uuid_be;
+      if (isUpdate) {
+        userData.id = pic.uuid_be;
       }
 
-    } catch (error) {
-        console.error('❌ Error creating customer crew in external API:', error);
+      // Get config_id for user/command API
+      let configId = null;
+      try {
+        const activeConfigs = await backendExtApi.getActiveConfigs();
+        console.log('📥 Active configs response:', activeConfigs);
         
-        let errorMessage = 'Failed to create customer crew in external API';
-      if (error.response?.data?.error) {
-        errorMessage = `External API Error: ${error.response.data.error}`;
-      } else if (error.response?.data?.message) {
-        errorMessage = `External API Error: ${error.response.data.message}`;
+        // Handle different response structures
+        let configsData = [];
+        if (activeConfigs && activeConfigs.success && activeConfigs.data) {
+          if (activeConfigs.data.data && Array.isArray(activeConfigs.data.data)) {
+            configsData = activeConfigs.data.data;
+          } else if (Array.isArray(activeConfigs.data)) {
+            configsData = activeConfigs.data;
+          }
+        } else if (activeConfigs && Array.isArray(activeConfigs)) {
+          configsData = activeConfigs;
+        }
+        
+        // Find User Command API config (prefer user/customerportal, fallback to customer config)
+        const userConfig = configsData.find(config => 
+          config.name.toLowerCase().includes('user') || 
+          config.url?.includes('/user/command') ||
+          config.url?.includes('customerportal')
+        );
+        
+        // Fallback to customer config if user config not found
+        const customerConfig = configsData.find(config => 
+          config.name.toLowerCase().includes('customer') || 
+          config.url?.includes('/customer/command')
+        );
+        
+        configId = userConfig?.id || customerConfig?.id || '473b8ffa-9c2e-4384-b5dc-dd2af3c1f0f9'; // Fallback to hardcoded config
+        console.log('✅ Using config_id:', configId, 'from config:', userConfig?.name || customerConfig?.name || 'hardcoded');
+      } catch (configError) {
+        console.warn('⚠️ Failed to get config_id, using fallback:', configError);
+        configId = '473b8ffa-9c2e-4384-b5dc-dd2af3c1f0f9'; // Fallback to hardcoded config
+      }
+
+      console.log('📤 Syncing PIC to external API:', {
+        config_id: configId,
+        url: 'https://stg.merahputih-id.tech:5002/api/customerportal/user/command',
+        method: isUpdate ? 'PATCH' : 'POST',
+        isUpdate,
+        hasUuidBe: !!pic.uuid_be,
+        data: { ...userData, password: userData.password ? '***' : '' } // Hide password in log
+      });
+
+      // Make API request to sync user
+      const response = await backendExtApi.makeApiRequest({
+        config_id: configId,
+        method: isUpdate ? 'PATCH' : 'POST',
+        url: 'https://stg.merahputih-id.tech:5002/api/customerportal/user/command',
+        data: userData
+      });
+
+      console.log('✅ Sync response:', response);
+
+      // Check if external API returned an error
+      if (response?.data?.error || (response?.data?.success === false)) {
+        const errorData = response.data?.error || response.data;
+        let errorMessage = 'Failed to sync PIC to external API';
+        
+        // Extract error message from different possible structures
+        if (errorData?.data?.message) {
+          errorMessage = errorData.data.message;
+        } else if (errorData?.message) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+        
+        console.error('❌ External API error:', errorMessage, errorData);
+        console.error('❌ Branch ID used:', accountData.branch_uuid_be);
+        console.error('❌ Customer ID used:', accountData.uuid_be);
+        
+        // Provide more helpful error message for specific errors
+        if (errorMessage.toLowerCase().includes('branch') || errorMessage.toLowerCase().includes('branch id')) {
+          message.error({
+            content: `Sync failed: ${errorMessage}. Please ensure the account branch is synced to external API first. Branch ID: ${accountData.branch_uuid_be}`,
+            duration: 8
+          });
+        } else {
+          message.error(`Sync failed: ${errorMessage}`);
+        }
+        return; // Exit early, don't process as success
+      }
+
+      // Extract ID from response (for POST operation)
+      let externalId = null;
+      if (!isUpdate && response) {
+        // Try different response structures to get the ID
+        if (response.data?.id) {
+          externalId = response.data.id;
+        } else if (response.data?.data?.id) {
+          externalId = response.data.data.id;
+        } else if (response.id) {
+          externalId = response.id;
+        } else if (response.data) {
+          // If response.data is a string (UUID), use it directly
+          externalId = typeof response.data === 'string' ? response.data : null;
+        }
+      }
+
+      // If we got a new ID from POST, save it to database
+      if (externalId && pic.id) {
+        console.log('💾 Saving external ID to database:', externalId);
+        try {
+          await updateAccountPIC(pic.id, { uuid_be: externalId });
+          
+          // Update local state with new uuid_be
+          const updatedPICs = localPICs.map(p =>
+            (p.id === pic.id || p.tempId === pic.tempId)
+              ? { ...p, uuid_be: externalId }
+              : p
+          );
+          setLocalPICs(updatedPICs);
+          onChange(updatedPICs);
+          
+          console.log('✅ Successfully saved external ID to database');
+        } catch (updateError) {
+          console.error('❌ Error saving external ID to database:', updateError);
+          message.warning('PIC synced but failed to save external ID. Please refresh the page.');
+        }
+      }
+
+      message.success(isUpdate ? 'PIC updated successfully' : 'PIC synced successfully');
+      
+      // Refresh PICs list if onPICUpdate callback is provided
+      if (onPICUpdate) {
+        await fetchUpdatedPICs();
+        onPICUpdate();
+      }
+    } catch (error) {
+      console.error('❌ Error syncing PIC to external API:', error);
+      console.error('❌ Error details:', {
+        response: error.response?.data,
+        status: error.response?.status,
+        message: error.message
+      });
+      
+      // Extract error message from different possible structures
+      let errorMessage = 'Failed to sync PIC to external API';
+      if (error.response?.data) {
+        if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error) {
+          if (Array.isArray(error.response.data.error)) {
+            errorMessage = error.response.data.error.join(', ');
+          } else if (typeof error.response.data.error === 'string') {
+            errorMessage = error.response.data.error;
+          }
+        } else if (error.response.data.success === false && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -253,9 +426,7 @@ const AccountPICForm = ({
       key: 'position',
       render: (_, record) => {
         // Ambil langsung dari record.position.name jika ada (sesuai response getAccountPICs)
-        if (record.position && record.position.name) {
-          
-          
+        if (record.position && record.position.name) {          
           return record.position.name;
         }
         // Fallback: cari dari positions jika hanya ada position_id
@@ -277,6 +448,11 @@ const AccountPICForm = ({
       key: 'email',
     },
     {
+      title: 'Username',
+      dataIndex: 'username',
+      key: 'username',
+    },
+    {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
@@ -287,32 +463,58 @@ const AccountPICForm = ({
             size="small"
           />
           {(() => {
-            // Show sync button if PIC has an ID (either uuid_be or regular id) and account has uuid_be
-            const hasPicId = record.uuid_be || record.id;
-            const hasAccountUuid = accountData?.uuid_be;
-            const shouldShowSync = hasPicId && hasAccountUuid;
+            // Show sync button if PIC has an ID (either uuid_be or regular id)
+            const hasPicId = !!(record.uuid_be || record.id);
+            const hasAccountUuid = !!(accountData?.uuid_be);
+            const hasBranchUuid = !!(accountData?.branch_uuid_be);
+            const canSync = hasPicId && hasAccountUuid && hasBranchUuid;
+            const picId = record.uuid_be || record.id;
+            
             console.log('🔍 Sync button debug:', {
               recordUuidBe: record.uuid_be,
               recordId: record.id,
               hasPicId,
               accountUuidBe: accountData?.uuid_be,
+              branchUuidBe: accountData?.branch_uuid_be,
               hasAccountUuid,
-              shouldShowSync,
+              hasBranchUuid,
+              canSync,
               record: record,
               accountData: accountData
             });
-            return shouldShowSync;
-          })() && (
-            <Tooltip title="Sync to External API">
-              <Button 
-                icon={<SyncOutlined />} 
-                onClick={() => handleSyncPIC(record)}
-                loading={syncLoading[record.uuid_be]}
-                size="small"
-                type="primary"
-              />
-            </Tooltip>
-          )}
+            
+            if (!hasPicId) {
+              return null; // Don't show sync button if PIC has no ID
+            }
+            
+            // Determine tooltip message based on what's missing
+            let tooltipMessage = "Sync to External API";
+            if (!canSync) {
+              if (!hasAccountUuid) {
+                tooltipMessage = "Account must be synced first before syncing PIC";
+              } else if (!hasBranchUuid) {
+                tooltipMessage = "Account branch must be synced first before syncing PIC";
+              } else {
+                tooltipMessage = "Cannot sync PIC (missing required data)";
+              }
+            }
+            
+            return (
+              <Tooltip 
+                key="sync" 
+                title={tooltipMessage}
+              >
+                <Button 
+                  icon={<SyncOutlined />} 
+                  onClick={() => handleSyncPIC(record)}
+                  loading={syncLoading[picId]}
+                  size="small"
+                  type="primary"
+                  disabled={!canSync}
+                />
+              </Tooltip>
+            );
+          })()}
           <Popconfirm
             title="Are you sure you want to delete this PIC?"
             onConfirm={() => handleDelete(record)}
@@ -367,7 +569,14 @@ const AccountPICForm = ({
           </Button>,
         ]}
       >
-        <Form form={form} layout="vertical" initialValues={{ is_owner: true }}>
+        <Form form={form} layout="vertical" initialValues={{ 
+          role: 'LOCATION_PARTNER',
+          is_owner: true,
+          web_portal: false,
+          mobile: false,
+          role_access: 'ADMIN',
+          role_access_mobile: 'CUSTOMER'
+        }}>
           <Form.Item
             name="is_owner"
             label="Is Owner"
@@ -384,7 +593,7 @@ const AccountPICForm = ({
             label="Name"
             rules={[{ required: true, message: 'Please enter name' }]}
           >
-            <Input placeholder="Enter name" autoComplete="name" />
+            <Input id="pic_name" placeholder="Enter name" autoComplete="name" />
           </Form.Item>
           
           <Form.Item
@@ -416,7 +625,7 @@ const AccountPICForm = ({
               }
             ]}
           >
-            <Input placeholder="Enter fix line phone number" autoComplete="tel" />
+            <Input id="pic_fix_phone_no" placeholder="Enter fix line phone number" autoComplete="tel" />
           </Form.Item>
           
           <Form.Item
@@ -434,7 +643,7 @@ const AccountPICForm = ({
               }
             ]}
           >
-            <Input placeholder="Enter phone number" autoComplete="tel" />
+            <Input id="pic_phone_no" placeholder="Enter phone number" autoComplete="tel" />
           </Form.Item>
 
           <Form.Item
@@ -445,7 +654,7 @@ const AccountPICForm = ({
               { type: 'email', message: 'Please enter a valid email' }
             ]}
           >
-            <Input placeholder="Enter email" autoComplete="email" />
+            <Input id="pic_email" placeholder="Enter email" autoComplete="email" />
           </Form.Item>
           <Form.Item
             name="no_ktp"
@@ -455,7 +664,7 @@ const AccountPICForm = ({
               { type: 'string', message: 'Please enter a valid No KTP' }
             ]}
           >
-            <Input placeholder="Enter No KTP" autoComplete="off" />
+            <Input id="pic_no_ktp" placeholder="Enter No KTP" autoComplete="off" />
 
           </Form.Item>
           <Form.Item
@@ -466,7 +675,7 @@ const AccountPICForm = ({
               { type: 'string', message: 'Please enter a valid No NPWP' }
             ]}
           >
-            <Input placeholder="Enter No NPWP" autoComplete="off" />
+            <Input id="pic_no_npwp" placeholder="Enter No NPWP" autoComplete="off" />
           </Form.Item>
 
           <Form.Item
@@ -477,7 +686,85 @@ const AccountPICForm = ({
               { type: 'string', message: 'Please enter a valid Username' }
             ]}
           >
-            <Input placeholder="Enter Username" autoComplete="off" />
+            <Input id="pic_username" placeholder="Enter Username" autoComplete="off" />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[
+              { required: !editingPIC, message: 'Please enter Password' },
+              { type: 'string', message: 'Please enter a valid Password' }
+            ]}
+          >
+            <Input.Password 
+              id="pic_password"
+              placeholder={editingPIC ? "Leave blank to keep current password" : "Enter Password"} 
+              autoComplete="off" 
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[
+              { required: true, message: 'Please select role' }
+            ]}
+          >
+            <Select id="pic_role" placeholder="Select role">
+              <Select.Option value="LOCATION_PARTNER">LOCATION_PARTNER</Select.Option>
+              <Select.Option value="NETWORK_PARTNER">NETWORK_OWNER</Select.Option>
+              <Select.Option value="DEDICATED">DEDICATED</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="role_access"
+            label="Role Access"
+            rules={[
+              { required: true, message: 'Please select role access' }
+            ]}
+          >
+            <Select id="pic_role_access" placeholder="Select role access">
+              <Select.Option value="ADMIN">ADMIN</Select.Option>
+              <Select.Option value="SUPER_ADMIN">SUPER_ADMIN</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="role_access_mobile"
+            label="Mobile Role Access"
+            rules={[
+              { required: true, message: 'Please select mobile role access' }
+            ]}
+          >
+            <Select id="pic_role_access_mobile" placeholder="Select mobile role access">
+              <Select.Option value="CUSTOMER">CUSTOMER</Select.Option>
+              <Select.Option value="MESIN">MESIN</Select.Option>
+              <Select.Option value="NON_MESIN">NON_MESIN</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="web_portal"
+            label="Web Portal Access"
+            valuePropName="checked"
+            rules={[
+              { required: true, message: 'Please select web portal access' }
+            ]}
+          >
+            <Switch id="pic_web_portal" />
+          </Form.Item>
+
+          <Form.Item
+            name="mobile"
+            label="Mobile Access"
+            valuePropName="checked"
+            rules={[
+              { required: true, message: 'Please select mobile access' }
+            ]}
+          >
+            <Switch id="pic_mobile" />
           </Form.Item>
         </Form>
       </Modal>

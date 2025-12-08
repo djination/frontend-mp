@@ -71,7 +71,7 @@ export default defineConfig(({ mode }) => {
         },
         // OAuth Proxy untuk external API
         '/oauth': {
-          target: 'http://stg.merahputih-id.tech:9002',
+          target: 'https://stg.merahputih-id.tech:9002',
           changeOrigin: true,
           secure: false,
           timeout: 30000,
@@ -95,7 +95,7 @@ export default defineConfig(({ mode }) => {
         },
         // External Machine CRUD API Proxy (MUST BE BEFORE /external-api!)
         '/external-api-crud': {
-          target: 'http://stg.merahputih-id.tech:5002',
+          target: 'https://stg.merahputih-id.tech:5002',
           changeOrigin: true,
           secure: false,
           timeout: 60000,
@@ -140,7 +140,7 @@ export default defineConfig(({ mode }) => {
         },
         // External Machine API Proxy (Query operations)
         '/external-api': {
-          target: 'http://stg.merahputih-id.tech:5002',
+          target: 'https://stg.merahputih-id.tech:5002',
           changeOrigin: true,
           secure: false,
           timeout: 60000, // Increased timeout to 60s

@@ -395,20 +395,101 @@ const AccountList = () => {
       
       // Sync customer to external API
       console.log(`🔄 Executing ${syncOperationType} operation for account:`, selectedAccount.name);
-      const result = await syncCustomerToExternalApi(
+      let result = await syncCustomerToExternalApi(
         accountDataToSync, 
         null, // configId - will be auto-detected 
         user?.id, // userId for logging
         selectedAccount.id // accountId for logging
       );
       
-      if (result.success) {
-        message.success(`Successfully synced customer: ${selectedAccount.name}`);
+      // Check if this is a token error with retry requested
+      const isTokenErrorRetry = result.details?.isRetryRequested === true && 
+                                result.error?.includes('token error');
+      
+      console.log('🔍 Retry check:', {
+        isRetryRequested: result.details?.isRetryRequested,
+        error: result.error,
+        hasTokenError: result.error?.includes('token error'),
+        isTokenErrorRetry,
+        hasCustomerData: !!result.customerData
+      });
+      
+      // Handle token error with retry request
+      if (isTokenErrorRetry) {
+        console.log('🔄 Token error detected, retrying sync automatically...');
+        message.info('Token expired. Retrying sync automatically...', 3);
+        
+        // Wait a bit before retry to allow token refresh
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Retry the sync
+        try {
+          const retryResult = await syncCustomerToExternalApi(
+            accountDataToSync, 
+            null, // configId - will be auto-detected 
+            user?.id, // userId for logging
+            selectedAccount.id // accountId for logging
+          );
+          
+          // Use retry result
+          if (retryResult.success) {
+            message.success(`Successfully synced customer: ${selectedAccount.name} (after retry)`);
+            console.log('✅ Retry sync result:', retryResult);
+            result = retryResult; // Update result for further processing
+          } else {
+            // If retry also failed, check if we have customerData (partial success)
+            if (retryResult.customerData) {
+              console.warn('⚠️ Retry failed but customerData exists, showing partial success');
+              result = retryResult; // Continue with partial success handling
+            } else if (result.customerData) {
+              // If retry failed but original result has customerData, use original
+              console.warn('⚠️ Retry failed, using original result with customerData');
+              // result already has customerData, keep it
+            } else {
+              // If retry also failed and no customerData, show error
+              message.error(`Failed to sync customer after retry: ${retryResult.error || 'Unknown error'}`);
+              console.error('❌ Retry sync failed:', retryResult);
+              return; // Exit early
+            }
+          }
+        } catch (retryError) {
+          console.error('❌ Retry sync error:', retryError);
+          // If original result has customerData, still process it as partial success
+          if (result.customerData) {
+            console.warn('⚠️ Retry error occurred, but original result has customerData - processing as partial success');
+            // Continue with original result that has customerData
+          } else {
+            message.error(`Retry failed: ${retryError.message || 'Unknown error'}`);
+            return; // Exit early only if no customerData
+          }
+        }
+      }
+      
+      // Handle success or partial success (customerData exists even if success: false)
+      // Note: If customerData exists, it means data was transformed and ready to send
+      // Even if sync failed due to token error, the data structure is valid
+      if (result.success || result.customerData) {
+        if (result.success) {
+          message.success(`Successfully synced customer: ${selectedAccount.name}`);
+        } else if (result.details?.isRetryRequested) {
+          // Token error with retry requested - data may have been sent before token expired
+          message.warning(`Sync completed with token error. Data was prepared and may have been sent. Please verify in external system.`);
+        } else {
+          message.warning(`Sync completed with warnings: ${result.error || 'Unknown error - data may have been sent'}`);
+        }
         console.log('✅ Sync result:', result);
         
         // Show detailed success information
         if (result.customerData) {
-          const { customer, "customer-crew": crew, "beneficiary-account": beneficiary, branch, tier } = result.customerData;
+          // ============================================
+          // REMARKED: PIC/Crew Data Sync
+          // Bagian ini di-remark untuk menonaktifkan sync PIC/crew data
+          // Jika diperlukan, uncomment bagian berikut:
+          // - const { customer, "customer-crew": crew, ... } = result.customerData;
+          // - externalData.crew?.failed > 0 di hasErrors check
+          // - Bagian display crew di modal warning dan success
+          // ============================================
+          const { customer, /* "customer-crew": crew, */ "beneficiary-account": beneficiary, branch, tier } = result.customerData;
           
           // Check for external API errors in nested response
           const externalData = result.response?.data?.data;
@@ -416,7 +497,7 @@ const AccountList = () => {
             (externalData.customer?.failed > 0) ||
             (externalData.beneficiary?.failed > 0) ||
             (externalData.branch?.failed > 0) ||
-            (externalData.crew?.failed > 0) ||
+            // (externalData.crew?.failed > 0) || // REMARKED: Crew error check
             (externalData.tier?.failed > 0)
           );
 
@@ -447,11 +528,12 @@ const AccountList = () => {
                     </div>
                   )}
                   
-                  {externalData.crew?.failed > 0 && (
+                  {/* REMARKED: Crew Error Display - Uncomment jika perlu sync crew */}
+                  {/* {externalData.crew?.failed > 0 && (
                     <div style={{ marginBottom: 8 }}>
                       <p><strong>❌ Customer Crew:</strong> {externalData.crew.errors.join(', ')}</p>
                     </div>
-                  )}
+                  )} */}
                   
                   {externalData.tier?.failed > 0 && (
                     <div style={{ marginBottom: 8 }}>
@@ -465,7 +547,8 @@ const AccountList = () => {
                   <p><strong>Customer:</strong> {customer?.name}</p>
                   <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
                   <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
-                  <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p>
+                  {/* REMARKED: Crew Data Display - Uncomment jika perlu sync crew */}
+                  {/* <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p> */}
                   <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
                   <p><strong>Bank ID:</strong> {beneficiary?.bank?.id || 'N/A'}</p>
                   <p><strong>Tier Data:</strong> {tier?.length || 0} tier(s)</p>
@@ -474,27 +557,80 @@ const AccountList = () => {
               ),
             });
           } else {
-            // Show success modal
-            Modal.success({
-              title: 'Sync Completed Successfully',
+            // Show success modal or partial success modal
+            const isPartialSuccess = !result.success && result.customerData;
+            Modal[isPartialSuccess ? 'warning' : 'success']({
+              title: isPartialSuccess ? 'Sync Completed with Token Error' : 'Sync Completed Successfully',
+              width: 600,
               content: (
                 <div>
+                  {isPartialSuccess && (
+                    <div style={{ 
+                      marginBottom: 16, 
+                      padding: 12, 
+                      backgroundColor: '#fff7e6', 
+                      borderRadius: 6, 
+                      border: '1px solid #ffd591' 
+                    }}>
+                      <p style={{ margin: 0, color: '#d48806' }}>
+                        <strong>⚠️ Token Error:</strong> Sync encountered a token error, but data was prepared and may have been sent to external API. Please verify the data in the external system.
+                      </p>
+                      {result.error && (
+                        <p style={{ margin: '8px 0 0 0', color: '#d48806', fontSize: '12px' }}>
+                          Error: {result.error}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <p><strong>Customer:</strong> {customer?.name}</p>
                   <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
                   <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
-                  <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p>
+                  {/* REMARKED: Crew Data Display - Uncomment jika perlu sync crew */}
+                  {/* <p><strong>Customer Crew:</strong> {crew?.length || 0} member(s)</p> */}
                   <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
                   <p><strong>Tier Data:</strong> {tier?.length || 0} tier(s)</p>
                   <p><strong>Branches:</strong> {Array.isArray(branch) ? branch.length : (branch ? 1 : 0)} branch(es)</p>
-                  <p><strong>External API Response:</strong> {result.response?.message || 'Success'}</p>
+                  {result.success && (
+                    <p><strong>External API Response:</strong> {result.response?.message || 'Success'}</p>
+                  )}
                 </div>
               ),
             });
           }
         }
       } else {
-        message.error(`Failed to sync customer: ${result.error || 'Unknown error'}`);
-        console.error('❌ Sync failed:', result);
+        // Check if we have customerData even though success is false (partial success scenario)
+        if (result.customerData) {
+          console.warn('⚠️ Sync returned error but customerData exists:', result);
+          message.warning(`Sync completed with issues: ${result.error || 'Unknown error'}. Data may have been sent.`);
+          
+          // Still show the data that was sent
+          const { customer, /* "customer-crew": crew, */ "beneficiary-account": beneficiary, branch, tier } = result.customerData;
+          
+          Modal.warning({
+            title: 'Sync Completed with Issues',
+            width: 600,
+            content: (
+              <div>
+                <p><strong>Status:</strong> {result.error || 'Unknown error'}</p>
+                <p style={{ color: '#faad14', marginBottom: 16 }}>
+                  <strong>⚠️ Note:</strong> Data may have been sent to external API despite the error. Please verify in the external system.
+                </p>
+                <hr style={{ margin: '16px 0' }} />
+                <p><strong>Data Sent:</strong></p>
+                <p><strong>Customer:</strong> {customer?.name || 'N/A'}</p>
+                <p><strong>Email:</strong> {customer?.email || 'N/A'}</p>
+                <p><strong>Phone:</strong> {customer?.msisdn || 'N/A'}</p>
+                <p><strong>Bank Account:</strong> {beneficiary ? 'Yes' : 'No'}</p>
+                <p><strong>Tier Data:</strong> {tier?.length || 0} tier(s)</p>
+                <p><strong>Branches:</strong> {Array.isArray(branch) ? branch.length : (branch ? 1 : 0)} branch(es)</p>
+              </div>
+            ),
+          });
+        } else {
+          message.error(`Failed to sync customer: ${result.error || 'Unknown error'}`);
+          console.error('❌ Sync failed:', result);
+        }
       }
     } catch (error) {
       console.error('❌ Sync error:', error);

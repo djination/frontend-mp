@@ -4,16 +4,16 @@ import { getOAuthTokenWithCORSHandling, clearOAuthToken } from "./corsOAuthFallb
 // API Base URLs based on provided specifications
 const API_BASES = {
   // Query endpoints (GET operations)
-  MACHINE_QUERY: "http://stg.merahputih-id.tech:5002/api/cdt/core/master/machine",
-  BRANCH_QUERY: "http://stg.merahputih-id.tech:5002/api/cdt/core/master/branch", 
-  SERVICE_LOCATION_QUERY: "http://stg.merahputih-id.tech:5002/api/cdt/core/master/service-location",
-  VENDOR_QUERY: "http://stg.merahputih-id.tech:5002/api/cdt/core/master/vendor",
+  MACHINE_QUERY: "https://stg.merahputih-id.tech:5002/api/cdt/core/master/machine",
+  BRANCH_QUERY: "https://stg.merahputih-id.tech:5002/api/cdt/core/master/branch", 
+  SERVICE_LOCATION_QUERY: "https://stg.merahputih-id.tech:5002/api/cdt/core/master/service-location",
+  VENDOR_QUERY: "https://stg.merahputih-id.tech:5002/api/cdt/core/master/vendor",
   
   // CRUD endpoints (POST/PUT operations)
-  MACHINE_CRUD: "http://stg.merahputih-id.tech:5002/api/machine",
-  BRANCH_CRUD: "http://stg.merahputih-id.tech:5002/api/branch",
-  SERVICE_LOCATION_CRUD: "http://stg.merahputih-id.tech:5002/api/service-location", 
-  VENDOR_CRUD: "http://stg.merahputih-id.tech:5002/api/vendor"
+  MACHINE_CRUD: "https://stg.merahputih-id.tech:5002/api/machine",
+  BRANCH_CRUD: "https://stg.merahputih-id.tech:5002/api/branch",
+  SERVICE_LOCATION_CRUD: "https://stg.merahputih-id.tech:5002/api/service-location", 
+  VENDOR_CRUD: "https://stg.merahputih-id.tech:5002/api/vendor"
 };
 
 // Authentication management
