@@ -1,6 +1,6 @@
 /* src/pages/SettlementMethod/styles.css */
 :root {
-    --primary-color: #4a6bdf;
+    --primary-color: #b91c1c;
     --danger-color: #e74c3c;
     --border-color: #e0e0e0;
     --text-color: #333;
@@ -44,7 +44,7 @@
   .tab.active {
     color: var(--primary-color);
     border-right: 3px solid var(--primary-color);
-    background: #f0f4ff;
+    background: #fef2f2;
   }
   
   .tab-icon {

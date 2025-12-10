@@ -233,7 +233,7 @@ const renderInstructions = () => (
             {lookupData.typeOfBusinesses?.map(item => (
               <Tag 
                 key={item.id} 
-                color={item.is_other ? 'orange' : 'blue'} 
+                color={item.is_other ? 'orange' : 'red'} 
                 style={{ margin: 2 }}
               >
                 {item.name} {item.is_other && '(Other - requires detail)'}
@@ -277,7 +277,7 @@ const renderInstructions = () => (
       <Card title="Upload CSV File" style={{ marginBottom: 16 }}>
         <Dragger {...uploadProps} style={{ marginBottom: 24 }}>
           <p className="ant-upload-drag-icon">
-            <FileExcelOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+            <FileExcelOutlined style={{ fontSize: 48, color: '#e53e3e' }} />
           </p>
           <p className="ant-upload-text">Click or drag CSV file to this area to upload</p>
           <p className="ant-upload-hint">

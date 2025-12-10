@@ -179,7 +179,7 @@ function App() {
       theme={{
         algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
         token: {
-          colorPrimary: isDarkMode ? '#1890ff' : '#1e3a8a',
+          colorPrimary: isDarkMode ? '#e53e3e' : '#b91c1c',
           borderRadius: 6,
         },
         components: {
@@ -191,6 +191,24 @@ function App() {
           },
           Layout: {
             colorBgBase: isDarkMode ? '#141414' : '#f0f2f5',
+          },
+          Button: {
+            colorPrimary: isDarkMode ? '#e53e3e' : '#b91c1c',
+            colorPrimaryHover: isDarkMode ? '#f56565' : '#dc2626',
+            colorPrimaryActive: isDarkMode ? '#c53030' : '#991b1b',
+          },
+          Menu: {
+            itemSelectedBg: isDarkMode ? '#e53e3e' : '#b91c1c',
+            itemSelectedColor: '#ffffff',
+            itemHoverBg: isDarkMode ? 'rgba(229, 62, 62, 0.1)' : 'rgba(185, 28, 28, 0.1)',
+            itemActiveBg: isDarkMode ? '#f56565' : '#dc2626',
+            subMenuItemBg: isDarkMode ? '#111827' : '#b91c1c',
+          },
+          Tabs: {
+            itemActiveColor: isDarkMode ? '#e53e3e' : '#b91c1c',
+            itemHoverColor: isDarkMode ? '#f56565' : '#dc2626',
+            itemSelectedColor: isDarkMode ? '#e53e3e' : '#b91c1c',
+            inkBarColor: isDarkMode ? '#e53e3e' : '#b91c1c',
           }
         }
       }}

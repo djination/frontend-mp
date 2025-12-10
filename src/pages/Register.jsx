@@ -19,7 +19,7 @@ export default function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-blue-300">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-100 to-red-300">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-96">
         <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
         {error && <div className="mb-4 text-red-600">{error}</div>}
@@ -39,11 +39,11 @@ export default function Register() {
           onChange={e => setPassword(e.target.value)}
           required
         />
-        <button type="submit" className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800">
+        <button type="submit" className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700">
           Register
         </button>
         <div className="mt-4 text-center">
-          <Link to="/login" className="text-blue-700 hover:underline">Sudah punya akun? Login</Link>
+          <Link to="/login" className="text-red-600 hover:underline">Sudah punya akun? Login</Link>
         </div>
       </form>
     </div>

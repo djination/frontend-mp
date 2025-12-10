@@ -204,7 +204,7 @@ const RevenueRule = () => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
-      render: (text) => text ? <Tag color="blue">{text.replace(/_/g, ' ')}</Tag> : null,
+      render: (text) => text ? <Tag color="red">{text.replace(/_/g, ' ')}</Tag> : null,
     },
     {
       title: 'Type',

@@ -515,7 +515,7 @@ const RoleManagementPage = () => {
                   .filter(([_, checked]) => checked)
                   .slice(0, 5)
                   .map(([id]) => (
-                    <span key={id} style={{ padding: '2px 6px', background: '#1890ff', color: 'white', borderRadius: 4 }}>
+                    <span key={id} style={{ padding: '2px 6px', background: '#e53e3e', color: 'white', borderRadius: 4 }}>
                       {id.substring(0, 8)}
                     </span>
                   ))}
@@ -567,7 +567,7 @@ const RoleManagementPage = () => {
                             >
                               <span style={{ 
                                 fontWeight: checkedPermissions[permission.id] ? 'bold' : 'normal',
-                                color: checkedPermissions[permission.id] ? '#1890ff' : 'inherit'
+                                color: checkedPermissions[permission.id] ? '#e53e3e' : 'inherit'
                               }}>
                                 {permission.name} ({permission.actionType || 'access'})
                               </span>

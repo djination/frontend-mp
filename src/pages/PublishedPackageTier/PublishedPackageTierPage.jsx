@@ -279,7 +279,7 @@ const PublishedPackageTierPage = () => {
         
         if (now.isBefore(startDate)) {
           status = 'Upcoming';
-          color = 'blue';
+          color = 'red';
         } else if (now.isAfter(endDate)) {
           status = 'Expired';
           color = 'red';

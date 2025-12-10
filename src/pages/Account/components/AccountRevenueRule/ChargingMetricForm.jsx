@@ -387,7 +387,7 @@ function AddOnsFields({ form, name, parentPath }) {
                             );
                         })}
                         <Form.Item>
-                            <a onClick={() => addAddOns()} style={{ color: '#1890ff' }}>+ Add Add-Ons Type</a>
+                            <a onClick={() => addAddOns()} style={{ color: '#e53e3e' }}>+ Add Add-Ons Type</a>
                         </Form.Item>
                     </>
                 )}
@@ -720,7 +720,7 @@ function DedicatedTierField({ tierKey, tierName, restField, form, onRemove, canR
                                                 amount: 0,
                                                 start_date: dayjs(),
                                                 end_date: dayjs().add(1, 'year')
-                                            })} style={{ color: '#1890ff' }}>+ Add Package Tier</a>
+                                            })} style={{ color: '#e53e3e' }}>+ Add Package Tier</a>
                                             <MassUploadPackageTierButton
                                                 onUploadSuccess={(data) => handlePackageUploadSuccess(data, tierName, addPkg)}
                                             />
@@ -838,7 +838,7 @@ function DedicatedTierFields({ fields, add, remove, form, accountData, onPATCHSu
             <div>
                 <p style={{ color: 'red' }}>Error: Form data format is not valid</p>
                 <Form.Item>
-                    <a onClick={() => add && add()} style={{ color: '#1890ff' }}>+ Add Dedicated Tier</a>
+                    <a onClick={() => add && add()} style={{ color: '#e53e3e' }}>+ Add Dedicated Tier</a>
                 </Form.Item>
             </div>
         );
@@ -849,7 +849,7 @@ function DedicatedTierFields({ fields, add, remove, form, accountData, onPATCHSu
             <div>
                 <p>No dedicated tiers configured.</p>
                 <Form.Item>
-                    <a onClick={() => add && add()} style={{ color: '#1890ff' }}>+ Add Dedicated Tier</a>
+                    <a onClick={() => add && add()} style={{ color: '#e53e3e' }}>+ Add Dedicated Tier</a>
                 </Form.Item>
             </div>
         );
@@ -883,7 +883,7 @@ function DedicatedTierFields({ fields, add, remove, form, accountData, onPATCHSu
                     onClick={() => {
                         add && add();
                     }}
-                    style={{ color: '#1890ff' }}
+                    style={{ color: '#e53e3e' }}
                 >
                     + Add Dedicated Tier
                 </a>
@@ -1020,7 +1020,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
             <div>
                 <p style={{ color: 'red' }}>Error: Form data format is not valid</p>
                 <Form.Item>
-                    <a onClick={() => add()} style={{ color: '#1890ff' }}>+ Add Row</a>
+                    <a onClick={() => add()} style={{ color: '#e53e3e' }}>+ Add Row</a>
                 </Form.Item>
             </div>
         );
@@ -1262,7 +1262,7 @@ function NonDedicatedTierFields({ fields, add, remove, form }) {
                 <a
                     onClick={() => inheritFromParent ? null : add()}
                     style={{
-                        color: inheritFromParent ? '#ccc' : '#1890ff',
+                        color: inheritFromParent ? '#ccc' : '#e53e3e',
                         cursor: inheritFromParent ? 'not-allowed' : 'pointer'
                     }}
                 >

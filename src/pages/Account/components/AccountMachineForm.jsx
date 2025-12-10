@@ -52,7 +52,7 @@ const AccountMachineForm = ({
       dataIndex: 'machine_type',
       key: 'machine_type',
       render: (type) => (
-        <Tag color={type === 'dedicated' ? 'blue' : 'green'}>
+        <Tag color={type === 'dedicated' ? 'red' : 'green'}>
           {type === 'dedicated' ? 'Dedicated' : 'Non-Dedicated'}
         </Tag>
       ),

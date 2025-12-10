@@ -182,7 +182,7 @@ const MassUploadPublishedPackageTier = ({ visible, onClose, onSuccess }) => {
       <Card title="Upload CSV File" style={{ marginBottom: 16 }}>
         <Dragger {...uploadProps} style={{ marginBottom: 24 }}>
           <p className="ant-upload-drag-icon">
-            <FileExcelOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+            <FileExcelOutlined style={{ fontSize: 48, color: '#e53e3e' }} />
           </p>
           <p className="ant-upload-text">Click or drag CSV file to this area to upload</p>
           <p className="ant-upload-hint">

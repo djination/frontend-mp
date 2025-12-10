@@ -193,7 +193,7 @@ const AutoDeductMonitor = () => {
         ).length;
         
         return (
-          <Tag color="blue">
+          <Tag color="red">
             {autoDeductCount} Service(s)
           </Tag>
         );

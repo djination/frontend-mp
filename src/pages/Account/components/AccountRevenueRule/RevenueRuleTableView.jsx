@@ -227,7 +227,7 @@ const RevenueRuleTableView = ({ data, accountId }) => {
       <Card title="Charging Metric Overview" style={{ marginBottom: '20px' }}>
         <Descriptions column={2} bordered size="small">
           <Descriptions.Item label="Type">
-            <Tag color={charging_metric?.type === 'dedicated' ? 'blue' : 'green'}>
+            <Tag color={charging_metric?.type === 'dedicated' ? 'red' : 'green'}>
               {charging_metric?.type || 'Not Set'}
             </Tag>
           </Descriptions.Item>
@@ -241,7 +241,7 @@ const RevenueRuleTableView = ({ data, accountId }) => {
             <Title level={5}>Dedicated Tiers Summary</Title>
             <div>
               {charging_metric.dedicated.tiers.map((tier, index) => (
-                <Tag key={index} color={tier.type === 'package' ? 'blue' : 'orange'} style={{ margin: '4px' }}>
+                <Tag key={index} color={tier.type === 'package' ? 'red' : 'orange'} style={{ margin: '4px' }}>
                   Tier {index + 1}: {tier.type}
                   {tier.type === 'non_package' && ` (${tier.amount?.toLocaleString() || 0})`}
                 </Tag>

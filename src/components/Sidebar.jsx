@@ -95,7 +95,7 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
               icon: icon,
               label: menu.name,
               children: buildItems(menu.children),
-              style: { background: isDarkMode ? '#111827' : '#1e3a8a' }
+              style: { background: isDarkMode ? '#111827' : '#b91c1c' }
             };
           }
           
@@ -136,8 +136,8 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 h-full w-64 ${isDarkMode ? 'bg-gray-900' : 'bg-blue-900'} overflow-y-auto`}>
-      <div className={`py-4 px-6 ${isDarkMode ? 'bg-gray-950' : 'bg-blue-950'} flex justify-between items-center`}>
+    <div className={`fixed left-0 top-0 h-full w-64 ${isDarkMode ? 'bg-gray-900' : 'bg-red-800'} overflow-y-auto`}>
+      <div className={`py-4 px-6 ${isDarkMode ? 'bg-gray-950' : 'bg-red-900'} flex justify-between items-center`}>
         <h2 className="text-xl font-semibold text-white">Customer Database</h2>
         <Switch
           checkedChildren={<BulbOutlined />}
@@ -157,7 +157,7 @@ const Sidebar = ({ setGlobalIsDarkMode }) => {
         style={{
           height: 'calc(100% - 64px)',
           borderRight: 0,
-          background: isDarkMode ? '#111827' : '#1e3a8a'
+          background: isDarkMode ? '#111827' : '#b91c1c'
         }}
         items={menuItems}
       />

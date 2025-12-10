@@ -243,7 +243,7 @@ const DebugDataModal = ({
                   <Row gutter={[16, 8]}>
                     <Col span={8}>
                       <Text strong>Type:</Text> 
-                      <Tag color={tier.type === 'nominal' ? 'blue' : 'green'} style={{ marginLeft: 4 }}>
+                      <Tag color={tier.type === 'nominal' ? 'red' : 'green'} style={{ marginLeft: 4 }}>
                         {tier.type}
                       </Tag>
                     </Col>

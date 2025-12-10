@@ -238,7 +238,7 @@ const MasterBusinessType = () => {
           borderRadius: '4px', 
           fontSize: '12px',
           backgroundColor: record.parent_id ? '#f0f0f0' : '#e6f7ff',
-          color: record.parent_id ? '#666' : '#1890ff'
+          color: record.parent_id ? '#666' : '#e53e3e'
         }}>
           {record.parent_id ? 'Child' : 'Parent'}
         </span>

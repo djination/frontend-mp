@@ -5,7 +5,7 @@
 }
 
 .percentage-input .ant-input-number-input {
-  color: #1890ff;
+  color: #e53e3e;
   font-family: 'Courier New', monospace;
   font-weight: 500;
 }
@@ -13,7 +13,7 @@
 /* Hover effect */
 .currency-input:hover,
 .percentage-input:hover {
-  border-color: #40a9ff;
+  border-color: #f56565;
 }
 
 /* Focus effect */
@@ -21,8 +21,8 @@
 .currency-input-focused,
 .percentage-input:focus,
 .percentage-input-focused {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #e53e3e;
+  box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.2);
 }
 
 /* Styling untuk rule subsection */

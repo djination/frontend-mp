@@ -5,8 +5,8 @@
 /* Tema untuk mode terang dan gelap */
 @layer base {
   :root {
-    --primary-color: #1e3a8a;
-    --primary-hover: #2563eb;
+    --primary-color: #b91c1c;
+    --primary-hover: #dc2626;
     --background-color: #f0f2f5;
     --text-color: #000000;
     --card-bg: #ffffff;
@@ -14,8 +14,8 @@
   }
 
   [data-theme="dark"] {
-    --primary-color: #1890ff;
-    --primary-hover: #40a9ff;
+    --primary-color: #e53e3e;
+    --primary-hover: #f56565;
     --background-color: #141414;
     --text-color: #ffffff;
     --card-bg: #1f1f1f;
@@ -35,8 +35,187 @@
   .ant-table {
     @apply bg-white dark:bg-gray-800;
   }
+}
 
-  .ant-btn-primary {
-    @apply bg-blue-900 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500;
-  }
+/* Override Ant Design Button Primary - Harus di luar @layer untuk prioritas lebih tinggi */
+.ant-btn-primary,
+.ant-btn-primary:not(:disabled):not(.ant-btn-disabled),
+button.ant-btn-primary,
+.ant-btn.ant-btn-primary,
+span.ant-btn-primary,
+a.ant-btn-primary,
+button[class*="ant-btn-primary"],
+.ant-btn[class*="ant-btn-primary"] {
+  background: #b91c1c !important;
+  background-color: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary:hover:not(:disabled):not(.ant-btn-disabled),
+button.ant-btn-primary:hover,
+.ant-btn.ant-btn-primary:hover,
+span.ant-btn-primary:hover,
+a.ant-btn-primary:hover,
+button[class*="ant-btn-primary"]:hover,
+.ant-btn[class*="ant-btn-primary"]:hover {
+  background: #dc2626 !important;
+  background-color: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary:focus:not(:disabled):not(.ant-btn-disabled),
+button.ant-btn-primary:focus,
+.ant-btn.ant-btn-primary:focus,
+span.ant-btn-primary:focus,
+a.ant-btn-primary:focus,
+button[class*="ant-btn-primary"]:focus,
+.ant-btn[class*="ant-btn-primary"]:focus {
+  background: #b91c1c !important;
+  background-color: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.ant-btn-primary:active:not(:disabled):not(.ant-btn-disabled),
+button.ant-btn-primary:active,
+.ant-btn.ant-btn-primary:active,
+span.ant-btn-primary:active,
+a.ant-btn-primary:active,
+button[class*="ant-btn-primary"]:active,
+.ant-btn[class*="ant-btn-primary"]:active {
+  background: #991b1b !important;
+  background-color: #991b1b !important;
+  border-color: #991b1b !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .ant-btn-primary,
+[data-theme="dark"] .ant-btn-primary:not(:disabled):not(.ant-btn-disabled),
+[data-theme="dark"] button.ant-btn-primary,
+[data-theme="dark"] .ant-btn.ant-btn-primary,
+[data-theme="dark"] span.ant-btn-primary,
+[data-theme="dark"] a.ant-btn-primary,
+[data-theme="dark"] button[class*="ant-btn-primary"],
+[data-theme="dark"] .ant-btn[class*="ant-btn-primary"] {
+  background: #e53e3e !important;
+  background-color: #e53e3e !important;
+  border-color: #e53e3e !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .ant-btn-primary:hover:not(:disabled):not(.ant-btn-disabled),
+[data-theme="dark"] button.ant-btn-primary:hover,
+[data-theme="dark"] .ant-btn.ant-btn-primary:hover,
+[data-theme="dark"] span.ant-btn-primary:hover,
+[data-theme="dark"] a.ant-btn-primary:hover,
+[data-theme="dark"] button[class*="ant-btn-primary"]:hover,
+[data-theme="dark"] .ant-btn[class*="ant-btn-primary"]:hover {
+  background: #f56565 !important;
+  background-color: #f56565 !important;
+  border-color: #f56565 !important;
+  color: #ffffff !important;
+}
+
+/* Override Ant Design Menu Selected Item - Ubah dari biru ke merah */
+.ant-menu-item-selected,
+.ant-menu-item-selected::after,
+.ant-menu-item.ant-menu-item-selected,
+.ant-menu-dark .ant-menu-item-selected,
+.ant-menu-dark.ant-menu-inline .ant-menu-item-selected,
+li.ant-menu-item-selected,
+li.ant-menu-item.ant-menu-item-selected {
+  background: #b91c1c !important;
+  background-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.ant-menu-item-selected:hover,
+.ant-menu-item.ant-menu-item-selected:hover,
+.ant-menu-dark .ant-menu-item-selected:hover,
+li.ant-menu-item-selected:hover {
+  background: #dc2626 !important;
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.ant-menu-item-selected .ant-menu-title-content,
+.ant-menu-item-selected .anticon,
+.ant-menu-item-selected span,
+.ant-menu-item-selected .ant-menu-item-icon {
+  color: #ffffff !important;
+}
+
+/* Menu item hover */
+.ant-menu-item:hover:not(.ant-menu-item-selected),
+.ant-menu-dark .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background-color: rgba(185, 28, 28, 0.1) !important;
+}
+
+/* Submenu selected */
+.ant-menu-submenu-selected > .ant-menu-submenu-title,
+.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: #b91c1c !important;
+}
+
+.ant-menu-submenu-selected > .ant-menu-submenu-title:hover,
+.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title:hover {
+  color: #dc2626 !important;
+}
+
+/* Override untuk menu dark theme */
+.ant-menu-dark .ant-menu-item-selected,
+.ant-menu-dark.ant-menu-inline .ant-menu-item-selected {
+  background: #b91c1c !important;
+  background-color: #b91c1c !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected:hover {
+  background: #dc2626 !important;
+  background-color: #dc2626 !important;
+}
+
+/* Override Ant Design Tabs - Ubah dari biru ke merah */
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs-tab-active {
+  color: #b91c1c !important;
+}
+
+.ant-tabs-tab:hover {
+  color: #dc2626 !important;
+}
+
+.ant-tabs-ink-bar,
+.ant-tabs-ink-bar-animated {
+  background: #b91c1c !important;
+  background-color: #b91c1c !important;
+}
+
+.ant-tabs-top > .ant-tabs-nav::before,
+.ant-tabs-bottom > .ant-tabs-nav::before,
+.ant-tabs-top > div > .ant-tabs-nav::before,
+.ant-tabs-bottom > div > .ant-tabs-nav::before {
+  border-bottom-color: rgba(185, 28, 28, 0.1) !important;
+}
+
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn:focus,
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn:focus-visible {
+  color: #b91c1c !important;
+}
+
+/* Tabs untuk dark theme */
+[data-theme="dark"] .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+[data-theme="dark"] .ant-tabs-tab-active {
+  color: #e53e3e !important;
+}
+
+[data-theme="dark"] .ant-tabs-tab:hover {
+  color: #f56565 !important;
+}
+
+[data-theme="dark"] .ant-tabs-ink-bar,
+[data-theme="dark"] .ant-tabs-ink-bar-animated {
+  background: #e53e3e !important;
+  background-color: #e53e3e !important;
 }

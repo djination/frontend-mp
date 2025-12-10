@@ -249,7 +249,7 @@ const BackendExtConfigPage = () => {
       key: 'base_url',
       render: (url) => (
         <Tooltip title={url}>
-          <span className="text-blue-600">{url.length > 40 ? `${url.substring(0, 40)}...` : url}</span>
+          <span className="text-red-600">{url.length > 40 ? `${url.substring(0, 40)}...` : url}</span>
         </Tooltip>
       ),
     },
@@ -258,7 +258,7 @@ const BackendExtConfigPage = () => {
       key: 'methodUrl',
       render: (_, record) => (
         <div>
-          <Tag color="blue">{record.method || 'GET'}</Tag>
+          <Tag color="red">{record.method || 'GET'}</Tag>
           <span className="text-sm">{record.url || 'Not configured'}</span>
         </div>
       ),

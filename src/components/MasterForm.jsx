@@ -32,7 +32,7 @@ export default function MasterForm({ label, onAdd }) {
           className="w-5 h-5"
         />
       </div>
-      <button type="submit" className="bg-blue-700 text-white px-6 py-2 rounded hover:bg-blue-800">
+      <button type="submit" className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">
         Simpan
       </button>
     </form>

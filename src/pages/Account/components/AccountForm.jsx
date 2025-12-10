@@ -1228,7 +1228,7 @@ const AccountForm = ({
                         if (!availableAccounts || availableAccounts.length === 0) {
                           return (
                             <Tag
-                              color="blue"
+                              color="red"
                               closable={closable}
                               onClose={onClose}
                               style={{ marginRight: 3 }}
@@ -1250,7 +1250,7 @@ const AccountForm = ({
                         
                         return (
                           <Tag
-                            color="blue"
+                            color="red"
                             closable={closable}
                             onClose={onClose}
                             style={{ marginRight: 3 }}

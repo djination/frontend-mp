@@ -22,7 +22,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-blue-300">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-red-200">
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded shadow-md w-96">
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
         {error && <div className="mb-4 text-red-600">{error}</div>}
@@ -42,11 +42,11 @@ export default function Login() {
           onChange={e => setPassword(e.target.value)}
           required
         />
-        <button type="submit" className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800">
+        <button type="submit" className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700">
           Login
         </button>
         <div className="mt-4 text-center">
-          <Link to="/register" className="text-blue-700 hover:underline">Belum punya akun? Register</Link>
+          <Link to="/register" className="text-red-600 hover:underline">Belum punya akun? Register</Link>
         </div>
       </form>
     </div>
