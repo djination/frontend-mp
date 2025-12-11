@@ -119,31 +119,31 @@ button[class*="ant-btn-primary"]:active,
 }
 
 /* Override Ant Design Menu Selected Item - Ubah dari biru ke merah */
-.ant-menu-item-selected,
+/* Hanya apply ke menu item, bukan submenu title */
+.ant-menu-item-selected:not(.ant-menu-submenu-title),
 .ant-menu-item-selected::after,
-.ant-menu-item.ant-menu-item-selected,
-.ant-menu-dark .ant-menu-item-selected,
-.ant-menu-dark.ant-menu-inline .ant-menu-item-selected,
-li.ant-menu-item-selected,
-li.ant-menu-item.ant-menu-item-selected {
+.ant-menu-item.ant-menu-item-selected:not(.ant-menu-submenu-title),
+.ant-menu-dark .ant-menu-item-selected:not(.ant-menu-submenu-title),
+.ant-menu-dark.ant-menu-inline .ant-menu-item-selected:not(.ant-menu-submenu-title),
+li.ant-menu-item-selected:not(.ant-menu-submenu),
+li.ant-menu-item.ant-menu-item-selected:not(.ant-menu-submenu) {
   background: #b91c1c !important;
   background-color: #b91c1c !important;
-  color: #ffffff !important;
 }
 
-.ant-menu-item-selected:hover,
-.ant-menu-item.ant-menu-item-selected:hover,
-.ant-menu-dark .ant-menu-item-selected:hover,
-li.ant-menu-item-selected:hover {
+.ant-menu-item-selected:not(.ant-menu-submenu-title):hover,
+.ant-menu-item.ant-menu-item-selected:not(.ant-menu-submenu-title):hover,
+.ant-menu-dark .ant-menu-item-selected:not(.ant-menu-submenu-title):hover,
+li.ant-menu-item-selected:not(.ant-menu-submenu):hover {
   background: #dc2626 !important;
   background-color: #dc2626 !important;
-  color: #ffffff !important;
 }
 
-.ant-menu-item-selected .ant-menu-title-content,
-.ant-menu-item-selected .anticon,
-.ant-menu-item-selected span,
-.ant-menu-item-selected .ant-menu-item-icon {
+/* Text color untuk menu item selected */
+.ant-menu-item-selected:not(.ant-menu-submenu-title) .ant-menu-title-content,
+.ant-menu-item-selected:not(.ant-menu-submenu-title) .anticon,
+.ant-menu-item-selected:not(.ant-menu-submenu-title) span:not(.ant-menu-submenu-title),
+.ant-menu-item-selected:not(.ant-menu-submenu-title) .ant-menu-item-icon {
   color: #ffffff !important;
 }
 
@@ -153,27 +153,69 @@ li.ant-menu-item-selected:hover {
   background-color: rgba(185, 28, 28, 0.1) !important;
 }
 
-/* Submenu selected */
+/* Submenu selected - pastikan text tetap terlihat */
 .ant-menu-submenu-selected > .ant-menu-submenu-title,
 .ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title {
-  color: #b91c1c !important;
+  color: #ffffff !important;
 }
 
 .ant-menu-submenu-selected > .ant-menu-submenu-title:hover,
 .ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title:hover {
-  color: #dc2626 !important;
+  color: #ffffff !important;
 }
 
-/* Override untuk menu dark theme */
-.ant-menu-dark .ant-menu-item-selected,
-.ant-menu-dark.ant-menu-inline .ant-menu-item-selected {
+/* Submenu title text dan icon harus terlihat */
+.ant-menu-submenu-title,
+.ant-menu-dark .ant-menu-submenu-title {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-submenu-title .anticon,
+.ant-menu-dark .ant-menu-submenu-title .anticon {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-submenu-title:hover,
+.ant-menu-dark .ant-menu-submenu-title:hover {
+  color: #ffffff !important;
+}
+
+.ant-menu-submenu-title:hover .anticon,
+.ant-menu-dark .ant-menu-submenu-title:hover .anticon {
+  color: #ffffff !important;
+}
+
+/* Override untuk menu dark theme - pastikan tidak mempengaruhi submenu title */
+.ant-menu-dark .ant-menu-item-selected:not(.ant-menu-submenu-title),
+.ant-menu-dark.ant-menu-inline .ant-menu-item-selected:not(.ant-menu-submenu-title) {
   background: #b91c1c !important;
   background-color: #b91c1c !important;
 }
 
-.ant-menu-dark .ant-menu-item-selected:hover {
+.ant-menu-dark .ant-menu-item-selected:not(.ant-menu-submenu-title):hover {
   background: #dc2626 !important;
   background-color: #dc2626 !important;
+}
+
+/* Pastikan semua menu item text terlihat */
+.ant-menu-item,
+.ant-menu-dark .ant-menu-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-item .anticon,
+.ant-menu-dark .ant-menu-item .anticon {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-menu-item:hover,
+.ant-menu-dark .ant-menu-item:hover {
+  color: #ffffff !important;
+}
+
+.ant-menu-item:hover .anticon,
+.ant-menu-dark .ant-menu-item:hover .anticon {
+  color: #ffffff !important;
 }
 
 /* Override Ant Design Tabs - Ubah dari biru ke merah */
