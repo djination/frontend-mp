@@ -22,7 +22,6 @@ export const getAccountBankById = async (id) => {
 
 export const createAccountBank = async (accountBankData) => {
   try {
-    console.log('📤 Creating Account Bank:', accountBankData);
     const response = await axiosInstance.post('/account-bank', accountBankData);
     return response.data;
   } catch (error) {

@@ -2,10 +2,7 @@ import axiosInstance from "../config/axiosInstance";
 
 export const getIndustries = async (params = {}) => {
   try {
-    console.log('industryApi.getIndustries called with params:', params);
     const response = await axiosInstance.get('/industry', { params });
-    console.log('industryApi.getIndustries response:', response);
-    console.log('industryApi.getIndustries response.data:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching account categories:', error);
@@ -55,11 +52,9 @@ export const deleteIndustry = async (id) => {
 
 export const bulkCreateIndustries = async (data) => {
   try {
-    console.log('Sending bulk create request with data:', data.length, 'items');
     const response = await axiosInstance.post('/industry/bulk', data, {
       timeout: 120000, // 2 minutes for bulk operations
     });
-    console.log('Bulk create response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error bulk creating industries:', error);

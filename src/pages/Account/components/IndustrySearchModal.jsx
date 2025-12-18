@@ -30,7 +30,6 @@ const IndustrySearchModal = ({ visible, onCancel, onSelect, selectedIndustry }) 
       }
 
       const response = await getIndustries(params);
-      console.log('IndustrySearchModal - Full response:', response);
       
       // Backend returns: { data: Industry[], meta: { total, page, limit, totalPages } }
       let industryList = [];
@@ -43,9 +42,6 @@ const IndustrySearchModal = ({ visible, onCancel, onSelect, selectedIndustry }) 
         industryList = response.data.data;
         meta = response.data.meta || response.meta || { total: industryList.length, page, limit, totalPages: 1 };
       }
-      
-      console.log('IndustrySearchModal - Extracted industry list:', industryList);
-      console.log('IndustrySearchModal - Meta:', meta);
       
       setIndustries(industryList);
       setPagination({

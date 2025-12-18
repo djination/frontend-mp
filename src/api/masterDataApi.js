@@ -24,24 +24,19 @@ const clearToken = () => {
   authToken = null;
   tokenExpiry = null;
   clearOAuthToken();
-  console.log("Cleared expired authentication token");
 };
 
 const getAuthToken = async () => {
   if (authToken && tokenExpiry && new Date() < new Date(tokenExpiry)) {
-    console.log("Using cached token from masterDataApi");
     return authToken;
   }
   
-  console.log("Requesting new OAuth token via CORS handling...");
   try {
     const tokenResult = await getOAuthTokenWithCORSHandling();
-    console.log("Token response received:", tokenResult ? "Success" : "Failed");
     
     if (tokenResult && typeof tokenResult === "string" && tokenResult.length > 50) {
       authToken = tokenResult;
       tokenExpiry = new Date(Date.now() + 3600 * 1000);
-      console.log("OAuth token cached successfully in masterDataApi");
       return authToken;
     }
     
@@ -70,14 +65,12 @@ const performRequestWithRetry = async (requestFn, entityName, operation) => {
   
   while (retryCount < maxRetries) {
     try {
-      console.log(`${operation} ${entityName}, attempt ${retryCount + 1}...`);
       return await requestFn();
     } catch (error) {
       console.error(`${operation} ${entityName} failed:`, error.message);
       
       // If it's a 401 error and first attempt, clear token and retry
       if (error.response?.status === 401 && retryCount === 0) {
-        console.log("Got 401 error, clearing token and retrying...");
         clearToken();
         retryCount++;
         continue;
@@ -113,7 +106,6 @@ export const createMachine = async (data) => {
     }
     
     const response = await axios.post(API_BASES.MACHINE_CRUD, data, { headers });
-    console.log("Machine created successfully");
     return response.data;
   }, "machine", "Creating");
 };
@@ -126,7 +118,6 @@ export const updateMachine = async (id, data) => {
     }
     
     const response = await axios.put(`${API_BASES.MACHINE_CRUD}/${id}`, data, { headers });
-    console.log(`Machine ${id} updated successfully`);
     return response.data;
   }, "machine", "Updating");
 };
@@ -139,7 +130,6 @@ export const deleteMachine = async (id) => {
     }
     
     const response = await axios.delete(`${API_BASES.MACHINE_CRUD}/${id}`, { headers });
-    console.log(`Machine ${id} deleted successfully`);
     return response.data;
   }, "machine", "Deleting");
 };
@@ -153,7 +143,6 @@ export const getBranches = async (type = "all") => {
     }
     
     const response = await axios.get(`${API_BASES.BRANCH_QUERY}/query`, { headers });
-    console.log("Branches fetched successfully");
     return response.data;
   }, "branches", "Fetching");
 };
@@ -166,7 +155,6 @@ export const updateBranch = async (id, data) => {
     }
     
     const response = await axios.put(`${API_BASES.BRANCH_CRUD}/${id}`, data, { headers });
-    console.log(`Branch ${id} updated successfully`);
     return response.data;
   }, "branch", "Updating");
 };
@@ -180,7 +168,6 @@ export const getServiceLocations = async (page = 1, limit = 10) => {
     }
     
     const response = await axios.get(`${API_BASES.SERVICE_LOCATION_QUERY}/query?page=${page}&limit=${limit}`, { headers });
-    console.log("Service locations fetched successfully");
     return response.data;
   }, "service locations", "Fetching");
 };
@@ -193,7 +180,6 @@ export const createServiceLocation = async (data) => {
     }
     
     const response = await axios.post(API_BASES.SERVICE_LOCATION_CRUD, data, { headers });
-    console.log("Service location created successfully");
     return response.data;
   }, "service location", "Creating");
 };
@@ -206,7 +192,6 @@ export const updateServiceLocation = async (id, data) => {
     }
     
     const response = await axios.put(`${API_BASES.SERVICE_LOCATION_CRUD}/${id}`, data, { headers });
-    console.log(`Service location ${id} updated successfully`);
     return response.data;
   }, "service location", "Updating");
 };
@@ -220,7 +205,6 @@ export const getVendors = async (type = "all") => {
     }
     
     const response = await axios.get(`${API_BASES.VENDOR_QUERY}/query`, { headers });
-    console.log("Vendors fetched successfully");
     
     // Apply filtering logic if needed
     return filterVendorsByType(response.data, type);
@@ -235,7 +219,6 @@ export const createVendor = async (data) => {
     }
     
     const response = await axios.post(API_BASES.VENDOR_CRUD, data, { headers });
-    console.log("Vendor created successfully");
     return response.data;
   }, "vendor", "Creating");
 };
@@ -248,15 +231,12 @@ export const updateVendor = async (id, data) => {
     }
     
     const response = await axios.put(`${API_BASES.VENDOR_CRUD}/${id}`, data, { headers });
-    console.log(`Vendor ${id} updated successfully`);
     return response.data;
   }, "vendor", "Updating");
 };
 
 // Helper function for vendor filtering (keeping existing logic)
 const filterVendorsByType = (responseData, type) => {
-  console.log("Filtering vendors - Raw response:", responseData);
-  
   let allVendors;
   if (Array.isArray(responseData)) {
     allVendors = responseData;
@@ -267,8 +247,6 @@ const filterVendorsByType = (responseData, type) => {
     return { data: [] };
   }
   
-  console.log(`Total vendors received: ${allVendors.length}`);
-  
   if (type === "all") {
     return { data: allVendors };
   }
@@ -278,7 +256,6 @@ const filterVendorsByType = (responseData, type) => {
     return vendor.type.toLowerCase() === type.toLowerCase();
   });
   
-  console.log(`Filtered vendors for type "${type}": ${filtered.length}`);
   return { data: filtered };
 };
 
