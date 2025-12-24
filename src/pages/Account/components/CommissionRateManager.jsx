@@ -223,9 +223,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
       if (!isTemp) {
         // Delete from backend first if it's not a temporary record
         await deleteCommissionRate(id);
-        console.log('Successfully deleted from backend');
-      } else {
-        console.log('Skipping backend delete - this is a temporary record');
       }
       
       // Then remove from local state
@@ -348,7 +345,6 @@ const CommissionRateManager = ({ accountId, accountCategories, selectedAccountCa
                 value={getFieldValue('commission_type')}
                 onChange={(value) => {
                   setFieldValue('commission_type', value);
-                  console.log('Commission type changed:', value);
                 }}
                 style={{ width: '100%' }}
               >

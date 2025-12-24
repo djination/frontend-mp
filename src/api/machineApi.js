@@ -6,16 +6,8 @@ const logApiCall = async (method, url, data = null, params = null, response = nu
   try {
     // Only log POST and PUT operations (create/update), skip GET operations
     if (method !== 'POST' && method !== 'PUT' && method !== 'PATCH' && method !== 'DELETE') {
-      console.log('📝 Audit trail (skipped for GET):', method, url);
       return;
     }
-
-    console.log('📝 Audit trail (logging):', {
-      method,
-      url,
-      status: response?.status || error?.response?.status,
-      timestamp: new Date().toISOString()
-    });
 
     // Format data sesuai dengan struktur backend audit trail logs
     const logData = {
@@ -38,8 +30,6 @@ const logApiCall = async (method, url, data = null, params = null, response = nu
     // Send to audit trail endpoint (using backend-ext/audit-logs with JWT authentication)
     try {
       // Use backend-ext/audit-logs endpoint with JWT authentication
-      console.log('📝 Frontend sending audit to backend-ext/audit-logs with JWT auth');
-      
       const auditResponse = await axios.post('/backend-ext/audit-logs', logData, {
         timeout: 5000, // 5 second timeout
         headers: {
@@ -50,10 +40,8 @@ const logApiCall = async (method, url, data = null, params = null, response = nu
       });
       
       // Check if the response was actually successful
-      if (auditResponse.status >= 200 && auditResponse.status < 300) {
-        console.log('✅ Audit log sent successfully:', auditResponse.status);
-      } else {
-        console.warn('⚠️ Audit logging returned unexpected status:', auditResponse.status);
+      if (auditResponse.status < 200 || auditResponse.status >= 300) {
+        console.warn('Audit logging returned unexpected status:', auditResponse.status);
       }
     } catch (logError) {
       if (logError.response?.status === 401) {
@@ -119,24 +107,19 @@ const clearToken = () => {
   authToken = null;
   tokenExpiry = null;
   clearOAuthToken(); // Also clear the OAuth fallback cache
-  console.log("Cleared expired authentication token");
 };
 
 const getAuthToken = async () => {
   if (authToken && tokenExpiry && new Date() < new Date(tokenExpiry)) {
-    console.log("Using cached token from machineApi");
     return authToken;
   }
   
-  console.log("Requesting new OAuth token via CORS handling...");
   try {
     const tokenResult = await getOAuthTokenWithCORSHandling();
-    console.log("Token response received:", tokenResult ? "Success" : "Failed");
     
     if (tokenResult && typeof tokenResult === "string" && tokenResult.length > 50) {
       authToken = tokenResult;
       tokenExpiry = new Date(Date.now() + 3600 * 1000);
-      console.log("OAuth token cached successfully in machineApi");
       return authToken;
     }
     
@@ -165,8 +148,6 @@ export const getMachines = async (page = 1, limit = 10) => {
   
   while (retryCount < maxRetries) {
     try {
-      console.log(`Fetching machines (page: ${page}, limit: ${limit}), attempt ${retryCount + 1}...`);
-      
       // Always ensure we have a valid OAuth token first
       const headers = await getHeaders();
       
@@ -178,9 +159,7 @@ export const getMachines = async (page = 1, limit = 10) => {
       
       // Use proxy for machine query API
       try {
-        console.log("Fetching machines via proxy...");
         const response = await axios.get(`/external-api/machine/query?page=${page}&limit=${limit}`, { headers });
-        console.log("Machines fetched via proxy", response.data);
         
         // Check if response.data is an array (direct API format) or has data property
         if (Array.isArray(response.data)) {
@@ -196,7 +175,6 @@ export const getMachines = async (page = 1, limit = 10) => {
       } catch (proxyError) {
         // If it's a 401 error, clear token and retry
         if (proxyError.response?.status === 401 && retryCount === 0) {
-          console.log("Got 401 error, clearing token and retrying...");
           clearToken();
           retryCount++;
           continue;
@@ -210,7 +188,6 @@ export const getMachines = async (page = 1, limit = 10) => {
       
       // If it's a 401 error on first attempt, clear token and retry
       if (error.response?.status === 401 && retryCount === 0) {
-        console.log("Critical 401 error, clearing token and retrying...");
         clearToken();
         retryCount++;
         continue;

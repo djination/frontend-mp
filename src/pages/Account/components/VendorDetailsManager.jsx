@@ -173,7 +173,6 @@ const VendorDetailsManager = ({ accountId, accountCategories, selectedAccountCat
           if (response && response.data) {
             refreshedVendorData = Array.isArray(response.data) ? response.data : [response.data];
           }
-          console.log('Refreshed vendor data after update:', refreshedVendorData); // Debug log
           setVendorDetailsState(refreshedVendorData);
         }
         // Clear vendor form fields after successful backend update

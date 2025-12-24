@@ -45,9 +45,7 @@ const BackendExtConfigPage = () => {
   const fetchConfigs = async () => {
     setLoading(true);
     try {
-      console.log('🔄 Fetching backend ext configurations...');
       const response = await backendExtApi.getConfigs();
-      console.log('📥 API Response:', response);
       
       // Handle nested response structure: response.data.data
       let configsData = [];
@@ -55,22 +53,18 @@ const BackendExtConfigPage = () => {
       if (response && response.success && response.data && response.data.data && Array.isArray(response.data.data)) {
         // Nested structure: response.data.data
         configsData = response.data.data;
-        console.log('✅ Configurations loaded from response.data.data:', configsData);
       } else if (response && response.success && response.data && Array.isArray(response.data)) {
         // Direct data array: response.data
         configsData = response.data;
-        console.log('✅ Configurations loaded from response.data:', configsData);
       } else if (response && Array.isArray(response)) {
         // Direct array response
         configsData = response;
-        console.log('✅ Direct array response:', configsData);
       } else {
         console.warn('⚠️ Unexpected response structure:', response);
         configsData = [];
       }
       
       setConfigs(configsData);
-      console.log('📊 Total configurations set:', configsData.length);
     } catch (error) {
       console.error('❌ Error fetching configurations:', error);
       message.error(`Failed to fetch configurations: ${error.message || 'Unknown error'}`);
@@ -119,15 +113,10 @@ const BackendExtConfigPage = () => {
     setTestingConnection(prev => ({ ...prev, [config.id]: true }));
     
     try {
-      console.log('🔄 Testing connection for config:', config.name);
       const response = await backendExtApi.testConnection(config);
-      console.log('📥 Test connection response:', response);
       
       if (response && response.success) {
         message.success(`Connection test successful for ${config.name}`);
-        if (response.data) {
-          console.log('✅ Test result:', response.data);
-        }
       } else {
         const errorMsg = response?.message || 'Unknown error';
         message.error(`Connection test failed for ${config.name}: ${errorMsg}`);
@@ -144,13 +133,10 @@ const BackendExtConfigPage = () => {
 
   const showCacheStatus = async () => {
     try {
-      console.log('🔄 Fetching cache status...');
       const response = await backendExtApi.getCacheStatus();
-      console.log('📥 Cache status response:', response);
       
       if (response && response.success) {
         const cacheData = response.data || [];
-        console.log('✅ Cache data:', cacheData);
         
         if (Array.isArray(cacheData) && cacheData.length > 0) {
           Modal.info({
@@ -212,13 +198,10 @@ const BackendExtConfigPage = () => {
 
   const clearAllCache = async () => {
     try {
-      console.log('🔄 Clearing all cache...');
       const response = await backendExtApi.clearAllCache();
-      console.log('📥 Clear cache response:', response);
       
       if (response && response.success) {
         message.success('All token cache cleared successfully');
-        console.log('✅ Cache cleared successfully');
       } else {
         const errorMsg = response?.message || 'Unknown error';
         message.error(`Failed to clear cache: ${errorMsg}`);

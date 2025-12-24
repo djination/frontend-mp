@@ -41,7 +41,6 @@ const CustomerSyncDebug = ({
   // Auto debug saat accountData berubah
   useEffect(() => {
     if (accountData && Object.keys(accountData).length > 0) {
-      console.log('🔄 Account data changed, running auto debug...');
       handleAutoDebug();
     }
   }, [accountData]);
@@ -53,7 +52,6 @@ const CustomerSyncDebug = ({
       const result = await debugData(accountData);
       if (result?.success) {
         setLastDebugResult(result);
-        console.log('✅ Auto debug completed');
       }
     } catch (err) {
       console.error('❌ Auto debug failed:', err);

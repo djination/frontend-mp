@@ -15,7 +15,6 @@ let tokenExpiry = null;
 
 const getAuthToken = async () => {
   if (cachedToken && tokenExpiry && new Date() < new Date(tokenExpiry)) {
-    console.log("Using cached OAuth token");
     return cachedToken;
   }
 
@@ -27,14 +26,6 @@ const getAuthToken = async () => {
 
     // Create Basic Auth header
     const credentials = btoa(`${OAUTH_CONFIG.clientId}:${OAUTH_CONFIG.clientSecret}`);
-
-    console.log("🔐 Getting OAuth token for external API...");
-    console.log("OAuth Config:", { 
-      clientId: OAUTH_CONFIG.clientId, 
-      tokenUrl: OAUTH_CONFIG.tokenUrl,
-      grantType: OAUTH_CONFIG.grantType,
-      scope: OAUTH_CONFIG.scope 
-    });
     
     const response = await axios.post(OAUTH_CONFIG.tokenUrl, params, {
       headers: {
@@ -43,15 +34,12 @@ const getAuthToken = async () => {
       },
       timeout: 5000  // Short timeout for OAuth
     });
-
-    console.log("OAuth response received:", response.status, response.statusText);
     
     if (response.data && response.data.access_token) {
       cachedToken = response.data.access_token;
       const expiresIn = response.data.expires_in || 3600;
       tokenExpiry = new Date(Date.now() + (expiresIn * 1000));
       
-      console.log("✅ OAuth token cached successfully for publishedPackageTier");
       return cachedToken;
     }
     
@@ -64,7 +52,6 @@ const getAuthToken = async () => {
     cachedToken = "dev_token_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
     tokenExpiry = new Date(Date.now() + (3600 * 1000)); // 1 hour
     
-    console.log("🔧 Using development fallback token");
     return cachedToken;
   }
 };

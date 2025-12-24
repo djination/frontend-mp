@@ -92,14 +92,10 @@ const MachineListPage = () => {
       let response;
       
       if (useBackendExt) {
-        console.log("🔄 Fetching machines via backend-ext...");
         response = await machineApiWithBackendExt.getMachines(page, pageSize);
       } else {
-        console.log("🔄 Fetching machines via direct API...");
         response = await getMachines(page, pageSize);
       }
-      
-      console.log("Machine data received:", response);
       
       if (response && response.data) {
         setMachines(response.data);
@@ -123,12 +119,9 @@ const MachineListPage = () => {
 
   const fetchVendorsAndSetFilters = async () => {
     try {
-      console.log("Fetching vendor data for filters...");
-      
       let gatewayResult, pjpurResult, supplierResult, maintenanceResult;
       
       if (useBackendExt) {
-        console.log("🔄 Fetching vendors via backend-ext...");
         [gatewayResult, pjpurResult, supplierResult, maintenanceResult] = await Promise.all([
           machineApiWithBackendExt.getGatewayVendors(),
           machineApiWithBackendExt.getPjpurVendors(),
@@ -136,7 +129,6 @@ const MachineListPage = () => {
           machineApiWithBackendExt.getMaintenanceVendors()
         ]);
       } else {
-        console.log("🔄 Fetching vendors via direct API...");
         [gatewayResult, pjpurResult, supplierResult, maintenanceResult] = await Promise.all([
           getGatewayVendors(),
           getPjpurVendors(),
@@ -144,13 +136,6 @@ const MachineListPage = () => {
           getMaintenanceVendors()
         ]);
       }
-      
-      console.log("Vendor filter results:", {
-        gateway: gatewayResult,
-        pjpur: pjpurResult,
-        supplier: supplierResult,
-        maintenance: maintenanceResult
-      });
       
       const processVendorData = (result, type) => {
         if (!result) return [];
@@ -177,8 +162,6 @@ const MachineListPage = () => {
         supplier: processVendorData(supplierResult, "supplier"),
         maintenance: processVendorData(maintenanceResult, "maintenance")
       });
-      
-      console.log("Vendor filters set successfully");
     } catch (error) {
       console.error("Failed to fetch vendor data for filters:", error);
       message.warning("Failed to load vendor filter options");
@@ -190,14 +173,10 @@ const MachineListPage = () => {
       let response;
       
       if (useBackendExt) {
-        console.log("🔄 Fetching branches via backend-ext...");
         response = await machineApiWithBackendExt.getBranches();
       } else {
-        console.log("🔄 Fetching branches via direct API...");
         response = await getBranches();
       }
-      
-      console.log("Branch data received:", response);
       
       let branchList = [];
       if (Array.isArray(response)) {
@@ -207,7 +186,6 @@ const MachineListPage = () => {
       }
       
       setBranches(branchList);
-      console.log("Branches set:", branchList.length);
     } catch (error) {
       console.error("Failed to fetch branches:", error);
       message.warning(`Failed to load branch data ${useBackendExt ? 'via backend-ext' : 'via direct API'}`);
@@ -217,10 +195,8 @@ const MachineListPage = () => {
   const handleDelete = async (id) => {
     try {
       if (useBackendExt) {
-        console.log("🗑️ Deleting machine via backend-ext...");
         await machineApiWithBackendExt.deleteMachine(id);
       } else {
-        console.log("🗑️ Deleting machine via direct API...");
         await deleteMachine(id);
       }
       

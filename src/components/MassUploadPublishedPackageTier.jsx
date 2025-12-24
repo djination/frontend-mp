@@ -29,12 +29,8 @@ const MassUploadPublishedPackageTier = ({ visible, onClose, onSuccess }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-
-      console.log('=== Frontend Upload Debug ===');
-      console.log('File to upload:', file.name, file.size);
       
       const result = await uploadPublishedPackageTiers(formData);
-      console.log('Upload result received:', result);
       
       setUploadResult(result);
       setCurrentStep(2);
@@ -42,12 +38,8 @@ const MassUploadPublishedPackageTier = ({ visible, onClose, onSuccess }) => {
       // Show appropriate messages
       if (result.success > 0) {
         message.success(`Successfully uploaded ${result.success} published package tiers`);
-        console.log('=== Calling onSuccess callback ===');
         if (onSuccess) {
-          console.log('onSuccess callback exists, calling it...');
           onSuccess();
-        } else {
-          console.log('onSuccess callback is not provided');
         }
       }
 

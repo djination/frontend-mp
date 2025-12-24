@@ -148,8 +148,6 @@ const ensureBillingRulesStructure = (billingRules) => {
 };
 
 const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [], billingMethodsData = []) => {
-  console.log('🗺️ Starting mapApiResponseToFormData with:', { apiResponse, packageTiers, addOnsData, billingMethodsData });
-  
   try {
     let extractedData = null;
     
@@ -158,7 +156,6 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
     }
     
     if (!extractedData || (!extractedData.charging_metric && !extractedData.billing_rules)) {
-      console.log('📋 Using default form data - no extracted data');
       return getDefaultFormData();
     }
     
@@ -168,26 +165,17 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
       add_ons: Array.isArray(extractedData.add_ons) ? extractedData.add_ons : []
     };
     
-    console.log('📋 Base form data created:', formData);
-    
     // Integrate package tiers data if available
     if (packageTiers && packageTiers.length > 0) {
-      console.log('🔄 Integrating package tiers:', packageTiers);
-      console.log('🔍 Current charging metric:', formData.charging_metric);
-      
       if (formData.charging_metric.type === 'dedicated' && 
           formData.charging_metric.dedicated?.tiers) {
         
-        formData.charging_metric.dedicated.tiers = formData.charging_metric.dedicated.tiers.map((tier, tierIndex) => {
-          console.log(`🎯 Processing tier ${tierIndex}:`, tier);
-          
+        formData.charging_metric.dedicated.tiers = formData.charging_metric.dedicated.tiers.map((tier) => {
           if (tier.type === 'package') {
             // Convert package tiers from database to form format
-            const packageTierData = packageTiers.map((dbTier, index) => {
-              console.log(`Converting dbTier ${index}:`, dbTier);
-              
+            const packageTierData = packageTiers.map((dbTier) => {
               try {
-                const converted = {
+                return {
                   ...(dbTier.id && { id: dbTier.id, _isExisting: true }), // Add ID and existing flag if available
                   min: Number(dbTier.min_value) || 0,
                   max: Number(dbTier.max_value) || 0,
@@ -195,12 +183,8 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
                   start_date: dayjs(dbTier.start_date),
                   end_date: dayjs(dbTier.end_date)
                 };
-                console.log(`✅ Converted tier ${index}:`, converted);
-                console.log(`✅ start_date dayjs object:`, converted.start_date.format('YYYY-MM-DD'));
-                console.log(`✅ end_date dayjs object:`, converted.end_date.format('YYYY-MM-DD'));
-                return converted;
               } catch (conversionError) {
-                console.error(`❌ Error converting tier ${index}:`, conversionError);
+                console.error('Error converting tier:', conversionError);
                 return {
                   min: 0,
                   max: 0,
@@ -211,8 +195,6 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
               }
             });
             
-            console.log('📦 Converted package tier data:', packageTierData);
-            
             return {
               ...tier,
               package: {
@@ -222,21 +204,13 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
           }
           return tier;
         });
-        
-        console.log('✅ Final charging metric after integration:', formData.charging_metric);
       }
-    } else {
-      console.log('ℹ️ No package tiers to integrate or empty array');
     }
     
     // Integrate add-ons data if available
     if (addOnsData && addOnsData.length > 0) {
-      console.log('🔄 Integrating add-ons data:', addOnsData);
-      
       // Convert add-ons from database format to form format
-      const formattedAddOns = addOnsData.map((dbAddOn, index) => {
-        console.log(`Converting dbAddOn ${index}:`, dbAddOn);
-        
+      const formattedAddOns = addOnsData.map((dbAddOn) => {
         try {
           const converted = {
             id: dbAddOn.id, // Include ID for existing records
@@ -247,10 +221,6 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
           
           // Add type-specific data
           if (dbAddOn.add_ons_type === 'system_integration') {
-            console.log('🔍 Raw dbAddOn for system_integration:', dbAddOn);
-            console.log('🔍 billing_method_type:', dbAddOn.billing_method_type);
-            console.log('🔍 custom_fee:', dbAddOn.custom_fee);
-            
             converted.system_integration = {
               api_type: dbAddOn.api_type,
               complexity: dbAddOn.complexity_level,
@@ -266,13 +236,7 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
                 )
               }
             };
-            
-            console.log('🔍 Converted billing_method:', converted.system_integration.billing_method);
           } else if (dbAddOn.add_ons_type === 'infrastructure') {
-            console.log('🔍 Raw dbAddOn for infrastructure:', dbAddOn);
-            console.log('🔍 billing_method_type:', dbAddOn.billing_method_type);
-            console.log('🔍 custom_fee:', dbAddOn.custom_fee);
-            
             converted.infrastructure = {
               type: dbAddOn.infrastructure_type,
               size: dbAddOn.resource_size,
@@ -288,14 +252,11 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
                 )
               }
             };
-            
-            console.log('🔍 Converted billing_method:', converted.infrastructure.billing_method);
           }
           
-          console.log(`✅ Converted add-on ${index}:`, converted);
           return converted;
         } catch (conversionError) {
-          console.error(`❌ Error converting add-on ${index}:`, conversionError);
+          console.error('Error converting add-on:', conversionError);
           return {
             type: 'system_integration',
             is_active: true,
@@ -314,17 +275,13 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
         }
       });
       
-      console.log('🔧 Converted add-ons data:', formattedAddOns);
       formData.add_ons = formattedAddOns;
     } else {
-      console.log('ℹ️ No add-ons to integrate or empty array');
       formData.add_ons = [];
     }
     
     // Integrate billing methods data back to charging metric tiers
     if (billingMethodsData && billingMethodsData.length > 0) {
-      console.log('🔄 Integrating billing methods data:', billingMethodsData);
-      
       // Map billing methods by source for easier lookup
       const billingMethodsBySource = {};
       billingMethodsData.forEach((method) => {
@@ -346,8 +303,6 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
           console.warn('Failed to parse billing method description:', method.description);
         }
       });
-      
-      console.log('💳 Billing methods by source:', billingMethodsBySource);
       
       // Restore billing methods to dedicated tiers
       if (formData.charging_metric.type === 'dedicated' && 
@@ -382,13 +337,8 @@ const mapApiResponseToFormData = (apiResponse, packageTiers = [], addOnsData = [
           return tier;
         });
       }
-      
-      console.log('✅ Billing methods restored to charging metric tiers');
-    } else {
-      console.log('ℹ️ No billing methods to integrate or empty array');
     }
     
-    console.log('🏁 Final form data:', formData);
     return formData;
     
   } catch (error) {
@@ -442,10 +392,7 @@ const RevenueRuleModal = ({
   // Fetch and prepare data when modal opens
   useEffect(() => {
     const fetchData = async () => {
-      console.log('🔄 useEffect fetchData triggered:', { visible, accountId, accountService, initRefCurrent: initRef.current });
-      
       if (!visible || !accountId || !accountService || initRef.current) {
-        console.log('⏭️ Skipping fetchData:', { visible, accountId, accountService, initRefCurrent: initRef.current });
         return;
       }
     
@@ -460,8 +407,6 @@ const RevenueRuleModal = ({
           throw new Error('No account service ID available');
         }
 
-        console.log('🚀 Fetching data for:', { accountId, accountServiceId });
-
         // Fetch revenue rules, package tiers, add-ons, and billing methods
         const [revenueRulesResponse, packageTiersResponse, addOnsResponse, billingMethodsResponse] = await Promise.allSettled([
           getAccountRevenueRulesByAccountServiceAsTree(accountId, accountServiceId),
@@ -470,13 +415,6 @@ const RevenueRuleModal = ({
           revenueRuleApi.billingMethods.getByAccountId(accountId)
         ]);
         
-        console.log('📥 API Responses:', { 
-          revenueRules: revenueRulesResponse,
-          packageTiers: packageTiersResponse,
-          addOns: addOnsResponse,
-          billingMethods: billingMethodsResponse 
-        });
-        
         let revenueRulesData = null;
         let packageTiersData = [];
         let addOnsData = [];
@@ -484,14 +422,12 @@ const RevenueRuleModal = ({
         
         if (revenueRulesResponse.status === 'fulfilled') {
           revenueRulesData = revenueRulesResponse.value;
-          console.log('✅ Revenue rules response:', revenueRulesData);
         } else {
-          console.warn('❌ Failed to fetch revenue rules:', revenueRulesResponse.reason);
+          console.warn('Failed to fetch revenue rules:', revenueRulesResponse.reason);
         }
         
         if (packageTiersResponse.status === 'fulfilled') {
           const packageTiersApiResponse = packageTiersResponse.value || {};
-          console.log('📦 Package tiers API response:', packageTiersApiResponse);
           
           // Extract the actual data array from the API response
           if (packageTiersApiResponse.success && packageTiersApiResponse.data) {
@@ -499,52 +435,14 @@ const RevenueRuleModal = ({
           } else {
             packageTiersData = [];
           }
-          
-          console.log('📦 Package tiers data extracted:', packageTiersData);
-          console.log('📦 Package tiers type:', typeof packageTiersData);
-          console.log('📦 Package tiers length:', packageTiersData.length);
-          
-          // Don't add dummy data if real data exists
-          if (!packageTiersData || packageTiersData.length === 0) {
-            console.log('🧪 No real data, adding dummy package tier data for testing');
-            packageTiersData = [
-              {
-                min_value: 10000,
-                max_value: 1000000,
-                amount: 5000,
-                start_date: '2025-01-01',
-                end_date: '2025-12-31'
-              },
-              {
-                min_value: 1000001,
-                max_value: 10000000,
-                amount: 10000,
-                start_date: '2025-01-01',
-                end_date: '2025-12-31'
-              }
-            ];
-          } else {
-            console.log('✅ Using real package tier data');
-          }
         } else {
-          console.warn('❌ Failed to fetch package tiers:', packageTiersResponse.reason);
-          // Even if API fails, add dummy data for testing
-          console.log('🧪 Adding dummy package tier data due to API failure');
-          packageTiersData = [
-            {
-              min_value: 10000,
-              max_value: 1000000,
-              amount: 5000,
-              start_date: '2025-01-01',
-              end_date: '2025-12-31'
-            }
-          ];
+          console.warn('Failed to fetch package tiers:', packageTiersResponse.reason);
+          packageTiersData = [];
         }
         
         // Handle Add-Ons response
         if (addOnsResponse.status === 'fulfilled') {
           const addOnsApiResponse = addOnsResponse.value || {};
-          console.log('🔧 Add-Ons API response:', addOnsApiResponse);
           
           // Extract the actual data array from the API response
           if (addOnsApiResponse.success && addOnsApiResponse.data) {
@@ -552,27 +450,14 @@ const RevenueRuleModal = ({
           } else {
             addOnsData = [];
           }
-          
-          console.log('🔧 Add-Ons data extracted:', addOnsData);
-          console.log('🔧 Add-Ons type:', typeof addOnsData);
-          console.log('🔧 Add-Ons length:', addOnsData.length);
-          
-          // Don't add dummy data if real data exists
-          if (!addOnsData || addOnsData.length === 0) {
-            console.log('🧪 No real add-ons data, using empty array');
-            addOnsData = [];
-          } else {
-            console.log('✅ Using real add-ons data');
-          }
         } else {
-          console.warn('❌ Failed to fetch add-ons:', addOnsResponse.reason);
+          console.warn('Failed to fetch add-ons:', addOnsResponse.reason);
           addOnsData = [];
         }
         
         // Handle Billing Methods response
         if (billingMethodsResponse.status === 'fulfilled') {
           const billingMethodsApiResponse = billingMethodsResponse.value || {};
-          console.log('💳 Billing Methods API response:', billingMethodsApiResponse);
           
           // Extract the actual data array from the API response
           if (billingMethodsApiResponse.success && billingMethodsApiResponse.data) {
@@ -580,17 +465,12 @@ const RevenueRuleModal = ({
           } else {
             billingMethodsData = [];
           }
-          
-          console.log('💳 Billing Methods data extracted:', billingMethodsData);
-          console.log('💳 Billing Methods type:', typeof billingMethodsData);
-          console.log('💳 Billing Methods length:', billingMethodsData.length);
         } else {
-          console.warn('❌ Failed to fetch billing methods:', billingMethodsResponse.reason);
+          console.warn('Failed to fetch billing methods:', billingMethodsResponse.reason);
           billingMethodsData = [];
         }
         
         const mappedData = mapApiResponseToFormData(revenueRulesData, packageTiersData, addOnsData, billingMethodsData);
-        console.log('📋 Mapped form data:', mappedData);
         
         setInitialData(mappedData);
         setDataLoaded(true);
@@ -616,7 +496,6 @@ const RevenueRuleModal = ({
             ]
           };
         }
-        console.log('🧪 Using default data with dummy package tiers:', defaultData);
         setInitialData(defaultData);
         setDataLoaded(true);
       } finally {
@@ -632,29 +511,7 @@ const RevenueRuleModal = ({
   // Set form values when initial data is loaded
   useEffect(() => {
     if (dataLoaded && initialData) {
-      console.log('🎯 Setting form values:', initialData);
-      console.log('🎯 Add-ons structure:', initialData.add_ons);
       form.setFieldsValue(initialData);
-      
-      // Debug: Check what was actually set
-      setTimeout(() => {
-        const currentValues = form.getFieldsValue();
-        console.log('📋 Current form values after setting:', currentValues);
-        console.log('📋 Add-ons in form:', currentValues.add_ons);
-        
-        // Specifically check billing method types
-        if (currentValues.add_ons) {
-          currentValues.add_ons.forEach((addon, index) => {
-            console.log(`📋 Add-on ${index} type:`, addon.type);
-            if (addon.system_integration?.billing_method) {
-              console.log(`📋 Add-on ${index} system_integration billing_method:`, addon.system_integration.billing_method);
-            }
-            if (addon.infrastructure?.billing_method) {
-              console.log(`📋 Add-on ${index} infrastructure billing_method:`, addon.infrastructure.billing_method);
-            }
-          });
-        }
-      }, 500); // Increased delay to 500ms
     }
   }, [dataLoaded, initialData, form]);
 
@@ -668,48 +525,33 @@ const RevenueRuleModal = ({
       setLoading(true);
       
       const values = await form.validateFields();
-      console.log('📋 Form values received:', values);
-      console.log('📋 Add-ons from form:', values.add_ons);
-      console.log('📋 Add-ons detailed structure:', JSON.stringify(values.add_ons, null, 2));
       
       const accountServiceId = accountService.id || accountService.service_id;
       const serviceId = accountService.service_id || accountService.service?.id;
-      console.log('🔑 Account info:', { accountId, accountServiceId, serviceId });
-      console.log('🔑 AccountService object:', accountService);
       
       if (!accountServiceId) {
         throw new Error('No account service ID available');
       }
       
       if (!serviceId) {
-        console.warn('⚠️ No service ID available - billing methods will not be linked to a service');
+        console.warn('No service ID available - billing methods will not be linked to a service');
       }
       
       // Validate UUIDs
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(accountId)) {
-        console.error('❌ Invalid accountId UUID:', accountId);
         throw new Error('Invalid account ID format');
       }
       if (!uuidRegex.test(accountServiceId)) {
-        console.error('❌ Invalid accountServiceId UUID:', accountServiceId);
         throw new Error('Invalid account service ID format');
       }
       
       // Extract package tiers for separate table storage
       const packageTiers = [];
       if (values.charging_metric?.type === 'dedicated' && values.charging_metric.dedicated?.tiers) {
-        console.log('🔍 Extracting package tiers from:', values.charging_metric.dedicated.tiers);
-        
-        values.charging_metric.dedicated.tiers.forEach((tier, tierIndex) => {
-          console.log(`🔍 Processing tier ${tierIndex}:`, tier);
-          
+        values.charging_metric.dedicated.tiers.forEach((tier) => {
           if (tier.type === 'package' && tier.package?.tiers) {
-            console.log(`🔍 Found package tiers in tier ${tierIndex}:`, tier.package.tiers);
-            
-            tier.package.tiers.forEach((pkgTier, pkgIndex) => {
-              console.log(`🔍 Processing package tier ${pkgIndex}:`, pkgTier);
-              
+            tier.package.tiers.forEach((pkgTier) => {
               if (pkgTier.min !== undefined && pkgTier.max !== undefined && pkgTier.amount !== undefined && pkgTier.start_date && pkgTier.end_date) {
                 const extractedTier = {
                   ...(pkgTier.id && { id: pkgTier.id }), // Include ID if exists for updates
@@ -720,23 +562,12 @@ const RevenueRuleModal = ({
                   end_date: dayjs(pkgTier.end_date).format('YYYY-MM-DD'),
                 };
                 
-                console.log(`✅ Adding package tier ${pkgIndex}:`, extractedTier);
                 packageTiers.push(extractedTier);
-              } else {
-                console.log(`❌ Skipping incomplete package tier ${pkgIndex}:`, {
-                  min: pkgTier.min,
-                  max: pkgTier.max,
-                  amount: pkgTier.amount,
-                  start_date: pkgTier.start_date,
-                  end_date: pkgTier.end_date
-                });
               }
             });
           }
         });
       }
-      
-      console.log('📦 Final extracted package tiers:', packageTiers);
 
       // Extract Add-Ons for separate table storage
       const addOnsData = [];
@@ -1013,11 +844,6 @@ const RevenueRuleModal = ({
         billing_rules: billingRulesForJSON
       };
       
-      console.log('📤 Final payload to send:', JSON.stringify(payload, null, 2));
-      console.log('📤 Add-Ons data extracted:', addOnsData);
-      console.log('📤 Package tiers extracted:', packageTiers);
-      console.log('📤 Billing methods extracted:', billingMethodsData);
-      
       // Validate payload structure
       if (!payload.account_id || !payload.account_service_id) {
         throw new Error('Missing required account_id or account_service_id');
@@ -1036,7 +862,6 @@ const RevenueRuleModal = ({
             const billingMethodsResponse = await revenueRuleApi.billingMethods.createBulk(accountId, billingMethodsData);
             if (billingMethodsResponse?.data) {
               savedBillingMethods = Array.isArray(billingMethodsResponse.data) ? billingMethodsResponse.data : [billingMethodsResponse.data];
-              console.log('✅ Billing Methods saved with IDs:', savedBillingMethods.map(bm => ({ id: bm.id, method: bm.method })));
             }
           } catch (error) {
             console.error('❌ Failed to save billing methods:', error);
@@ -1054,7 +879,6 @@ const RevenueRuleModal = ({
             );
             if (matchingBillingMethod) {
               addOn.billing_method_id = matchingBillingMethod.id;
-              console.log(`🔗 Linked Add-On ${addOn.add_ons_type} to Billing Method ${matchingBillingMethod.id} (${matchingBillingMethod.method})`);
             }
           });
         }
@@ -1064,7 +888,6 @@ const RevenueRuleModal = ({
             // For package tiers, link to first available billing method or based on some logic
             if (savedBillingMethods.length > 0) {
               tier.billing_method_id = savedBillingMethods[0].id; // Default to first billing method
-              console.log(`🔗 Linked Package Tier to Billing Method ${savedBillingMethods[0].id}`);
             }
           });
         }

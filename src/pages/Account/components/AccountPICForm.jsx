@@ -28,12 +28,6 @@ const AccountPICForm = ({
 
   // Sync localPICs with props when they change
   useEffect(() => {
-    console.log('🔍 AccountPICForm props debug:', {
-      pics: pics,
-      accountData: accountData,
-      accountId: accountId,
-      isEdit: isEdit
-    });
     setLocalPICs(pics || []);
   }, [pics, accountData, accountId, isEdit]);
 
@@ -121,12 +115,6 @@ const AccountPICForm = ({
           // New PICs default to active
           picData.is_active = true;
         }
-        
-        console.log('📝 PIC Form Save:', {
-          isEdit: !!editingPIC,
-          picData,
-          hasPassword: !!picData.password
-        });
         
         if (editingPIC) {
           const updatedPICs = localPICs.map(p =>
@@ -253,8 +241,6 @@ const AccountPICForm = ({
       let configId = null;
       try {
         const activeConfigs = await backendExtApi.getActiveConfigs();
-        console.log('📥 Active configs response:', activeConfigs);
-        
         // Handle different response structures
         let configsData = [];
         if (activeConfigs && activeConfigs.success && activeConfigs.data) {
@@ -281,20 +267,10 @@ const AccountPICForm = ({
         );
         
         configId = userConfig?.id || customerConfig?.id || '473b8ffa-9c2e-4384-b5dc-dd2af3c1f0f9'; // Fallback to hardcoded config
-        console.log('✅ Using config_id:', configId, 'from config:', userConfig?.name || customerConfig?.name || 'hardcoded');
       } catch (configError) {
         console.warn('⚠️ Failed to get config_id, using fallback:', configError);
         configId = '473b8ffa-9c2e-4384-b5dc-dd2af3c1f0f9'; // Fallback to hardcoded config
       }
-
-      console.log('📤 Syncing PIC to external API:', {
-        config_id: configId,
-        url: 'https://stg.merahputih-id.tech:5002/api/customerportal/user/command',
-        method: isUpdate ? 'PATCH' : 'POST',
-        isUpdate,
-        hasUuidBe: !!pic.uuid_be,
-        data: { ...userData, password: userData.password ? '***' : '' } // Hide password in log
-      });
 
       // Make API request to sync user
       const response = await backendExtApi.makeApiRequest({
@@ -303,8 +279,6 @@ const AccountPICForm = ({
         url: 'https://stg.merahputih-id.tech:5002/api/customerportal/user/command',
         data: userData
       });
-
-      console.log('✅ Sync response:', response);
 
       // Check if external API returned an error
       if (response?.data?.error || (response?.data?.success === false)) {
@@ -354,7 +328,6 @@ const AccountPICForm = ({
 
       // If we got a new ID from POST, save it to database
       if (externalId && pic.id) {
-        console.log('💾 Saving external ID to database:', externalId);
         try {
           await updateAccountPIC(pic.id, { uuid_be: externalId });
           
@@ -366,8 +339,6 @@ const AccountPICForm = ({
           );
           setLocalPICs(updatedPICs);
           onChange(updatedPICs);
-          
-          console.log('✅ Successfully saved external ID to database');
         } catch (updateError) {
           console.error('❌ Error saving external ID to database:', updateError);
           message.warning('PIC synced but failed to save external ID. Please refresh the page.');
@@ -469,19 +440,6 @@ const AccountPICForm = ({
             const hasBranchUuid = !!(accountData?.branch_uuid_be);
             const canSync = hasPicId && hasAccountUuid && hasBranchUuid;
             const picId = record.uuid_be || record.id;
-            
-            console.log('🔍 Sync button debug:', {
-              recordUuidBe: record.uuid_be,
-              recordId: record.id,
-              hasPicId,
-              accountUuidBe: accountData?.uuid_be,
-              branchUuidBe: accountData?.branch_uuid_be,
-              hasAccountUuid,
-              hasBranchUuid,
-              canSync,
-              record: record,
-              accountData: accountData
-            });
             
             if (!hasPicId) {
               return null; // Don't show sync button if PIC has no ID

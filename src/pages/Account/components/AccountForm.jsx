@@ -427,13 +427,6 @@ const AccountForm = ({
         allowedFields
       );
       
-      // Log untuk debugging
-      console.log('💾 Saving PIC to backend:', {
-        picId: pic.id,
-        hasPassword: !!cleanPic.password,
-        cleanPic
-      });
-      
       let response;
       if (!pic.id || String(pic.id).startsWith('temp-') || pic.tempId) {
         response = await createAccountPIC(cleanPic);

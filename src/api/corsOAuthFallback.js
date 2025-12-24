@@ -13,7 +13,6 @@ let tokenExpiry = null;
 
 export const getOAuthTokenWithCORSHandling = async () => {
   if (cachedToken && tokenExpiry && new Date() < new Date(tokenExpiry)) {
-    console.log("Using cached OAuth token");
     return cachedToken;
   }
 
@@ -25,34 +24,17 @@ export const getOAuthTokenWithCORSHandling = async () => {
   const credentials = btoa(`${OAUTH_CONFIG.clientId}:${OAUTH_CONFIG.clientSecret}`);
 
   try {
-    console.log("Requesting new OAuth token via proxy...");
-    console.log("OAuth Config:", { 
-      clientId: OAUTH_CONFIG.clientId, 
-      tokenUrl: OAUTH_CONFIG.tokenUrl,
-      grantType: OAUTH_CONFIG.grantType,
-      scope: OAUTH_CONFIG.scope 
-    });
-    
     const response = await axios.post(OAUTH_CONFIG.tokenUrl, params, {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "Authorization": `Basic ${credentials}`
       },
     });
-
-    console.log("OAuth response received:", response.status, response.statusText);
     
     if (response.data && response.data.access_token) {
       cachedToken = response.data.access_token;
       const expiresIn = response.data.expires_in || 3600;
       tokenExpiry = new Date(Date.now() + (expiresIn * 1000));
-      
-      // Log token details for debugging
-      console.log("OAuth token cached successfully:", {
-        tokenLength: cachedToken.length,
-        expiresIn: expiresIn,
-        tokenExpiry: tokenExpiry.toISOString()
-      });
       
       return cachedToken;
     } else {
@@ -70,7 +52,6 @@ export const getOAuthTokenWithCORSHandling = async () => {
 export const clearOAuthToken = () => {
   cachedToken = null;
   tokenExpiry = null;
-  console.log("OAuth token cache cleared");
 };
 
 export const getCurrentToken = () => {

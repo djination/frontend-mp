@@ -59,8 +59,6 @@ export const MassUploadPackageTierButton = ({ onUploadSuccess }) => {
 
         packageTiers.push(tierData);
       }
-
-      console.log('📦 Parsed package tiers:', packageTiers);
       
       // For this use case, we'll just pass the data to the parent for form integration
       // Instead of saving to database immediately

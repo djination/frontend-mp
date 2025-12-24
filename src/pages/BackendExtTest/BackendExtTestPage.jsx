@@ -104,7 +104,6 @@ const BackendExtTestPage = () => {
 
     try {
       // Test 1: Get Machines
-      console.log('Testing getMachines...');
       const machinesResult = await machineApiWithBackendExt.getMachines(1, 5);
       results.getMachines = {
         success: true,
@@ -113,7 +112,6 @@ const BackendExtTestPage = () => {
       };
 
       // Test 2: Get Vendors
-      console.log('Testing getVendors...');
       const vendorsResult = await machineApiWithBackendExt.getVendors();
       results.getVendors = {
         success: true,
@@ -122,7 +120,6 @@ const BackendExtTestPage = () => {
       };
 
       // Test 3: Get Branches
-      console.log('Testing getBranches...');
       const branchesResult = await machineApiWithBackendExt.getBranches();
       results.getBranches = {
         success: true,
@@ -131,7 +128,6 @@ const BackendExtTestPage = () => {
       };
 
       // Test 4: Connection Test
-      console.log('Testing connection...');
       const connectionResult = await machineApiWithBackendExt.testConnection();
       results.testConnection = connectionResult;
 

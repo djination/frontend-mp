@@ -159,18 +159,10 @@ export const logRuleStructure = (rules) => {
       });
     });
     
-    // Log structured representation
-    Object.entries(parentPaths).forEach(([parentPath, values]) => {
-      values.forEach(({key, value}) => {
-        console.log(`    ${key}: ${value}`);
-      });
-      console.log('  }');
-    });
   });
 };
 
-// Helper for debugging tree structure
+// Helper for debugging tree structure (kept for debugging purposes)
 export const logTreeStructure = (treeData) => {
-  console.log('🌳 Tree Structure:');
-  console.log(JSON.stringify(treeData, null, 2));
+  // Intentionally left empty - use browser dev tools to inspect treeData if needed
 };

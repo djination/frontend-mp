@@ -19,14 +19,12 @@ const APITestPage = () => {
   const executeTest = async (testFn, testName) => {
     setLoading(true);
     try {
-      console.log(`Starting test: ${testName}`);
       const result = await testFn();
       setResults(prev => ({
         ...prev,
         [testName]: { success: true, data: result, error: null }
       }));
       message.success(`${testName} successful`);
-      console.log(`${testName} result:`, result);
     } catch (error) {
       console.error(`${testName} failed:`, error);
       setResults(prev => ({

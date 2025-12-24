@@ -78,7 +78,7 @@ const MenuManagementPage = () => {
       try {
         await refreshPermissionsCache();
       } catch (error) {
-        console.log('Failed to refresh permissions cache, but menu was deleted successfully');
+        // Cache refresh failed but menu deletion succeeded
       }
       
       fetchMenus();
@@ -116,7 +116,7 @@ const MenuManagementPage = () => {
         try {
           await refreshPermissionsCache();
         } catch (error) {
-          console.log('Failed to refresh permissions cache, but menu was updated successfully');
+          // Cache refresh failed but menu update succeeded
         }
       } else {
         await createMenu(formData);
@@ -126,7 +126,7 @@ const MenuManagementPage = () => {
         try {
           await refreshPermissionsCache();
         } catch (error) {
-          console.log('Failed to refresh permissions cache, but menu was created successfully');
+          // Cache refresh failed but menu creation succeeded
         }
       }
       

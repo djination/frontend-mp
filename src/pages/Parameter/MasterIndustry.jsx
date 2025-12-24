@@ -29,7 +29,6 @@ const MasterIndustry = () => {
 
   // Fetch initial data
   useEffect(() => {
-    console.log('MasterIndustry component mounted, calling fetchIndustries');
     fetchIndustries();
   }, []);
 
@@ -43,16 +42,13 @@ const MasterIndustry = () => {
         ...params
       };
       
-      console.log('Fetching industries with params:', queryParams);
       const response = await getIndustries(queryParams);
-      console.log('API Response:', response);
       
       // Handle the wrapped response format: {success: true, data: {data: [...], meta: {...}}}
       if (response && response.success && response.data) {
         const responseData = response.data;
         
         if (responseData.data && Array.isArray(responseData.data)) {
-          console.log('Setting data:', responseData.data.length, 'items');
           setData(responseData.data);
           
           if (responseData.meta) {
@@ -61,7 +57,6 @@ const MasterIndustry = () => {
               pageSize: queryParams.limit,
               total: responseData.meta.total || responseData.data.length,
             };
-            console.log('Setting pagination:', newPagination);
             setPagination(newPagination);
           } else {
             const newPagination = {
@@ -69,11 +64,9 @@ const MasterIndustry = () => {
               pageSize: queryParams.limit,
               total: responseData.data.length,
             };
-            console.log('Setting pagination (no meta):', newPagination);
             setPagination(newPagination);
           }
         } else {
-          console.log('No data array in response.data:', responseData);
           setData([]);
           setPagination(prev => ({
             ...prev,
@@ -82,7 +75,6 @@ const MasterIndustry = () => {
         }
       } else if (response && response.data && Array.isArray(response.data)) {
         // Fallback: direct data array format
-        console.log('Direct data array format:', response.data.length, 'items');
         setData(response.data);
         
         if (response.meta) {
@@ -102,7 +94,6 @@ const MasterIndustry = () => {
         }
       } else if (response && Array.isArray(response)) {
         // Handle case where response is directly an array (old format)
-        console.log('Direct array response:', response.length, 'items');
         setData(response);
         const newPagination = {
           current: queryParams.page,
@@ -111,7 +102,6 @@ const MasterIndustry = () => {
         };
         setPagination(newPagination);
       } else {
-        console.log('No valid data in response:', response);
         setData([]);
         setPagination(prev => ({
           ...prev,
@@ -373,8 +363,6 @@ const MasterIndustry = () => {
       for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
         const chunk = chunks[chunkIndex];
         try {
-          console.log(`Processing chunk ${chunkIndex + 1}/${chunks.length} (${chunk.length} items)`);
-          
           // Update progress
           setUploadProgress(Math.round((chunkIndex / chunks.length) * 100));
           

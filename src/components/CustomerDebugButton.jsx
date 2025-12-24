@@ -40,7 +40,6 @@ const CustomerDebugButton = ({
     }
 
     try {
-      console.log('🔍 Starting debug process...');
       const result = await debugData(accountData);
       
       if (result?.success) {
@@ -62,7 +61,6 @@ const CustomerDebugButton = ({
     }
 
     try {
-      console.log('🔄 Starting send process...');
       const result = await sendToAPI(accountData, configId, userId, accountId, false);
       
       if (result?.success) {
@@ -86,7 +84,6 @@ const CustomerDebugButton = ({
     }
 
     try {
-      console.log('🔄 Sending validated data to API...');
       const result = await sendToAPI(accountData, configId, userId, accountId, false);
       
       if (result?.success) {

@@ -92,11 +92,6 @@ const TypeOfBusinessSelector = ({
     // artinya ada external change yang harus kita sync
     if (initialized) {
       if (formTypeOfBusinessId !== selectedChild) {
-        console.log('FORM SYNC: form type_of_business_id different from selectedChild, syncing...', {
-          formValue: formTypeOfBusinessId,
-          currentSelected: selectedChild
-        });
-        
         // Only sync if the form value is valid
         if (formTypeOfBusinessId && childTypes.length > 0) {
           const validChild = childTypes.find(c => c.id === formTypeOfBusinessId);
@@ -105,7 +100,6 @@ const TypeOfBusinessSelector = ({
             setStableValue(formTypeOfBusinessId);
             setSelectedChildData(validChild);
           } else {
-            console.log('FORM SYNC: Invalid form value, clearing selection');
             setSelectedChild(null);
             setStableValue(null);
             setSelectedChildData(null);
@@ -303,14 +297,6 @@ const TypeOfBusinessSelector = ({
             onChange={handleChildChange}
             showSearch
             optionFilterProp="label"
-            onOpenChange={(open) => {
-              if (open) {
-                console.log('🔍 [DEBUG] Child dropdown opened');
-                console.log('🔍 [DEBUG] Current childTypes:', childTypes);
-                console.log('🔍 [DEBUG] SelectedParent:', selectedParent);
-                console.log('🔍 [DEBUG] Loading state:', childLoading);
-              }
-            }}
           >
             {childTypes.map(child => (
               <Option key={child.id} value={child.id} label={child.name}>

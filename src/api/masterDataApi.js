@@ -93,7 +93,6 @@ export const getMachines = async (page = 1, limit = 10) => {
     }
     
     const response = await axios.get(`${API_BASES.MACHINE_QUERY}/query?page=${page}&limit=${limit}`, { headers });
-    console.log("Machines fetched successfully");
     return response.data;
   }, "machines", "Fetching");
 };

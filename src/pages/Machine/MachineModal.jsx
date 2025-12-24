@@ -93,14 +93,10 @@ const MachineModal = ({
       let response;
       
       if (useBackendExt) {
-        console.log('🔄 Fetching service locations via backend-ext...');
         response = await machineApiWithBackendExt.getServiceLocations(1, 100);
       } else {
-        console.log('🔄 Fetching service locations via direct API...');
         response = await getServiceLocations(1, 100); // Get first 100 service locations
       }
-      
-      console.log('Service locations response:', response);
       
       // Handle different response formats
       let locations = [];
@@ -113,7 +109,6 @@ const MachineModal = ({
       }
       
       setServiceLocations(locations);
-      console.log('Service locations set:', locations);
     } catch (error) {
       console.error('Failed to fetch service locations:', error);
       message.error('Failed to load service locations');
@@ -125,25 +120,19 @@ const MachineModal = ({
       setLoading(true);
       const values = await form.validateFields();
       
-      console.log('Submitting machine data:', values);
-      
       let machineResponse;
       
       if (isEdit) {
         if (useBackendExt) {
-          console.log('🔧 Updating machine via backend-ext...');
           machineResponse = await machineApiWithBackendExt.updateMachine(editingMachine.id, values);
         } else {
-          console.log('🔧 Updating machine via direct API...');
           machineResponse = await updateMachine(editingMachine.id, values);
         }
         message.success('Machine updated successfully');
       } else {
         if (useBackendExt) {
-          console.log('🔨 Creating machine via backend-ext...');
           machineResponse = await machineApiWithBackendExt.createMachine(values);
         } else {
-          console.log('🔨 Creating machine via direct API...');
           machineResponse = await createMachine(values);
         }
         message.success('Machine created successfully');
@@ -183,11 +172,9 @@ const MachineModal = ({
           if (masterMachineId) {
             // Update existing master machine
             await updateMasterMachine(masterMachineId, masterMachineData);
-            console.log('✅ Master machine updated');
           } else {
             // Create new master machine
             await createMasterMachine(masterMachineData);
-            console.log('✅ Master machine created');
           }
         } catch (masterError) {
           console.error('Failed to save to master machine:', masterError);

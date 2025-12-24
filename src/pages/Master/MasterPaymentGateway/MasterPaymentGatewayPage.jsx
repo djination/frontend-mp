@@ -26,7 +26,6 @@ const MasterPaymentGatewayPage = () => {
     setLoading(true);
     try {
       const res = await getAllPaymentGateways(params);
-      console.log('Payment Gateway fetch response:', res.data);
       if (Array.isArray(res.data)) {
         setData(res.data);
       } else if (Array.isArray(res.data?.data)) {

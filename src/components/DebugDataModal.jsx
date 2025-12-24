@@ -46,8 +46,7 @@ const DebugDataModal = ({
   const handleCopyToClipboard = (data) => {
     const jsonString = JSON.stringify(data, null, 2);
     navigator.clipboard.writeText(jsonString).then(() => {
-      // You could add a notification here
-      console.log('Data copied to clipboard');
+      message.success('Data copied to clipboard');
     });
   };
 

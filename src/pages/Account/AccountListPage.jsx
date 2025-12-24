@@ -356,13 +356,10 @@ const AccountList = () => {
 
     setSyncLoading(true);
     try {
-      console.log('🔄 Starting sync for account:', selectedAccount.name);
-      
       // Try to get full account details including related data and children
       let accountDataToSync = selectedAccount;
       try {
         const fullAccountData = await getAccountById(selectedAccount.id);
-        console.log('📥 Full account data:', fullAccountData);
         
         // Use full data if available and has more details
         if (fullAccountData?.data) {
@@ -378,14 +375,11 @@ const AccountList = () => {
 
       // Get package tiers for this account (used for tier mapping)
       try {
-        console.log('🔄 Fetching package tiers...');
         const packageTiersResponse = await getPackageTiersByAccount(selectedAccount.id);
         
         if (packageTiersResponse?.data && Array.isArray(packageTiersResponse.data)) {
           accountDataToSync.package_tiers = packageTiersResponse.data;
-          console.log('✅ Found', packageTiersResponse.data.length, 'package tiers');
         } else {
-          console.log('ℹ️ No package tiers found');
           accountDataToSync.package_tiers = [];
         }
       } catch (packageTiersError) {
@@ -394,7 +388,6 @@ const AccountList = () => {
       }
       
       // Sync customer to external API
-      console.log(`🔄 Executing ${syncOperationType} operation for account:`, selectedAccount.name);
       let result = await syncCustomerToExternalApi(
         accountDataToSync, 
         null, // configId - will be auto-detected 
@@ -406,17 +399,8 @@ const AccountList = () => {
       const isTokenErrorRetry = result.details?.isRetryRequested === true && 
                                 result.error?.includes('token error');
       
-      console.log('🔍 Retry check:', {
-        isRetryRequested: result.details?.isRetryRequested,
-        error: result.error,
-        hasTokenError: result.error?.includes('token error'),
-        isTokenErrorRetry,
-        hasCustomerData: !!result.customerData
-      });
-      
       // Handle token error with retry request
       if (isTokenErrorRetry) {
-        console.log('🔄 Token error detected, retrying sync automatically...');
         message.info('Token expired. Retrying sync automatically...', 3);
         
         // Wait a bit before retry to allow token refresh
@@ -434,7 +418,6 @@ const AccountList = () => {
           // Use retry result
           if (retryResult.success) {
             message.success(`Successfully synced customer: ${selectedAccount.name} (after retry)`);
-            console.log('✅ Retry sync result:', retryResult);
             result = retryResult; // Update result for further processing
           } else {
             // If retry also failed, check if we have customerData (partial success)
@@ -477,7 +460,6 @@ const AccountList = () => {
         } else {
           message.warning(`Sync completed with warnings: ${result.error || 'Unknown error - data may have been sent'}`);
         }
-        console.log('✅ Sync result:', result);
         
         // Show detailed success information
         if (result.customerData) {
